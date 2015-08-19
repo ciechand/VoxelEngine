@@ -19,10 +19,10 @@ int main(int argc, char ** argv){
 	/*
 	Reading from options file goes here.	
 	*/
-	Options = *new class GameOptions(1024,768,0,0,1.04f,1.0f,0.01f,15.0f);
+	Options = *new class GameOptions(0,0,1.04f,1.0f,0.01f,15.0f);
 
 	//setup glut window
-	glutInitWindowSize(Options.getWindowSize()[0], Options.getWindowSize()[1]);
+	glutInitWindowSize(1024, 768);
 	glutInitWindowPosition(Options.getWindowPos()[0], Options.getWindowPos()[1]);
 	glutCreateWindow("Cryonyx");
 
@@ -34,7 +34,7 @@ int main(int argc, char ** argv){
 	Init will go here, once i set it up
 	*/
 	InitOpenGL();
-
+	
 	glutKeyboardFunc(ProcessKeyboard);
 	glutDisplayFunc(display);
 	glutPassiveMotionFunc(ProcessPassiveMouseMovement);

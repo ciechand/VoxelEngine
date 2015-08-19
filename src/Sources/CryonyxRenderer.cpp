@@ -150,13 +150,15 @@ void display(){
 	for (uint i = 0; i < Renderer.Objects.size(); i++){
 		drawOBJ(Renderer.Objects[i]);
 	}
+	
+	glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2, glutGet(GLUT_WINDOW_HEIGHT)/2);
 	glutSwapBuffers();
 }
 
 void drawOBJ(class Object * obj){
 	glBindVertexArray(obj->renderer->vertexArray);
-	glm::mat4 mv = glm::lookAt(glm::vec3(2.0f,2.0f,2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
-	mv = Renderer.mvTrans  * Renderer.mvScale * Renderer.mvRot * mv;
+	Renderer.viewMatrix =  glm::lookAt(glm::vec3(2.0f,2.0f,2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
+	glm::mat4 mv = Renderer.modelMatrices[Translate]  * Renderer.modelMatrices[Scale] * Renderer.modelMatrices[Rotate] * Renderer.viewMatrix;
 	float * vars = Options.getProjVar();
 	glm::mat4 p = glm::perspective(vars[0], vars[1], vars[2], vars[3]);
 	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "mv"), 1, GL_FALSE, &mv[0][0]);

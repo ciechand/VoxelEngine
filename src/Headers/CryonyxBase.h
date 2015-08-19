@@ -19,6 +19,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
 
 
 #include "CryonyxUtil.h"
@@ -36,19 +37,22 @@ using namespace glm;
 // Paused = 2
 // Running = 3
 // Possbily more will be needed.
-enum States{ Loading, Menu, Paused, Running};
+enum States{Loading, Menu, Paused, Running};
 //an enumeration of the attributes
 enum Attribs{Position, Normal, Texture};
+
+//Enum for matrix transforms 
+enum TFS{Translate, Scale, Rotate}; 
 
 //A class that will hold the state of the game, if its paused or running etc...
 class GameState{
 private:
 	short state;
-	int * mousePos;
+	float * mousePos;
 public:
 	GameState();
-	void setMousePos(int x, int y);
-	int * getMousePos();
+	void setMousePos(float x, float y);
+	float * getMousePos();
 	void SetState(int newState);
 };
 
@@ -63,32 +67,29 @@ public:
 
 class GameOptions{
 private:
-	int windowSize[2];
 	int windowPos[2];
 	float projVar[4];
 public:
 	glm::mat4 projectionMatrix;
-	int * getWindowSize();
-	void setWindowSize(int width, int height);
 	int * getWindowPos();
 	void setWindowPos(int x, int y);
 	float * getProjVar();
 	void setProjVar(float pov, float aspect, float nearPlane, float farPlane);
 	GameOptions();
-	GameOptions(int width, int height, int posx, int posy, float pov, float aspect, float np, float fp);
+	GameOptions(int posx, int posy, float pov, float aspect, float np, float fp);
 };
 
 class GameRenderer{
 private:
 	GLuint shaderProgram;
 public:
-	glm::mat4 mvTrans;
-	glm::mat4 mvRot;
-	glm::mat4 mvScale;
+	std::vector<glm::mat4> modelMatrices;
+	glm::mat4 viewMatrix;
 	glm::mat4 projection;
 	std::vector <class Object *> Objects;
 	void LoadShaderProgram(char * vShader, char * fShader);
 	GLuint getShaderProgram();
+	GameRenderer();
 };
 
 

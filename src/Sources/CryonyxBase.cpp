@@ -3,18 +3,18 @@
 //Initializer for the GameState Object
 GameState::GameState(){
 	state = Loading;
-	mousePos = new int[2];
-	mousePos[0] = Options.getWindowSize()[0]/2;
-	mousePos[1] = Options.getWindowSize()[1]/2;
+	mousePos = new float[2];
+	mousePos[0] = 0.5f;
+	mousePos[1] = 0.5f;
 }
 
 //getter and setter for the mousepos
-void GameState::setMousePos(int x, int y){
+void GameState::setMousePos(float x, float y){
 	mousePos[0] = x;
 	mousePos[1] = y;
 }
 
-int * GameState::getMousePos(){
+float * GameState::getMousePos(){
 	return mousePos;
 }
 
@@ -32,13 +32,6 @@ Object::Object(char * objFileName, char * texFileName){
 }
 
 
-int * GameOptions::getWindowSize(){
-	return windowSize;
-}
-void GameOptions::setWindowSize(int width, int height){
-	windowSize[0] = width;
-	windowSize[1] = height;
-}
 int * GameOptions::getWindowPos(){
 	return windowPos;
 }
@@ -58,9 +51,7 @@ void GameOptions::setProjVar(float pov, float aspect, float nearPlane, float far
 GameOptions::GameOptions(){
 
 }
-GameOptions::GameOptions(int width, int height, int posx, int posy, float pov, float aspect, float np, float fp){
-	windowSize[0] = width;
-	windowSize[1] = height;
+GameOptions::GameOptions(int posx, int posy, float pov, float aspect, float np, float fp){
 	windowPos[0] = posx;
 	windowPos[1] = posy;
 	projVar[0] = pov;
@@ -78,8 +69,18 @@ GLuint GameRenderer::getShaderProgram(){
 	return shaderProgram;
 }
 
+GameRenderer::GameRenderer(){
+	modelMatrices.push_back(glm::mat4());
+	modelMatrices.push_back(glm::mat4());
+	modelMatrices.push_back(glm::mat4());
+	modelMatrices.push_back(glm::mat4());
+	viewMatrix = glm::mat4();
+	projection = glm::mat4();
+
+}
+
 void InitOpenGL(){
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	Renderer.LoadShaderProgram("./src/Sources/vShader.glsl", "./src/Sources/fShader.glsl");
 	Renderer.Objects.push_back(new Object("./Assets/Blocks/cube.obj","./Assets/Blocks/cube.bmp"));
 	for (uint i = 0; i < Renderer.Objects.size(); i++){
@@ -87,6 +88,8 @@ void InitOpenGL(){
 	}
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(1.0,1.0,1.0,1.0);
+	glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2, glutGet(GLUT_WINDOW_HEIGHT)/2);
+	glutSetCursor(GLUT_CURSOR_NONE);
 
 }
 

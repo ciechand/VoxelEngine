@@ -8,13 +8,29 @@ void ProcessMouseClicks(int button, int state, int x, int y){
 
 //function that will process the passive mouse movement.
 void ProcessPassiveMouseMovement(int x, int y){
-	int mousePos[2] = { x-State.getMousePos()[0], y-State.getMousePos()[1] };
-	(mousePos[0] >= 30)? mousePos[0] = 30: (mousePos[0] <= -30)? mousePos[0] = -30: mousePos[0] = mousePos[0];
-	(mousePos[1] >= 30) ? mousePos[1] = 30 : (mousePos[1] <= -30) ? mousePos[1] = -30 : mousePos[1] = mousePos[1];
-	Renderer.mvRot = glm::rotate(Renderer.mvRot,  mousePos[0]* (PI/180)*0.3f, vec3(glm::inverse(Renderer.mvRot) * glm::inverse(Renderer.mvTrans) *  vec4(0.0f, 1.0f, 0.0f,0.0f)));
-	Renderer.mvRot = glm::rotate(Renderer.mvRot, mousePos[1] * (PI / 180)*0.3f, vec3(glm::inverse(Renderer.mvRot) * glm::inverse(Renderer.mvTrans) *  vec4(1.0f, 0.0f, 0.0f, 0.0f)));
-	State.setMousePos(x,y);
+	printf("%d\n", y);
+	int ws[2] = {glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)};
+	float * mousepos = State.getMousePos();
+	int curx=(x-(ws[0]/2)), cury=(y-(ws[1]/2));
+	float curxper=(((float)curx)/ws[0]), curyper=(((float)cury)/ws[1]);
+
+
+	glm::mat4 rotations = glm::mat4();
+	if(x<(ws[0]/2)-1 || x>(ws[0]/2)+1 || y<(ws[1]/2)-1 || y>(ws[1]/2)+1){
+		mousepos[0] += curxper*0.5;
+		mousepos[1] += curyper*0.5;
+	}
+	(mousepos[0] > 1.0f)? mousepos[0] -= 1.0f: (mousepos[0] < 0.0f)? mousepos[0] += 1.0f: mousepos[0] = mousepos[0];
+	(mousepos[1] > 1.0f)? mousepos[1] = 1.0f: (mousepos[1] < 0.0f)? mousepos[1] = 0.0f: mousepos[1] = mousepos[1];
+	
+	rotations = glm::rotate(rotations, (mousepos[0]*2*PI), glm::vec3(0.0f,1.0f,0.0f));
+	rotations = glm::rotate(rotations, (mousepos[1]*PI)-(PI/2), glm::vec3(1.0f,0.0f,0.0f));
+
+	Renderer.modelMatrices[Rotate] = rotations;
+	State.setMousePos(mousepos[0], mousepos[1]);
+
 	glutPostRedisplay();
+
 }
 
 void ProcessActiveMouseMovement(int x, int y){
