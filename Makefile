@@ -1,7 +1,7 @@
-TARGETC = ./src/Sources/Cryonyx.cpp ./src/Sources/CryonyxBase.cpp ./src/Sources/CryonyxRenderer.cpp ./src/Sources/CryonyxUtil.cpp
+TARGETC = $(wildcard ./src/Sources/*.cpp)
 TARGETEXE = ./Cryonyx.exe
-FLAGS = 
-INC =  -lglu32 -lopengl32 -lgdi32 -lglew32 -lfreeglut 
+FLAGS = -std=c++11
+INC =  -lboost_filesystem-mgw48-mt-1_59 -lboost_system-mgw48-mt-1_59 -lglu32 -lopengl32 -lgdi32 -lglew32 -lfreeglut 
 
 all: compile
 
