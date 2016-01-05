@@ -78,7 +78,7 @@ GameOptions::GameOptions(){
 				if(is_directory(d)){
 					for(directory_entry& d2 : directory_iterator(d)){
 						if(is_regular_file(d2)){
-							if(d2.path().string().compare(d2.path().string().size()-4,4,".bmp") == 0 ||d2.path().string().compare(d2.path().string().size()-4,4,".BMP") == 0 ){
+							if(d2.path().string().compare(d2.path().string().size()-4,4,".png") == 0 ||d2.path().string().compare(d2.path().string().size()-4,4,".BMP") == 0 ){
 								texturePaths.push_back(d2.path().string());
 							}else if(d2.path().string().compare(d2.path().string().size()-4,4,".obj") == 0 ){
 								modelPaths.push_back(d2.path().string());
@@ -100,6 +100,10 @@ GameOptions::GameOptions(){
 	projVar[1] = 1.0f;
 	projVar[2] = 0.01f;
 	projVar[3] = 200.0f;
+
+	camPos[0] = 5.0f;
+	camPos[1] = 2.0f;
+	camPos[2] = 20.0f;
 }
 
 GameOptions::GameOptions(const char * optionsFileName){
@@ -118,6 +122,7 @@ void GameOptions::Initialize(){
 
 	std::cout << "Finished Loading Models" << std::endl << "Loading Textures: " << std::endl;
 	for(int i=0; i<texturePaths.size(); i++){
+		std::cout << texturePaths[i] << " Loaded" << std::endl;
 		Renderer.addToTextureList(texturePaths[i].c_str());
 	} 
 	std::cout << "Finished Loading Textures" <<  std::endl;
@@ -133,6 +138,18 @@ void GameOptions::setProjVars(float * vars){
 float * GameOptions::getProjVars(){
 	return projVar;
 }
+
+
+void GameOptions::setCamPos(float * pos){
+	camPos[0] = pos[0];
+	camPos[1] = pos[1];
+	camPos[2] = pos[2];
+}
+
+float * GameOptions::getCamPos(){
+	return camPos;
+}
+
 
 void GameOptions::addMPaths(std::string path){
 	modelPaths.push_back(path);
@@ -155,14 +172,13 @@ std::vector<std::string> GameOptions::getTPaths(){
 }
 
 GameRenderer::GameRenderer(){
-	ViewMatrix = glm::mat4();
+	ViewMatrix = glm::lookAt(glm::vec3(15.0f, 20.0f, 20.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
 	ProjectionMatrix = glm::mat4();
 }
 
 void GameRenderer::Initialize(){
 	shaderProgram = createShadersProgram("./src/Source/VertexShader.glsl", "./src/Source/FragmentShader.glsl");
-	IOBJ *  OB = new IOBJ();
-	addToIObjectList(OB);
+	glActiveTexture(GL_TEXTURE0);
 }
 
 void GameRenderer::setShaderProgram(const char * vertexPath, const char * fragmentPath){
@@ -208,10 +224,12 @@ std::vector<IOBJ *> GameRenderer::getIObjectList(){
 IOBJ * GameRenderer::getIObject(int index){
 	return InstancedObjectsList[index];
 
-}
+} 
 
 void GameRenderer::addToTextureList(const char * textureFile){
-	GLuint tempTex = 0;
+	GLuint tempTex;
+	glGenTextures(1, &tempTex);
+	glBindTexture(GL_TEXTURE_2D, tempTex);
 	loadBMP(textureFile, &tempTex);
 	TextureList.push_back(tempTex);
 }
@@ -232,13 +250,14 @@ void InitOpenGL(){
 	std::cout << "Begin Init" << std::endl;
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glEnable(GL_TEXTURE_2D);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(1.0,1.0,1.0,1.0);
 	glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2, (glutGet(GLUT_WINDOW_HEIGHT)/2));
 	glutSetCursor(GLUT_CURSOR_NONE);
-
 	Renderer.Initialize();
 	Options.Initialize();
-
 	testingChunk.Init();
 
 	std::cout << "End Init" << std::endl;

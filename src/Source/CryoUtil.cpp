@@ -14,22 +14,21 @@ void ProcessPassiveMouseMovement(int x, int y){
 	int curx=(x-(ws[0]/2)), cury=(y-(ws[1]/2));
 	float curxper=(((float)curx)/ws[0]), curyper=(((float)cury)/ws[1]);
 
-
-	glm::mat4 rotations = glm::mat4();
-	if(x<(ws[0]/2)-1 || x>(ws[0]/2)+1 || y<(ws[1]/2)-1 || y>(ws[1]/2)+1){
-		mousepos[0] += curxper*0.5;
-		mousepos[1] += curyper*0.5;
-	}
-	(mousepos[0] > 1.0f)? mousepos[0] -= 1.0f: (mousepos[0] < 0.0f)? mousepos[0] += 1.0f: mousepos[0] = mousepos[0];
-	(mousepos[1] > 1.0f)? mousepos[1] = 1.0f: (mousepos[1] < 0.0f)? mousepos[1] = 0.0f: mousepos[1] = mousepos[1];
+	//mousepos[0] = curx*0.1f;
+	//mousepos[1] = cury*0.1f;
+	//glm::mat4 rotations = glm::mat4();
+	//if(x<(ws[0]/2)-1 || x>(ws[0]/2)+1 || y<(ws[1]/2)-1 || y>(ws[1]/2)+1){
+		//mousepos[0] += curxper*LOOKSPEED;
+		//mousepos[1] += curyper*LOOKSPEED;
+	//}
+	//(mousepos[0] > 1.0f)? mousepos[0] -= 1.0f: (mousepos[0] < 0.0f)? mousepos[0] += 1.0f: mousepos[0] = mousepos[0];
+	//(mousepos[1] > 1.0f)? mousepos[1] = 1.0f: (mousepos[1] < 0.0f)? mousepos[1] = 0.0f: mousepos[1] = mousepos[1];
 	
-	rotations = glm::rotate(rotations, (mousepos[0]*2*PI), glm::vec3(0.0f,1.0f,0.0f));
-	rotations = glm::rotate(rotations, (mousepos[1]*PI)-(PI/2), glm::vec3(1.0f,0.0f,0.0f));
+	float * cam = Options.getCamPos();
 
-	//Renderer.setViewMatrix(rotations * glm::lookAt(glm::vec3(10.0f,10.0f,2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f)));
-	Renderer.setViewMatrix( glm::lookAt(glm::vec3(0.0f,0.0f,20.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f)));
-
-	State.setCamPos(mousepos[0], mousepos[1]);
+	//Renderer.setViewMatrix(glm::lookAt(glm::vec3(cam[0],cam[1],cam[2]), glm::vec3(cam[0],cam[1],cam[2])+glm::vec3(cos(mousepos[0])*sin(mousepos[1]),sin(mousepos[1]), cos(mousepos[0])*cos(mousepos[1])), glm::vec3(0.0f,1.0f,0.0f)));
+	Renderer.setViewMatrix(glm::lookAt(glm::vec3(10.0f, 20.0f, 14.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f)));
+	// State.setCamPos(mousepos[0], mousepos[1]);
 
 	glutPostRedisplay();
 
@@ -41,11 +40,25 @@ void ProcessActiveMouseMovement(int x, int y){
 
 //Function for processing the keyboard inputs utilizing glut.
 void ProcessKeyboard(unsigned char key, int x, int y){
+	glm::mat4 vmat = Renderer.getViewMatrix();
 	switch (key){
 		case 033:	
 			exit(EXIT_SUCCESS);
 			break;
+		case 'a':
+			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(0.1f,0.0f,0.0f,0.0f))));
+			break;
+		case 'd':
+			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(-0.1f,0.0f,0.0f,0.0f))));
+			break;
+		case 'w':
+			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(0.0f,0.0f,0.1f,0.0f))));
+			break;
+		case 's':
+			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(0.0f,0.0f,-0.1f,0.0f))));
+			break;
 	}
+	glutPostRedisplay();
 }
 
 // Create a NULL-terminated string by reading the provided file
@@ -154,7 +167,6 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 			indexMap[v] = index;
 		}
 	};
-	std::cout << "Printing size of Objects: " << Object->getModelMatrices().size() << std::endl;
 	//The vectors must be re-applied so that the order is correct in correspondence with the new index array.
 	Object->setVertices(verts);
 	Object->setVertexNormals(norms);
@@ -162,51 +174,123 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 	std::cout << "Finnished Loading in Asset of : " << fileName << std::endl;
 }
 
-//Function to load in a BMP for texture mapping
-void loadBMP(const char * fileName, GLuint * TextureID){
-	int width = 0;
-	int height = 0;
-	short BitsPerPixel = 0;
-	std::vector<unsigned char> Pixels;
+void loadBMP(const char * fileName, GLuint * textureID){
+	//header for testing if it is a png
+	png_byte header[8];
 
-	std::cout << "Adding Texture " << fileName << std::endl;
+	//open file as binary
+	FILE *fp = fopen(fileName, "rb");
+	if (!fp) {
+		
+	}
 
-	 std::fstream hFile(fileName, std::ios::in | std::ios::binary);
-    if (!hFile.is_open()) throw std::invalid_argument("Error: File Not Found.");
+	//read the header
+	fread(header, 1, 8, fp);
 
-    hFile.seekg(0, std::ios::end);
-    int Length = hFile.tellg();
-    hFile.seekg(0, std::ios::beg);
-    std::vector<std::uint8_t> FileInfo(Length);
-    hFile.read(reinterpret_cast<char*>(FileInfo.data()), 54);
+	//test if png
+	int is_png = !png_sig_cmp(header, 0, 8);
+	if (!is_png) {
+		fclose(fp);
+		perror("TEXTURE LOAD ERROR 1");
+	}
 
-    if(FileInfo[0] != 'B' && FileInfo[1] != 'M')
-    {
-        hFile.close();
-        throw std::invalid_argument("Error: Invalid File Format. Bitmap Required.");
-    }
+	//create png struct
+	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL,
+	NULL, NULL);
+	if (!png_ptr) {
+		fclose(fp);
+		perror("TEXTURE LOAD ERROR 2");
+	}
 
-    if (FileInfo[28] != 24 && FileInfo[28] != 32)
-    {
-        hFile.close();
-        throw std::invalid_argument("Error: Invalid File Format. 24 or 32 bit Image Required.");
-    }
+	//create png info struct
+	png_infop info_ptr = png_create_info_struct(png_ptr);
+	if (!info_ptr) {
+		png_destroy_read_struct(&png_ptr, (png_infopp) NULL, (png_infopp) NULL);
+		fclose(fp);
+		perror("TEXTURE LOAD ERROR 3");
+	}
 
-    BitsPerPixel = FileInfo[28];
-    width = FileInfo[18] + (FileInfo[19] << 8);
-    height = FileInfo[22] + (FileInfo[23] << 8);
-    std::uint32_t PixelsOffset = FileInfo[10] + (FileInfo[11] << 8);
-    std::uint32_t size = ((width * BitsPerPixel + 31) / 32) * 4 * height;
-    Pixels.resize(size);
+	//create png info struct
+	png_infop end_info = png_create_info_struct(png_ptr);
+	if (!end_info) {
+		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp) NULL);
+		fclose(fp);
+		perror("TEXTURE LOAD ERROR 4");
+	}
 
-    hFile.seekg (PixelsOffset, std::ios::beg);
-    hFile.read(reinterpret_cast<char*>(Pixels.data()), size);
-    hFile.close();
+	//png error stuff, not sure libpng man suggests this.
+	if (setjmp(png_jmpbuf(png_ptr))) {
+		png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+		fclose(fp);
+		perror("TEXTURE LOAD ERROR 5");
+	}
 
+	//init png reading
+	png_init_io(png_ptr, fp);
 
-	glBindTexture(GL_TEXTURE_2D, *TextureID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, Pixels.data());
+	//let libpng know you already read the first 8 bytes
+	png_set_sig_bytes(png_ptr, 8);
 
+	// read all the info up to the image data
+	png_read_info(png_ptr, info_ptr);
+
+	//variables to pass to get info
+	int bit_depth, color_type;
+	png_uint_32 twidth, theight;
+
+	// get info about png
+	png_get_IHDR(png_ptr, info_ptr, &twidth, &theight, &bit_depth, &color_type,
+	NULL, NULL, NULL);
+
+	//update width and height based on png info
+	int width = twidth;
+	int height = theight;
+
+	// Update the png info struct.
+	png_read_update_info(png_ptr, info_ptr);
+
+	// Row size in bytes.
+	int rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+
+	// Allocate the image_data as a big block, to be given to opengl
+	png_byte *image_data = new png_byte[rowbytes * height];
+	if (!image_data) {
+		//clean up memory and close stuff
+		png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+		fclose(fp);
+		perror("TEXTURE LOAD ERROR 6");
+	}
+
+	//row_pointers is for pointing to image_data for reading the png with libpng
+	png_bytep *row_pointers = new png_bytep[height];
+	if (!row_pointers) {
+		//clean up memory and close stuff
+		png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+		delete[] image_data;
+		fclose(fp);
+		perror("TEXTURE LOAD ERROR 7");
+	}
+	// set the individual row_pointers to point at the correct offsets of image_data
+	for (int i = 0; i < height; ++i)
+		row_pointers[height - 1 - i] = image_data + i * rowbytes;
+
+	//read the png into image_data through row_pointers
+	png_read_image(png_ptr, row_pointers);
+
+	//Now generate the OpenGL texture object
+	glBindTexture(GL_TEXTURE_2D, *textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	//clean up memory and close stuff
+	png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+	delete[] image_data;
+	delete[] row_pointers;
+	fclose(fp);
+ 
 }
 
 // Create a GLSL program object from vertex and fragment shader files
@@ -280,6 +364,14 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
 	// use program object
 	glUseProgram(program);
 	return program;
+}
+
+bool compBlockDist(glm::mat4 a, glm::mat4 b){
+	float * camPos = Options.getCamPos();
+	float dista = sqrt((a[3][0]-camPos[0])+(a[3][1]-camPos[1])+(a[3][2]-camPos[2]));
+	float distb = sqrt((b[3][0]-camPos[0])+(b[3][1]-camPos[1])+(b[3][2]-camPos[2]));
+	return (dista>distb)?true:false;
+
 }
 
 //Below are functions for printing matrices.

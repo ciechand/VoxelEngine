@@ -6,15 +6,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <fstream>
 #include <math.h>
 #include <vector>
 #include <string>
 #include <cstring>
 #include <map>
+#include <png.h>
 
 #include <GL/glew.h>
 #include <GL/glu.h>
-#include <GL/glut.h>
 #include <GL/freeglut.h>
 
 #include <glm/glm.hpp>
@@ -26,14 +27,14 @@
 // GLOBAL CONSTANT DEFINITIONS
 #define PI 3.1415926535f
 #define TEXDIMS 16
-#define NUMTEXX 100
-#define NUMTEXY	150
+#define NUMTEX 100
 #define BLOCKSCALE 2.0f
-#define CHUNKDIMS 4
-#define CHUNKHEIGHT 3
+#define CHUNKDIMS 5
+#define CHUNKHEIGHT 5
+#define LOOKSPEED 0.01f
 
 //MACROS
-#define BUFFER_OFFSET(offset) ((GLvoid*) (offset))
+#define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
 
 #ifndef Base
 #define Base
@@ -65,7 +66,7 @@ enum TransformMatrixAtributes{Translate, Scale, Rotate};
 // [2] = Texture Coords
 //NOTE: also the order they are in the VBO array.
 
-enum VertexAttributes{Positions, Normals, Textures};
+enum VertexAttributes{Positions, Normals, Textures, ModelMatrices, TexturePos};
 
 //Enum for faces of cube for texture mapping.
 // [0] = Front
@@ -123,6 +124,7 @@ public:
 typedef class GameOptions{
 private:
 	float projVar[4];
+	float camPos[3];
 	std::vector<std::string> modelPaths;
 	std::vector<std::string> texturePaths;
 public:
@@ -133,6 +135,9 @@ public:
 
 	void setProjVars(float * vars);
 	float * getProjVars();
+
+	void setCamPos(float * pos);
+	float * getCamPos();
 
 	void addMPaths(std::string path);
 	void clearMPaths();

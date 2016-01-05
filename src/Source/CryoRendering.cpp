@@ -1,7 +1,8 @@
 #include "../Headers/CryoBase.hpp"
 
 InstancedObject::InstancedObject(){
-	vertexAttribs.assign(3,0);
+	vertexAttribs.assign(4,0);
+	vertexUniforms.assign(2,0);
 }
 
 void InstancedObject::Initialize(){
@@ -10,7 +11,7 @@ void InstancedObject::Initialize(){
 	glBindVertexArray(vertexArrayObject);
 
 	//setup for the vertex and normal arrays.
-	glGenBuffers(3, &vertexBufferObjects[0]);
+	glGenBuffers(4, &vertexBufferObjects[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[0]);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec4) + vertexNormals.size()*sizeof(glm::vec4), NULL, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), &vertices[0]);
@@ -25,72 +26,83 @@ void InstancedObject::Initialize(){
 	glVertexAttribPointer(vertexAttribs[Normals], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
 
 	//Start with binding and setup of textures.
+	vertexAttribs[Textures] = glGetAttribLocation(Renderer.getShaderProgram(), "textureCoordinatesIn");
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[1]);
 
 	glBufferData(GL_ARRAY_BUFFER, textureCoords.size() * sizeof(glm::vec2), NULL, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), &textureCoords[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size() * sizeof(glm::vec2), &textureCoords[0]);
+
+	glEnableVertexAttribArray(vertexAttribs[Textures]);
+	glVertexAttribPointer(vertexAttribs[Textures], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	//model matrices
+	GLsizei ullisize = sizeof(unsigned long long int);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, modelMatrices.size()*sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, modelMatrices.size()*sizeof(glm::mat4), &modelMatrices[0]);
+	glBufferData(GL_ARRAY_BUFFER, (modelMatrices.size()*sizeof(glm::mat4)), NULL, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (modelMatrices.size()*sizeof(glm::mat4)), &modelMatrices[0]);
 
+	vertexAttribs[ModelMatrices] = glGetAttribLocation(Renderer.getShaderProgram(), "modelMatrix");
  	GLsizei vec4Size = sizeof(glm::vec4);
-    glEnableVertexAttribArray(0); 
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, BUFFER_OFFSET(0));
+ 	
+    glEnableVertexAttribArray(vertexAttribs[ModelMatrices]); 
+    glVertexAttribPointer(vertexAttribs[ModelMatrices], 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET(ullisize));
     glEnableVertexAttribArray(1); 
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, BUFFER_OFFSET(vec4Size));
+    glVertexAttribPointer(vertexAttribs[ModelMatrices]+1, 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET((vec4Size)+ullisize));
     glEnableVertexAttribArray(2); 
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, BUFFER_OFFSET(vec4Size*2));
+    glVertexAttribPointer(vertexAttribs[ModelMatrices]+2, 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET((vec4Size*2)+ullisize));
     glEnableVertexAttribArray(3); 
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size,BUFFER_OFFSET(vec4Size*3));
-    glVertexAttribDivisor(0, 1);
-    glVertexAttribDivisor(1, 1);
-    glVertexAttribDivisor(2, 1);
-    glVertexAttribDivisor(3, 1);
+    glVertexAttribPointer(vertexAttribs[ModelMatrices]+3, 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET((vec4Size*3)+ullisize));
+    glVertexAttribDivisor(vertexAttribs[ModelMatrices], 1);
+    glVertexAttribDivisor(vertexAttribs[ModelMatrices]+1, 1);
+    glVertexAttribDivisor(vertexAttribs[ModelMatrices]+2, 1);
+    glVertexAttribDivisor(vertexAttribs[ModelMatrices]+3, 1);
 
-	//vertexUniforms.push_back(glGetUniformLocation(Renderer.getShaderProgram(), "textureSample"));
+    //model matrices
+    vertexAttribs[TexturePos] = glGetAttribLocation(Renderer.getShaderProgram(), "texPosIn");
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[3]);
+	glBufferData(GL_ARRAY_BUFFER, (materials.size()*sizeof(int))+(modelMatrices.size()*sizeof(unsigned long long int)), NULL, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (materials.size()*sizeof(int))+(modelMatrices.size()*sizeof(unsigned long long int)), &materials[0]);
 
-	//THIS MAY NEED TO BE CHANGED IF YOU END UP USING MORE THAN ONE UNIFORM LIKE THIS
-	//glUniform1i(vertexUniforms[0], 0);
+    glEnableVertexAttribArray(vertexAttribs[TexturePos]); 
+    glVertexAttribPointer(vertexAttribs[TexturePos], 1, GL_INT, GL_FALSE, sizeof(int), BUFFER_OFFSET(0));
+    glVertexAttribDivisor(vertexAttribs[TexturePos], 1);
 
-	// vertexAttribs[2] = glGetAttribLocation(Renderer.getShaderProgram(), "textureCoordinatesIn");
-	// glEnableVertexAttribArray(vertexAttribs[Textures]);
-	// glVertexAttribPointer(vertexAttribs[Textures], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+	vertexUniforms[1] = glGetUniformLocation(Renderer.getShaderProgram(), "TexSize");
+	glUniform1i(vertexUniforms[1], (int)NUMTEX);
 
-	// /*TEXTURE CODE WILL GO HERE*/
-	// glGenTextures(1, &vertexBufferObjects[3]);
-	// glBindTexture(GL_TEXTURE_2D, vertexBufferObjects[3]);
-	// glActiveTexture(vertexBufferObjects[3]);
+	vertexUniforms[0] = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
+	glUniform1i(vertexUniforms[0], 0);
 
-	// // Poor filtering. Needed !
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 	glGenBuffers(1, &elementBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indices.size() * sizeof(GLuint), &indices[0]);
 
+	glm::mat4 p = glm::perspective(Options.getProjVars()[0],Options.getProjVars()[1],Options.getProjVars()[2],Options.getProjVars()[3]);
+	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
+
+	viewLoc = glGetUniformLocation(Renderer.getShaderProgram(), "viewMatrix");
 }
 
 void InstancedObject::drawOBJ(){
 	if(modelMatrices.size() != 0){
-		Update();
 		glBindVertexArray(vertexArrayObject);
-		glm::mat4 p = glm::perspective(Options.getProjVars()[0],Options.getProjVars()[1],Options.getProjVars()[2],Options.getProjVars()[3]);
-		glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
-		glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "viewMatrix"), 1, GL_FALSE, &Renderer.getViewMatrix()[0][0]);
-
+		Update();
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &Renderer.getViewMatrix()[0][0]);
 		glDrawElementsInstanced(GL_TRIANGLES, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrices.size());
 	}
 }
 
 void InstancedObject::Update(){
-	glBindVertexArray(vertexArrayObject);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, modelMatrices.size()*sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, modelMatrices.size()*sizeof(glm::mat4), &modelMatrices[0]);
+	glBufferData(GL_ARRAY_BUFFER, (modelMatrices.size()*sizeof(glm::mat4))+(modelMatrices.size()*sizeof(unsigned long long int)), NULL, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (modelMatrices.size()*sizeof(glm::mat4))+(modelMatrices.size()*sizeof(unsigned long long int)), &modelMatrices[0]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[3]);
+	glBufferData(GL_ARRAY_BUFFER, materials.size()*sizeof(int), NULL, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, materials.size()*sizeof(int), &materials[0]);
+
 }
 
 void InstancedObject::setVertexArrayObject(GLuint VAO){
@@ -186,7 +198,7 @@ void InstancedObject::setTextureCoords(std::vector<glm::vec2> texCoords){
 }
 
 void InstancedObject::addTextureCoords(glm::vec2 texcoord){
-	textureCoords.push_back(texcoord);
+	textureCoords.push_back(glm::vec2(texcoord[0],texcoord[1]));
 }
 
 void InstancedObject::clearTextureCoords(){
@@ -214,16 +226,28 @@ std::vector<GLuint> InstancedObject::getIndices(){
 	return indices;
 }
 
-void InstancedObject::addModelMatrices(glm::mat4 matrix){
-	modelMatrices.push_back(matrix);
+void InstancedObject::addModelMatrices(unsigned long long int identifier, glm::mat4 matrix){
+	modelMatrices.push_back(std::pair<unsigned long long int, glm::mat4>(identifier, matrix));
 }
 
 void InstancedObject::clearModelMatrices(){
 	modelMatrices.clear();
 }
 
-std::vector<glm::mat4> InstancedObject::getModelMatrices(){
+std::vector<std::pair<unsigned long long int, glm::mat4> > InstancedObject::getModelMatrices(){
 	return modelMatrices;
+}
+
+void InstancedObject::addMaterial(int material){
+	materials.push_back(material);
+}
+
+void InstancedObject::clearMaterials(){
+	materials.clear();
+}
+
+std::vector<int> InstancedObject::getMaterials(){
+	return materials;
 }
 
 

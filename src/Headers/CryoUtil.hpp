@@ -19,6 +19,9 @@ void loadBMP(const char * fileName, GLuint * textureID);
 //Function for loading in the two shader programs, compiling them and spitting out the GLuint.
 GLuint createShadersProgram(const char* vsFile, const char* fsFile);
 
+//Function for comparing two block distances from the camera.
+bool compBlockDist(glm::mat4 a, glm::mat4 b);
+
 //Ways of printing matrices and vertices. (Functions will be added as necessary)
 void printMatrix(glm::mat4 matrix);
 void printMatrix(glm::mat3 matrix);
