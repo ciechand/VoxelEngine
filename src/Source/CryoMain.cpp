@@ -1,31 +1,23 @@
 #include "../Headers/CryoBase.hpp"
 
+sf::Window mainWindow;
+
 GRend Renderer;
 OPT Options;
 GState State;
-Chunk testingChunk;
+Chunk testingChunk[9];
 
 int main (int argc, char ** argv){
-	//First things first, init Glut (The main windowing extention that I am using)
-	glutInit(&argc, argv);
+	//First things first, int Glut (The main windowing extention that I am using)
+	sf::ContextSettings set;
+	set.depthBits = 24;
+	mainWindow.create(sf::VideoMode(1024,768), "Cryonyx", sf::Style::Default, set);
 
 	std::cout << "Starting Program" << std::endl; 
 	std::cout.flush();
-	
-	//Setup the way glut will be displaying things.
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-
-	//init some glut version things.
-	glutInitContextVersion(3, 2);
-	glutInitContextFlags(GLUT_FORWARD_COMPATIBLE);
 
 	//Create and Initiate the global options for the program, all the reading from file is done within the constructor.
 	//Options = *new class GameOptions("./Cryoptions.config");
-
-	//setup glut window, in the future the hard-coded values will be replaces with the options from the options class.
-	glutInitWindowSize(1024, 768);
-	glutInitWindowPosition(10,10);
-	glutCreateWindow("Cryonyx");
 
 	//setting up glew
 	glewExperimental = GL_TRUE; //This is so that experimental drivers will be checked as well.
@@ -33,14 +25,38 @@ int main (int argc, char ** argv){
 
 	InitOpenGL();
 
-	//Processing the glut functions.
-	glutKeyboardFunc(ProcessKeyboard);
-	glutDisplayFunc(display);
-	glutPassiveMotionFunc(ProcessPassiveMouseMovement);
-	glutMotionFunc(ProcessActiveMouseMovement);
+	while(State.getState() != Exiting){
+		sf::Event event;
+		while(mainWindow.pollEvent(event)){
+			switch(event.type){
+				case sf::Event::Closed:
+					mainWindow.close();
+					return 0;
+					break;
+
+				case sf::Event::KeyPressed:
+					processKeyboard(event);
+					break;
+
+				case sf::Event::MouseButtonPressed:
+					processMouseClicks(event);
+					break;
 
 
-	glutMainLoop();
+				case sf::Event::MouseMoved:
+					processMouseMovement(event);
+					break;
 
+				case sf::Event::Resized:
+					windowResized(event);
+					break;
+				default:
+					break;
+			}
+		}
+		display();
+	}
+
+	mainWindow.close();
 	return 0;
 }	

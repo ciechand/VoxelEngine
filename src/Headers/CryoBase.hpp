@@ -16,7 +16,11 @@
 
 #include <GL/glew.h>
 #include <GL/glu.h>
-#include <GL/freeglut.h>
+
+#include <SFML/Main.hpp>
+#include <SFML/System.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/OpenGL.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -30,7 +34,7 @@
 #define NUMTEX 100
 #define BLOCKSCALE 2.0f
 #define CHUNKDIMS 5
-#define CHUNKHEIGHT 5
+#define CHUNKHEIGHT 1
 #define LOOKSPEED 0.01f
 
 //MACROS
@@ -50,7 +54,7 @@ typedef class Chunk Chunk;
 // [3] = In game menu
 // [4] = Loading
 
-enum GameStates{Paused, Running, Main, IGM, Loading};
+enum GameStates{Paused, Running, Main, Menu, Loading, Exiting};
 
 //Enumeration for transform matrices access.
 // [0] = Translate
@@ -152,6 +156,7 @@ public:
 typedef class GameRenderer{
 private:
 	GLuint shaderProgram;
+	glm::vec3 camVec[3];
 	glm::mat4 ViewMatrix;
 	glm::mat4 ProjectionMatrix;
 	std::vector<IOBJ*> InstancedObjectsList;
@@ -163,6 +168,10 @@ public:
 
 	void setShaderProgram(const char * vertexPath, const char * fragmentPath);
 	GLuint getShaderProgram();
+
+	void setCamVec(int index, glm::vec3 v);
+	glm::vec3 getCamVec(int index);
+	glm::vec3 * getCamVec();
 
 	void setViewMatrix(glm::mat4 viewMatrix);
 	glm::mat4 getViewMatrix();
@@ -196,7 +205,8 @@ void InitOpenGL();
 extern GRend Renderer;
 extern OPT Options;
 extern GState State;
-extern Chunk testingChunk;
+extern Chunk testingChunk[9];
+extern sf::Window mainWindow;
 
 #endif // Base
 

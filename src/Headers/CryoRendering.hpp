@@ -4,7 +4,6 @@
 
 typedef class InstancedObject{
 private:
-	GLint viewLoc;
 	GLuint vertexArrayObject;
 	GLuint elementBuffer;
 	GLuint vertexBufferObjects[4];

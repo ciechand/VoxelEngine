@@ -81,15 +81,12 @@ void InstancedObject::Initialize(){
 
 	glm::mat4 p = glm::perspective(Options.getProjVars()[0],Options.getProjVars()[1],Options.getProjVars()[2],Options.getProjVars()[3]);
 	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
-
-	viewLoc = glGetUniformLocation(Renderer.getShaderProgram(), "viewMatrix");
 }
 
 void InstancedObject::drawOBJ(){
 	if(modelMatrices.size() != 0){
 		glBindVertexArray(vertexArrayObject);
 		Update();
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &Renderer.getViewMatrix()[0][0]);
 		glDrawElementsInstanced(GL_TRIANGLES, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrices.size());
 	}
 }
@@ -253,10 +250,17 @@ std::vector<int> InstancedObject::getMaterials(){
 
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "viewMatrix"), 1, GL_FALSE, &Renderer.getViewMatrix()[0][0]);
+
 	std::vector<IOBJ *> Objects = Renderer.getIObjectList();
 	for(int i=0; i<Objects.size(); i++){
 		Objects[i]->drawOBJ();
 	}	
-	//glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2, glutGet(GLUT_WINDOW_HEIGHT)/2);
-	glutSwapBuffers();
+
+	sf::Vector2u windowSize = mainWindow.getSize();
+	if(State.getState() != Menu){
+		sf::Mouse::setPosition(sf::Vector2i(windowSize.x/2, windowSize.y/2), mainWindow);
+	}
+	mainWindow.display();
 }

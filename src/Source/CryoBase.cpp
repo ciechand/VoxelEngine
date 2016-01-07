@@ -172,13 +172,16 @@ std::vector<std::string> GameOptions::getTPaths(){
 }
 
 GameRenderer::GameRenderer(){
-	ViewMatrix = glm::lookAt(glm::vec3(15.0f, 20.0f, 20.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
+	ViewMatrix = glm::mat4();
 	ProjectionMatrix = glm::mat4();
 }
 
 void GameRenderer::Initialize(){
 	shaderProgram = createShadersProgram("./src/Source/VertexShader.glsl", "./src/Source/FragmentShader.glsl");
 	glActiveTexture(GL_TEXTURE0);
+	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
+	camVec[1] = glm::vec3(0.0f,0.0f,0.0f);
+	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
 }
 
 void GameRenderer::setShaderProgram(const char * vertexPath, const char * fragmentPath){
@@ -187,6 +190,18 @@ void GameRenderer::setShaderProgram(const char * vertexPath, const char * fragme
 
 GLuint GameRenderer::getShaderProgram(){
 	return shaderProgram;
+}
+
+void GameRenderer::setCamVec(int index, glm::vec3 v){
+	camVec[index] = v;
+}
+
+glm::vec3 GameRenderer::getCamVec(int index){
+	return camVec[index];
+}
+
+glm::vec3 * GameRenderer::getCamVec(){
+	return camVec;
 }
 
 void GameRenderer::setViewMatrix(glm::mat4 view){
@@ -252,14 +267,20 @@ void InitOpenGL(){
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);
+	glDepthFunc(GL_LESS);
+	glDepthRange(0.0f,1.0f);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glClearColor(1.0,1.0,1.0,1.0);
-	glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2, (glutGet(GLUT_WINDOW_HEIGHT)/2));
-	glutSetCursor(GLUT_CURSOR_NONE);
+	glClearColor(1.0f,1.0f,1.0f,1.0f);
+	glClearDepth(1.0f);
+
+	//Lock cursor to window and make it invisible with sfml?
+
 	Renderer.Initialize();
 	Options.Initialize();
-	testingChunk.Init();
-
+	for(int i=0; i<9; i++){
+		testingChunk[i].setPosition(glm::vec2(i%3, i/3));
+		testingChunk[i].Init();
+	}
 	std::cout << "End Init" << std::endl;
 	std::cout.flush();
 

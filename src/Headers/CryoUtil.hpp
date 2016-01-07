@@ -2,10 +2,10 @@
 #define util
 
 //Functions for processing Opengl things such as keyboard and mouse movement.
-void ProcessMouseClicks(int button, int state, int x, int y);
-void ProcessPassiveMouseMovement(int x, int y);
-void ProcessActiveMouseMovement(int x, int y);
-void ProcessKeyboard(unsigned char key, int x, int y);
+void processMouseClicks(sf::Event e);
+void processMouseMovement(sf::Event e);
+void processKeyboard(sf::Event e);
+void windowResized(sf::Event e);
 
 //Reads a file in and interprets it into a NULL-Terminated string.
 std::string readFileToString(const char * fileName);

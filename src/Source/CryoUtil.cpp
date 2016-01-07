@@ -1,64 +1,86 @@
 #include "../Headers/CryoBase.hpp"
 
 //Function that will process the mouse inputs.
-void ProcessMouseClicks(int button, int state, int x, int y){
+void processMouseClicks(sf::Event e){
 
 
 }
 
 //function that will process the passive mouse movement.
-void ProcessPassiveMouseMovement(int x, int y){
+void processMouseMovement(sf::Event e){
+	if(State.getState() != Menu){
+		sf::Vector2u windowSize = mainWindow.getSize();
+		float * camRot = Options.getCamPos();
 
-	int ws[2] = {glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)};
-	float * mousepos = State.getCamPos();
-	int curx=(x-(ws[0]/2)), cury=(y-(ws[1]/2));
-	float curxper=(((float)curx)/ws[0]), curyper=(((float)cury)/ws[1]);
+		float rotationPer[2] = {(((e.mouseMove.x-((int)windowSize.x/2))/((float)windowSize.x/2.0f))), (((e.mouseMove.y-((int)windowSize.y/2))/((float)windowSize.y/2.0f)))}; 
 
-	//mousepos[0] = curx*0.1f;
-	//mousepos[1] = cury*0.1f;
-	//glm::mat4 rotations = glm::mat4();
-	//if(x<(ws[0]/2)-1 || x>(ws[0]/2)+1 || y<(ws[1]/2)-1 || y>(ws[1]/2)+1){
-		//mousepos[0] += curxper*LOOKSPEED;
-		//mousepos[1] += curyper*LOOKSPEED;
-	//}
-	//(mousepos[0] > 1.0f)? mousepos[0] -= 1.0f: (mousepos[0] < 0.0f)? mousepos[0] += 1.0f: mousepos[0] = mousepos[0];
-	//(mousepos[1] > 1.0f)? mousepos[1] = 1.0f: (mousepos[1] < 0.0f)? mousepos[1] = 0.0f: mousepos[1] = mousepos[1];
-	
-	float * cam = Options.getCamPos();
+		camRot[0] += rotationPer[0];
+		camRot[1] += rotationPer[1];
 
-	//Renderer.setViewMatrix(glm::lookAt(glm::vec3(cam[0],cam[1],cam[2]), glm::vec3(cam[0],cam[1],cam[2])+glm::vec3(cos(mousepos[0])*sin(mousepos[1]),sin(mousepos[1]), cos(mousepos[0])*cos(mousepos[1])), glm::vec3(0.0f,1.0f,0.0f)));
-	Renderer.setViewMatrix(glm::lookAt(glm::vec3(10.0f, 20.0f, 14.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f)));
-	// State.setCamPos(mousepos[0], mousepos[1]);
+		(camRot[0]>1.0f)?camRot[0] = -1.0f:(camRot[0]<0.0f)?camRot[0] +=1.0f:camRot[0]=camRot[0];	
+		(camRot[1]>1.0f)?camRot[1] = 0.9999f:(camRot[1]<0.0f)?camRot[1] = 0.0001f:camRot[1]=camRot[1];
 
-	glutPostRedisplay();
+		rotationPer[0] = camRot[0]*PI*2;
+		rotationPer[1] = (camRot[1]*PI)+PI/2;
 
+		/*glm::vec3 direction;
+		direction.x = cos(rotationPer[0]) * cos(rotationPer[1]);
+		direction.y = sin(rotationPer[1]);
+		direction.z = sin(rotationPer[0]) * cos(rotationPer[1]);
+ 		
+ 		glm::vec3 camDir = glm::normalize(direction);*/
+
+ 		glm::vec3 camPos = Renderer.getCamVec(0);
+ 		glm::vec3 rotations = glm::vec3(-sin(rotationPer[0])*cos(rotationPer[1])*10.0f, -sin(rotationPer[1])*10.0f, cos(rotationPer[0])*cos(rotationPer[1])*10.0f);
+ 		//std::cout << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
+ 		glm::vec3 camUp = Renderer.getCamVec(2);
+ 		Renderer.setViewMatrix(glm::lookAt(camPos+rotations, camPos+glm::vec3(0.0f,5.0f,0.0f), camUp));
+
+ 		Renderer.setCamVec(1, camPos+rotations);
+
+		Options.setCamPos(camRot);
+
+	}
 }
-
-void ProcessActiveMouseMovement(int x, int y){
-	ProcessPassiveMouseMovement(x, y);
-}
-
-//Function for processing the keyboard inputs utilizing glut.
-void ProcessKeyboard(unsigned char key, int x, int y){
-	glm::mat4 vmat = Renderer.getViewMatrix();
-	switch (key){
-		case 033:	
-			exit(EXIT_SUCCESS);
+//Function for processing the keyboard inputs.
+void processKeyboard(sf::Event e){
+	glm::vec3 camPos = Renderer.getCamVec(0);
+	glm::vec3 camDir = Renderer.getCamVec(1);
+	glm::vec3 camUp = Renderer.getCamVec(2);
+	switch (e.key.code){
+		case sf::Keyboard::Escape:	
+			State.setState(Exiting);
 			break;
-		case 'a':
-			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(0.1f,0.0f,0.0f,0.0f))));
+		case sf::Keyboard::A:
+			camPos -= glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
 			break;
-		case 'd':
-			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(-0.1f,0.0f,0.0f,0.0f))));
+		case sf::Keyboard::D:
+			camPos += glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
 			break;
-		case 'w':
-			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(0.0f,0.0f,0.1f,0.0f))));
+		case sf::Keyboard::W:
+			camPos += camDir*0.5f;
 			break;
-		case 's':
-			Renderer.setViewMatrix(glm::translate(vmat, glm::vec3(glm::inverse(vmat)*glm::vec4(0.0f,0.0f,-0.1f,0.0f))));
+		case sf::Keyboard::S:
+			camPos -= camDir*0.5f;
+			break;
+		case sf::Keyboard::E:
+			camPos -= camUp*0.5f;
+			break;
+		case sf::Keyboard::Q:
+			camPos += camUp*0.5f;
+			break;
+		case sf::Keyboard::R:
+			(State.getState() != Menu)? State.setState(Menu):State.setState(Loading);
+			break;
+		default:
 			break;
 	}
-	glutPostRedisplay();
+	Renderer.setCamVec(0, camPos);
+}
+
+void windowResized(sf::Event e){
+	sf::Vector2u windowSize = mainWindow.getSize();
+	glViewport(0,0,e.size.width, e.size.height);
 }
 
 // Create a NULL-terminated string by reading the provided file
