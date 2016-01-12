@@ -25,5 +25,8 @@ bool compBlockDist(glm::mat4 a, glm::mat4 b);
 //Ways of printing matrices and vertices. (Functions will be added as necessary)
 void printMatrix(glm::mat4 matrix);
 void printMatrix(glm::mat3 matrix);
+void printShaderInfoLog(GLuint obj);
+void printProgramInfoLog(GLuint obj);
+
 
 #endif //util

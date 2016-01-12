@@ -1,5 +1,8 @@
 #include "../Headers/CryoBase.hpp"
 
+//const int BlockColors[16] = {0x000000, 0xff0000, 0x800000, 0xff0084, 0x9c00ff, 0x000080, 0x0000ff, 0x00baff, 0x00ffcc, 0x00ff30, 0x009900, 0x999900, 0xfcff00, 0xa56900, 0xffa200, 0xff8900};
+const glm::vec3 BlockColors[16] = {glm::vec3(1.0f,1.0f,1.0f),glm::vec3(255.0f,0.0f,0.0f),glm::vec3(128.0f,0.0f,0.0f),glm::vec3(255.0f,0.0f,132.0f),glm::vec3(255.0f,102.0f,0.0f), glm::vec3(156.0f,0.0f,255.0f),glm::vec3(0.0f,0.0f,128.0f),glm::vec3(0.0f,0.0f,255.0f),glm::vec3(0.0f,186.0f,255.0f),glm::vec3(0.0f,255.0f,204.0f),glm::vec3(0.0f,255.0f,48.0f),glm::vec3(0.0f,153.0f,0.0f),glm::vec3(252.0f,255.0f,0.0f),glm::vec3(165.0f,105.0f,0.0f),glm::vec3(255.0f,204.0f,0.0f),glm::vec3(255.0f,137.0f,0.0f)};
+
 GameState::GameState(){
 	curState = Loading;
 	camPos[0] = 0.0f;
@@ -30,23 +33,19 @@ float * GameState::getCamPos(){
 }
 
 baseObj::baseObj(){
-	TransformMatrices = std::vector<glm::mat4>(3, glm::mat4(1.0));
-	//TransformMatrices[Scale] = glm::scale(glm::mat4(1.0), glm::vec3(BLOCKSCALE,BLOCKSCALE,BLOCKSCALE));
+	TransformMatrix = glm::mat4(1.0);
 	modelIdentifier = 0;
 	textureIdentifier = 0;
 }
 
-void baseObj::setTMatrix(int index, glm::mat4 matrix){
-	TransformMatrices[index] = matrix;
+void baseObj::setTMatrix(glm::mat4 matrix){
+	TransformMatrix = matrix;
 }
 
-glm::mat4 baseObj::getTMatrix(int index){
-	return TransformMatrices[index];
+glm::mat4 baseObj::getTMatrix(){
+	return TransformMatrix;
 }
 
-std::vector<glm::mat4> baseObj::getTMatrixVec(){
-	return TransformMatrices;
-}
 
 void baseObj::setMID(int id){
 	modelIdentifier = id;
@@ -177,7 +176,10 @@ GameRenderer::GameRenderer(){
 }
 
 void GameRenderer::Initialize(){
+	shaderProgram = glCreateProgram();
+	std::cout << "Starting to Load Shaders" << std::endl;
 	shaderProgram = createShadersProgram("./src/Source/VertexShader.glsl", "./src/Source/FragmentShader.glsl");
+	std::cout << "Finnished Loading Shaders" << std::endl;
 	glActiveTexture(GL_TEXTURE0);
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
 	camVec[1] = glm::vec3(0.0f,0.0f,0.0f);
@@ -263,22 +265,19 @@ GLuint GameRenderer::getTextureList(int index){
 
 void InitOpenGL(){
 	std::cout << "Begin Init" << std::endl;
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);
-	glDepthFunc(GL_LESS);
-	glDepthRange(0.0f,1.0f);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glClearColor(1.0f,1.0f,1.0f,1.0f);
-	glClearDepth(1.0f);
+	glClearColor(1.0f,0.0f,1.0f,1.0f);
 
 	//Lock cursor to window and make it invisible with sfml?
 
 	Renderer.Initialize();
 	Options.Initialize();
 	for(int i=0; i<9; i++){
-		testingChunk[i].setPosition(glm::vec2(i%3, i/3));
+		testingChunk[i].setPosition(glm::vec2((i%3)-2, (i/3)-2));
 		testingChunk[i].Init();
 	}
 	std::cout << "End Init" << std::endl;

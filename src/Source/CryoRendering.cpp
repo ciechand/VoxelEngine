@@ -1,8 +1,6 @@
 #include "../Headers/CryoBase.hpp"
 
 InstancedObject::InstancedObject(){
-	vertexAttribs.assign(4,0);
-	vertexUniforms.assign(2,0);
 }
 
 void InstancedObject::Initialize(){
@@ -11,67 +9,68 @@ void InstancedObject::Initialize(){
 	glBindVertexArray(vertexArrayObject);
 
 	//setup for the vertex and normal arrays.
-	glGenBuffers(4, &vertexBufferObjects[0]);
+	glGenBuffers(3, &vertexBufferObjects[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[0]);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec4) + vertexNormals.size()*sizeof(glm::vec4), NULL, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), &vertices[0]);
 	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), &vertexNormals[0]);
 
-	vertexAttribs[Positions] = glGetAttribLocation(Renderer.getShaderProgram(), "vPosition");
-	glEnableVertexAttribArray(vertexAttribs[Positions]);
-	glVertexAttribPointer(vertexAttribs[Positions], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+	GLuint vPos = glGetAttribLocation(Renderer.getShaderProgram(), "vPosition");
+	glEnableVertexAttribArray(vPos);
+	glVertexAttribPointer(vPos, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
-	vertexAttribs[Normals] = glGetAttribLocation(Renderer.getShaderProgram(), "vNormal");
-	glEnableVertexAttribArray(vertexAttribs[Normals]);
-	glVertexAttribPointer(vertexAttribs[Normals], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
+	GLuint vNormPos = glGetAttribLocation(Renderer.getShaderProgram(), "vNormal");
+	glEnableVertexAttribArray(vNormPos);
+	glVertexAttribPointer(vNormPos, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
 
 	//Start with binding and setup of textures.
-	vertexAttribs[Textures] = glGetAttribLocation(Renderer.getShaderProgram(), "textureCoordinatesIn");
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[1]);
 
 	glBufferData(GL_ARRAY_BUFFER, textureCoords.size() * sizeof(glm::vec2), NULL, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size() * sizeof(glm::vec2), &textureCoords[0]);
 
-	glEnableVertexAttribArray(vertexAttribs[Textures]);
-	glVertexAttribPointer(vertexAttribs[Textures], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+	GLuint texCoordinatePos = glGetAttribLocation(Renderer.getShaderProgram(), "textureCoordinatesIn");
+	glEnableVertexAttribArray(texCoordinatePos);
+	glVertexAttribPointer(texCoordinatePos, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	//model matrices
-	GLsizei ullisize = sizeof(unsigned long long int);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, (modelMatrices.size()*sizeof(glm::mat4)), NULL, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, (modelMatrices.size()*sizeof(glm::mat4)), &modelMatrices[0]);
+	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), NULL, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), &blockList[0]);
 
-	vertexAttribs[ModelMatrices] = glGetAttribLocation(Renderer.getShaderProgram(), "modelMatrix");
+	GLuint modelMatrixPos = glGetAttribLocation(Renderer.getShaderProgram(), "modelMatrix");
+
  	GLsizei vec4Size = sizeof(glm::vec4);
- 	
-    glEnableVertexAttribArray(vertexAttribs[ModelMatrices]); 
-    glVertexAttribPointer(vertexAttribs[ModelMatrices], 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET(ullisize));
-    glEnableVertexAttribArray(1); 
-    glVertexAttribPointer(vertexAttribs[ModelMatrices]+1, 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET((vec4Size)+ullisize));
-    glEnableVertexAttribArray(2); 
-    glVertexAttribPointer(vertexAttribs[ModelMatrices]+2, 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET((vec4Size*2)+ullisize));
-    glEnableVertexAttribArray(3); 
-    glVertexAttribPointer(vertexAttribs[ModelMatrices]+3, 4, GL_FLOAT, GL_FALSE, (4 * vec4Size)+ullisize, BUFFER_OFFSET((vec4Size*3)+ullisize));
-    glVertexAttribDivisor(vertexAttribs[ModelMatrices], 1);
-    glVertexAttribDivisor(vertexAttribs[ModelMatrices]+1, 1);
-    glVertexAttribDivisor(vertexAttribs[ModelMatrices]+2, 1);
-    glVertexAttribDivisor(vertexAttribs[ModelMatrices]+3, 1);
+
+    glEnableVertexAttribArray(modelMatrixPos); 
+    glVertexAttribPointer(modelMatrixPos, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(0));
+    glEnableVertexAttribArray(modelMatrixPos+1); 
+    glVertexAttribPointer(modelMatrixPos+1, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET((vec4Size)));
+    glEnableVertexAttribArray(modelMatrixPos+2); 
+    glVertexAttribPointer(modelMatrixPos+2, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET((vec4Size*2)));
+    glEnableVertexAttribArray(modelMatrixPos+3); 
+    glVertexAttribPointer(modelMatrixPos+3, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET((vec4Size*3)));
+    glVertexAttribDivisor(modelMatrixPos, 1);
+    glVertexAttribDivisor(modelMatrixPos+1, 1);
+    glVertexAttribDivisor(modelMatrixPos+2, 1);
+    glVertexAttribDivisor(modelMatrixPos+3, 1);
 
     //model matrices
-    vertexAttribs[TexturePos] = glGetAttribLocation(Renderer.getShaderProgram(), "texPosIn");
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[3]);
-	glBufferData(GL_ARRAY_BUFFER, (materials.size()*sizeof(int))+(modelMatrices.size()*sizeof(unsigned long long int)), NULL, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, (materials.size()*sizeof(int))+(modelMatrices.size()*sizeof(unsigned long long int)), &materials[0]);
+    GLuint texPosPos = glGetAttribLocation(Renderer.getShaderProgram(), "texPosIn");
+    glEnableVertexAttribArray(texPosPos); 
+    glVertexAttribPointer(texPosPos, 1, GL_INT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+(sizeof(int))));
+    glVertexAttribDivisor(texPosPos, 1);
 
-    glEnableVertexAttribArray(vertexAttribs[TexturePos]); 
-    glVertexAttribPointer(vertexAttribs[TexturePos], 1, GL_INT, GL_FALSE, sizeof(int), BUFFER_OFFSET(0));
-    glVertexAttribDivisor(vertexAttribs[TexturePos], 1);
+    GLuint ColorPos = glGetAttribLocation(Renderer.getShaderProgram(), "iColor");
+    glEnableVertexAttribArray(ColorPos); 
+    glVertexAttribPointer(ColorPos, 3, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+(sizeof(int)*2)+sizeof(unsigned long long int)));
+    glVertexAttribDivisor(ColorPos, 1);
 
-	vertexUniforms[1] = glGetUniformLocation(Renderer.getShaderProgram(), "TexSize");
-	glUniform1i(vertexUniforms[1], (int)NUMTEX);
+	GLuint TexSizePos = glGetUniformLocation(Renderer.getShaderProgram(), "TexSize");
+	glUniform1i(TexSizePos, (int)NUMTEX);
 
-	vertexUniforms[0] = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
-	glUniform1i(vertexUniforms[0], 0);
+	GLuint samplePos = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
+	glUniform1i(samplePos, 0);
 
 
 	glGenBuffers(1, &elementBuffer);
@@ -84,21 +83,17 @@ void InstancedObject::Initialize(){
 }
 
 void InstancedObject::drawOBJ(){
-	if(modelMatrices.size() != 0){
+	if(blockList.size() != 0){
 		glBindVertexArray(vertexArrayObject);
 		Update();
-		glDrawElementsInstanced(GL_TRIANGLES, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrices.size());
+		glDrawElementsInstanced(GL_TRIANGLES, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size());
 	}
 }
 
 void InstancedObject::Update(){
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, (modelMatrices.size()*sizeof(glm::mat4))+(modelMatrices.size()*sizeof(unsigned long long int)), NULL, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, (modelMatrices.size()*sizeof(glm::mat4))+(modelMatrices.size()*sizeof(unsigned long long int)), &modelMatrices[0]);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[3]);
-	glBufferData(GL_ARRAY_BUFFER, materials.size()*sizeof(int), NULL, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, materials.size()*sizeof(int), &materials[0]);
+	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), NULL, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), &blockList[0]);
 
 }
 
@@ -124,30 +119,6 @@ void InstancedObject::setVertexBufferObject(int index, GLuint VBO){
 
 GLuint InstancedObject::getVertexBufferObject(int index){
 	return vertexBufferObjects[index];
-}
-
-void InstancedObject::addVAttributes(GLuint attrib){
-	vertexAttribs.push_back(attrib);
-}
-
-void InstancedObject::clearVAttributes(){
-	vertexAttribs.clear();
-}
-
-std::vector<GLuint> InstancedObject::getVAttributes(){
-	return vertexAttribs;
-}
-
-void InstancedObject::addVUniforms(GLuint attrib){
-	vertexUniforms.push_back(attrib);
-}
-
-void InstancedObject::clearVUniforms(){
-	vertexUniforms.clear();
-}
-
-std::vector<GLuint> InstancedObject::getVUniforms(){
-	return vertexUniforms;
 }
 
 void InstancedObject::setVertices(std::vector<glm::vec4> verts){
@@ -223,28 +194,16 @@ std::vector<GLuint> InstancedObject::getIndices(){
 	return indices;
 }
 
-void InstancedObject::addModelMatrices(unsigned long long int identifier, glm::mat4 matrix){
-	modelMatrices.push_back(std::pair<unsigned long long int, glm::mat4>(identifier, matrix));
+void InstancedObject::addBlocks(Block B){
+	blockList.push_back(B);
 }
 
-void InstancedObject::clearModelMatrices(){
-	modelMatrices.clear();
+void InstancedObject::clearBlocks(){
+	blockList.clear();
 }
 
-std::vector<std::pair<unsigned long long int, glm::mat4> > InstancedObject::getModelMatrices(){
-	return modelMatrices;
-}
-
-void InstancedObject::addMaterial(int material){
-	materials.push_back(material);
-}
-
-void InstancedObject::clearMaterials(){
-	materials.clear();
-}
-
-std::vector<int> InstancedObject::getMaterials(){
-	return materials;
+std::vector<Block> InstancedObject::getBlocks(){
+	return blockList;
 }
 
 
@@ -260,7 +219,10 @@ void display(){
 
 	sf::Vector2u windowSize = mainWindow.getSize();
 	if(State.getState() != Menu){
+		mainWindow.setMouseCursorVisible(false);
 		sf::Mouse::setPosition(sf::Vector2i(windowSize.x/2, windowSize.y/2), mainWindow);
+	}else{
+		mainWindow.setMouseCursorVisible(true);
 	}
 	mainWindow.display();
 }

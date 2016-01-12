@@ -23,13 +23,6 @@ void processMouseMovement(sf::Event e){
 		rotationPer[0] = camRot[0]*PI*2;
 		rotationPer[1] = (camRot[1]*PI)+PI/2;
 
-		/*glm::vec3 direction;
-		direction.x = cos(rotationPer[0]) * cos(rotationPer[1]);
-		direction.y = sin(rotationPer[1]);
-		direction.z = sin(rotationPer[0]) * cos(rotationPer[1]);
- 		
- 		glm::vec3 camDir = glm::normalize(direction);*/
-
  		glm::vec3 camPos = Renderer.getCamVec(0);
  		glm::vec3 rotations = glm::vec3(-sin(rotationPer[0])*cos(rotationPer[1])*10.0f, -sin(rotationPer[1])*10.0f, cos(rotationPer[0])*cos(rotationPer[1])*10.0f);
  		//std::cout << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
@@ -47,27 +40,27 @@ void processKeyboard(sf::Event e){
 	glm::vec3 camPos = Renderer.getCamVec(0);
 	glm::vec3 camDir = Renderer.getCamVec(1);
 	glm::vec3 camUp = Renderer.getCamVec(2);
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
+		camPos -= glm::normalize(glm::vec3(camDir.x,0.0f,camDir.z))*0.5f;
+	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
+		camPos += glm::normalize(glm::vec3(camDir.x,0.0f,camDir.z))*0.5f;
+	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
+		camPos -= glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
+	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
+		camPos += glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
+	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::E)){
+		camPos -= camUp*0.5f;
+	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q)){
+		camPos += camUp*0.5f;
+	}
 	switch (e.key.code){
 		case sf::Keyboard::Escape:	
 			State.setState(Exiting);
-			break;
-		case sf::Keyboard::A:
-			camPos -= glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
-			break;
-		case sf::Keyboard::D:
-			camPos += glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
-			break;
-		case sf::Keyboard::W:
-			camPos += camDir*0.5f;
-			break;
-		case sf::Keyboard::S:
-			camPos -= camDir*0.5f;
-			break;
-		case sf::Keyboard::E:
-			camPos -= camUp*0.5f;
-			break;
-		case sf::Keyboard::Q:
-			camPos += camUp*0.5f;
 			break;
 		case sf::Keyboard::R:
 			(State.getState() != Menu)? State.setState(Menu):State.setState(Loading);
@@ -152,7 +145,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 
 			}
 		} else{
-			perror("Incorrect Identifier!");//WTF KINDA OBJ FILE ARE YOU READING?!
+			perror("Incorrect Identifier!"); //WTF KINDA OBJ FILE ARE YOU READING?!
 		}
 	}
 
@@ -166,7 +159,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 	//This needs to be done since open gl only allows one index array for each object so, you need to reorganize the indices that are read in from the OBJ file.
 
 	for (size_t i = 0; i < vertexIndices.size(); i++){
-		struct vertexInfo v = { Object->getVertices(vertexIndices[i]), Object->getVertexNormals(normalIndices[i]), Object->getTextureCoords(textureIndices[i]) };
+		struct vertexInfo v = { Object->getVertices(vertexIndices[i]), Object->getVertexNormals(normalIndices[i]), Object->getTextureCoords(textureIndices[i])};
 		bool exists = false;
 		GLuint index = 0;
 		//Checking for unique (vertex,normal,texture) triplets.
@@ -328,11 +321,12 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
 			{ vsFile, GL_VERTEX_SHADER, NULL },
 			{ fsFile, GL_FRAGMENT_SHADER, NULL }
 	};
-	
+
 	GLuint program = glCreateProgram();
 	GLuint shaderArr[2];
-	for (int i = 0; i < 2; ++i)
+	for (int i = 0; i < 2; i++)	
 	{
+
 		Shader& s = shaders[i];
 		std::string tempStr = readFileToString(s.filename);
 		s.source = (GLchar *)tempStr.c_str();
@@ -340,8 +334,8 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
 
 		if (shaders[i].source == NULL)
 		{
-			fprintf(stderr, "Failed to read %s\n", s.filename);
-			//exit(EXIT_FAILURE);
+			std::cerr <<"Failed to read " << s.filename << std::endl;
+			exit(1);
 		}
 
 		shaderArr[i] = glCreateShader(s.type);
@@ -356,15 +350,15 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
 			glGetShaderiv(shaderArr[i], GL_INFO_LOG_LENGTH, &logSize);
 			char* logMsg = new char[logSize];
 			glGetShaderInfoLog(shaderArr[i], logSize, NULL, logMsg);
-			fprintf(stderr, "%s failed to compile:\n%s\n", s.filename, logMsg);
+			std::cerr << s.filename << "failed to compile: " << logMsg << std::endl;
 			delete[] logMsg;
-			//exit(EXIT_FAILURE);
+			exit(1);
 		}
 
 		delete[] s.source;
 		glAttachShader(program, shaderArr[i]);
 	}
-
+	
 	// link and error check
 	glLinkProgram(program);
 	GLint  linked;
@@ -376,9 +370,9 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logSize);
 		char* logMsg = new char[logSize];
 		glGetProgramInfoLog(program, logSize, NULL, logMsg);
-		fprintf(stderr, "Shader program failed to link:\n%s\n", logMsg);
+		std::cerr << "Shader program failed to link: " << logMsg << std::endl;
 		delete[] logMsg;
-		//exit(EXIT_FAILURE);
+		exit(1);
 	}
 	for(int i=0; i<2; i++){
 		glDeleteShader(shaderArr[i]);
@@ -422,4 +416,38 @@ void printMatrix(glm::mat3 matrix){
 	}	
 	cout << endl;
 	cout.flush();
+}
+
+void printShaderInfoLog(GLuint obj)
+{
+    int infologLength = 0;
+    int charsWritten  = 0;
+    char *infoLog;
+ 
+    glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
+ 
+    if (infologLength > 0)
+    {
+        infoLog = (char *)malloc(infologLength);
+        glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
+   		std::cerr << "Printing Shader Info: " << infoLog << std::endl;
+        free(infoLog);
+    }
+}
+ 
+void printProgramInfoLog(GLuint obj)
+{
+    int infologLength = 0;
+    int charsWritten  = 0;
+    char *infoLog;
+ 
+    glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
+ 
+    if (infologLength > 0)
+    {
+        infoLog = (char *)malloc(infologLength);
+        glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
+    	std::cerr << "Printing Program Info: " << infoLog << std::endl;
+        free(infoLog);
+    }
 }

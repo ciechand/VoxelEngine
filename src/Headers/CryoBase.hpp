@@ -12,6 +12,7 @@
 #include <string>
 #include <cstring>
 #include <map>
+#include <random>
 #include <png.h>
 
 #include <GL/glew.h>
@@ -84,9 +85,9 @@ enum BlockFace{Front, Back, Left, Right, Top, Bottom};
 
 //enum for the materials that blocks can be made of.
 enum Materials{Air, Stone};
-/*
-	THIS SPACE RESERVED FOR EXTERNAL GLOBAL VARIABLES
-*/
+
+enum Colors16{None, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine, Cyan, Lime, Green, Yellow, Brown, Golden, Orange};
+
 
 //Class for holding the main state of the game.
 typedef class GameState{
@@ -107,15 +108,14 @@ public:
 //Class for base object, many other object types such as Item and Block will inherit from this class.
 typedef class baseObj{
 protected:
-	std::vector<glm::mat4> TransformMatrices;
+	glm::mat4 TransformMatrix;
 	int modelIdentifier;
 	int textureIdentifier;
 public:
 	baseObj();
 
-	void setTMatrix(int index, glm::mat4 matrix);
-	glm::mat4 getTMatrix(int index);
-	std::vector<glm::mat4> getTMatrixVec();
+	void setTMatrix(glm::mat4 matrix);
+	glm::mat4 getTMatrix();
 
 	void setMID(int id);
 	int getMID();
@@ -208,8 +208,12 @@ extern GState State;
 extern Chunk testingChunk[9];
 extern sf::Window mainWindow;
 
+extern std::default_random_engine randomEng;
+
+extern const glm::vec3 BlockColors[16];
+
 #endif // Base
 
-#include "CryoRendering.hpp"
 #include "CryoGeneration.hpp"
+#include "CryoRendering.hpp"
 #include "CryoUtil.hpp"

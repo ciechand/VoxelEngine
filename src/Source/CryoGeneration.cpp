@@ -1,22 +1,24 @@
 #include "../Headers/CryoBase.hpp"
 
-Block::Block(int mat):OBJ(){
-	setMaterial(mat);
+Block::Block():OBJ(){
+	color = BlockColors[0];
 }
 
-Block::Block(int mat, int id):OBJ(){
+Block::Block(int mat, int id, int c):OBJ(){
 	modelIdentifier = id;
-	setMaterial(mat);
+	textureIdentifier = mat;
+	color = BlockColors[c];
 }
 
 
-void Block::setMaterial(int mat){
-	material = mat;
+void Block::setColor(int c){
+	color = BlockColors[c];
 }	
 
-int Block::getMaterial(){
-	return material;
+glm::vec3 Block::getColor(){
+	return color;
 }
+
 
 void Block::setID(unsigned long long int id){
 	objID = id;
@@ -28,23 +30,23 @@ unsigned long long int Block::getID(){
 
 
 Chunk::Chunk(){
-	grid.assign(CHUNKDIMS, std::vector<std::vector<Block*> >(CHUNKDIMS, std::vector<Block*>(CHUNKHEIGHT, new Block(0,0))));
+	std::uniform_int_distribution<int> udistCol(0,15);
+	std::uniform_int_distribution<int> udistTex(0,1);
+	grid.assign(CHUNKDIMS, std::vector<std::vector<Block*> >(CHUNKDIMS, std::vector<Block*>(CHUNKHEIGHT, new Block(udistTex(randomEng),0,udistCol(randomEng)))));
 	position = glm::vec2();
-}	
+}
 
 void Chunk::Init(){
 	//In this Function k=x; j=z;i=y
-	//std::cout << "Model Translation Matrices: " << std::endl;
 	for(int i=0; i<CHUNKHEIGHT; i++){
 		for(int j=0; j<CHUNKDIMS; j++){
 			for(int k=0;k<CHUNKDIMS; k++){
 				grid[k][j][i]->setID(k + (i << 4) + (j << 8) + ((unsigned long long int)position.x << 16) + ((unsigned long long int)position.y << 36)); //this gives each block a unique ID;
-				glm::mat4 T = grid[k][j][i]->getTMatrix(Translate);
-				T = glm::translate(glm::mat4(1.0), glm::vec3((k+position.x*CHUNKDIMS)*BLOCKSCALE,i*BLOCKSCALE,(j+position.y*CHUNKDIMS)*BLOCKSCALE));
-				grid[k][j][i]->setTMatrix(Translate, T);
+				glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3((k+position.x*CHUNKDIMS)*BLOCKSCALE,i*BLOCKSCALE,(j+position.y*CHUNKDIMS)*BLOCKSCALE));
+				grid[k][j][i]->setTMatrix(T);
 				IOBJ * tempOBJ = Renderer.getIObject(grid[k][j][i]->getMID());
-				tempOBJ->addModelMatrices(grid[k][j][i]->getID(),grid[k][j][i]->getTMatrix(Translate)*grid[k][j][i]->getTMatrix(Scale)*grid[k][j][i]->getTMatrix(Rotate));
-				tempOBJ->addMaterial(grid[k][j][i]->getMaterial());
+				tempOBJ->addBlocks(*grid[k][j][i]);
+				//std::cout << "Color of Block: " << grid[k][j][i]->getColor().x << ":" << grid[k][j][i]->getColor().y <<":" << grid[k][j][i]->getColor().z <<std::endl;
 				Renderer.setIObject(grid[k][j][i]->getMID(), tempOBJ);
 				//printMatrix(T);
 			}

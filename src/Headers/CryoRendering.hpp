@@ -6,15 +6,12 @@ typedef class InstancedObject{
 private:
 	GLuint vertexArrayObject;
 	GLuint elementBuffer;
-	GLuint vertexBufferObjects[4];
-	std::vector<GLuint> vertexAttribs;
-	std::vector<GLuint> vertexUniforms;
+	GLuint vertexBufferObjects[5];
 	std::vector<glm::vec4> vertices;
 	std::vector<glm::vec4> vertexNormals;
 	std::vector<glm::vec2> textureCoords;
 	std::vector<GLuint> indices;
-	std::vector<std::pair<unsigned long long int, glm::mat4> > modelMatrices;
-	std::vector<int> materials; 
+	std::vector<Block> blockList;
 public:
 	InstancedObject();
 	void Initialize();
@@ -29,14 +26,6 @@ public:
 
 	void setVertexBufferObject(int index, GLuint VBO);
 	GLuint getVertexBufferObject(int index);
-
-	void addVAttributes(GLuint attrib);
-	void clearVAttributes();
-	std::vector<GLuint> getVAttributes();
-
-	void addVUniforms(GLuint attrib);
-	void clearVUniforms();
-	std::vector<GLuint> getVUniforms();
 
 	void setVertices(std::vector<glm::vec4> verts);
 	void addVertices(glm::vec4 vertex);
@@ -60,13 +49,10 @@ public:
 	void clearIndices();
 	std::vector<GLuint> getIndices();
 
-	void addModelMatrices(unsigned long long int identifier, glm::mat4 matrix);
-	void clearModelMatrices();
-	std::vector<std::pair<unsigned long long int, glm::mat4> > getModelMatrices();
+	void addBlocks(Block B);
+	void clearBlocks();
+	std::vector<Block> getBlocks();
 
-	void addMaterial(int material);
-	void clearMaterials();
-	std::vector<int> getMaterials();
 
 }IOBJ;
 

@@ -1,6 +1,7 @@
 #include "../Headers/CryoBase.hpp"
 
 sf::Window mainWindow;
+std::default_random_engine randomEng(time(0));
 
 GRend Renderer;
 OPT Options;
@@ -8,7 +9,7 @@ GState State;
 Chunk testingChunk[9];
 
 int main (int argc, char ** argv){
-	//First things first, int Glut (The main windowing extention that I am using)
+	//First things first, int sfml (The main windowing extention that I am using)
 	sf::ContextSettings set;
 	set.depthBits = 24;
 	mainWindow.create(sf::VideoMode(1024,768), "Cryonyx", sf::Style::Default, set);
@@ -49,6 +50,12 @@ int main (int argc, char ** argv){
 
 				case sf::Event::Resized:
 					windowResized(event);
+					break;
+				case sf::Event::LostFocus:
+					State.setState(Menu);
+					break;
+				case sf::Event::GainedFocus:
+					State.setState(Running);
 					break;
 				default:
 					break;
