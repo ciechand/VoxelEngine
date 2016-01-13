@@ -79,11 +79,12 @@ void windowResized(sf::Event e){
 // Create a NULL-terminated string by reading the provided file
 std::string readFileToString(const char* filePath)
 {
+
 	std::string content;
     std::ifstream fileStream(filePath, std::ios::in);
 
     if(!fileStream.is_open()) {
-        std::cout << "Could not read file " << filePath << ". File does not exist." << std::endl;
+        std::cerr << "Could not read file " << filePath << ". File does not exist." << std::endl;
         return "";
     }
 
@@ -92,7 +93,6 @@ std::string readFileToString(const char* filePath)
         std::getline(fileStream, line);
         content.append(line + "\n");
     }
-
     fileStream.close();
     return content;
 }
@@ -310,76 +310,58 @@ void loadBMP(const char * fileName, GLuint * textureID){
 
 // Create a GLSL program object from vertex and fragment shader files
 GLuint createShadersProgram(const char* vsFile, const char* fsFile){
-	struct Shader
-	{
-		const char* filename;
-		GLenum type;
-		GLchar* source;
-	};
+	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-	struct Shader shaders[] = {
-			{ vsFile, GL_VERTEX_SHADER, NULL },
-			{ fsFile, GL_FRAGMENT_SHADER, NULL }
-	};
+    // Read shaders
+    std::string vertShaderStr = readFileToString(vsFile);
+    std::string fragShaderStr = readFileToString(fsFile);
+    const char *vertShaderSrc = vertShaderStr.c_str();
+    const char *fragShaderSrc = fragShaderStr.c_str();
 
-	GLuint program = glCreateProgram();
-	GLuint shaderArr[2];
-	for (int i = 0; i < 2; i++)	
-	{
+    GLint result = GL_FALSE;
+    int logLength;
 
-		Shader& s = shaders[i];
-		std::string tempStr = readFileToString(s.filename);
-		s.source = (GLchar *)tempStr.c_str();
+    // Compile vertex shader
+    std::cout << "Compiling vertex shader." << std::endl;
+    glShaderSource(vertShader, 1, &vertShaderSrc, NULL);
+    glCompileShader(vertShader);
 
+    // Check vertex shader
+    glGetShaderiv(vertShader, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
+    std::vector<char> vertShaderError((logLength > 1) ? logLength : 1);
+    glGetShaderInfoLog(vertShader, logLength, NULL, &vertShaderError[0]);
+    if(logLength > 1)std::cout << "vert Errors: " << &vertShaderError[0] << std::endl;
 
-		if (shaders[i].source == NULL)
-		{
-			std::cerr <<"Failed to read " << s.filename << std::endl;
-			exit(1);
-		}
+    // Compile fragment shader
+    std::cout << "Compiling fragment shader." << std::endl;
+    glShaderSource(fragShader, 1, &fragShaderSrc, NULL);
+    glCompileShader(fragShader);
 
-		shaderArr[i] = glCreateShader(s.type);
+    // Check fragment shader
+    glGetShaderiv(fragShader, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
+    std::vector<char> fragShaderError((logLength > 1) ? logLength : 1);
+    glGetShaderInfoLog(fragShader, logLength, NULL, &fragShaderError[0]);
+    if(logLength > 1) std::cout << "Frag Errors: " << &fragShaderError[0] << std::endl;
 
-		glShaderSource(shaderArr[i], 1, (const GLchar**)&s.source, NULL);
-		glCompileShader(shaderArr[i]);
-		GLint  compiled;
-		glGetShaderiv(shaderArr[i], GL_COMPILE_STATUS, &compiled);
-		if (!compiled)
-		{
-			GLint  logSize;
-			glGetShaderiv(shaderArr[i], GL_INFO_LOG_LENGTH, &logSize);
-			char* logMsg = new char[logSize];
-			glGetShaderInfoLog(shaderArr[i], logSize, NULL, logMsg);
-			std::cerr << s.filename << "failed to compile: " << logMsg << std::endl;
-			delete[] logMsg;
-			exit(1);
-		}
+    std::cout << "Linking program" << std::endl;
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertShader);
+    glAttachShader(program, fragShader);
+    glLinkProgram(program);
 
-		delete[] s.source;
-		glAttachShader(program, shaderArr[i]);
-	}
-	
-	// link and error check
-	glLinkProgram(program);
-	GLint  linked;
-	glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    glGetProgramiv(program, GL_LINK_STATUS, &result);
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+    std::vector<char> programError( (logLength > 1) ? logLength : 1 );
+    glGetProgramInfoLog(program, logLength, NULL, &programError[0]);
+    if(logLength > 1)std::cout << "Prog Errors: " <<&programError[0] << std::endl;
 
-	if (!linked)
-	{
-		GLint  logSize;
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logSize);
-		char* logMsg = new char[logSize];
-		glGetProgramInfoLog(program, logSize, NULL, logMsg);
-		std::cerr << "Shader program failed to link: " << logMsg << std::endl;
-		delete[] logMsg;
-		exit(1);
-	}
-	for(int i=0; i<2; i++){
-		glDeleteShader(shaderArr[i]);
-	}
-	// use program object
+    glDeleteShader(vertShader);
+    glDeleteShader(fragShader);
 	glUseProgram(program);
-	return program;
+    return program;
 }
 
 bool compBlockDist(glm::mat4 a, glm::mat4 b){
@@ -430,8 +412,10 @@ void printShaderInfoLog(GLuint obj)
     {
         infoLog = (char *)malloc(infologLength);
         glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
-   		std::cerr << "Printing Shader Info: " << infoLog << std::endl;
+   		std::cerr << "Printing " << infologLength << " Shader Problems: " << infoLog << std::endl;
         free(infoLog);
+    }else {
+    	std::cerr << "No Shader Problems." << std::endl;
     }
 }
  
@@ -447,7 +431,9 @@ void printProgramInfoLog(GLuint obj)
     {
         infoLog = (char *)malloc(infologLength);
         glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
-    	std::cerr << "Printing Program Info: " << infoLog << std::endl;
+    	std::cerr << "Printing " << infologLength << " Program Problems: " << infoLog << std::endl;
         free(infoLog);
+    }else{
+    	std::cerr << "No Program Problems." << std::endl;
     }
 }

@@ -1,7 +1,12 @@
 #include "../Headers/CryoBase.hpp"
 
 //const int BlockColors[16] = {0x000000, 0xff0000, 0x800000, 0xff0084, 0x9c00ff, 0x000080, 0x0000ff, 0x00baff, 0x00ffcc, 0x00ff30, 0x009900, 0x999900, 0xfcff00, 0xa56900, 0xffa200, 0xff8900};
-const glm::vec3 BlockColors[16] = {glm::vec3(1.0f,1.0f,1.0f),glm::vec3(255.0f,0.0f,0.0f),glm::vec3(128.0f,0.0f,0.0f),glm::vec3(255.0f,0.0f,132.0f),glm::vec3(255.0f,102.0f,0.0f), glm::vec3(156.0f,0.0f,255.0f),glm::vec3(0.0f,0.0f,128.0f),glm::vec3(0.0f,0.0f,255.0f),glm::vec3(0.0f,186.0f,255.0f),glm::vec3(0.0f,255.0f,204.0f),glm::vec3(0.0f,255.0f,48.0f),glm::vec3(0.0f,153.0f,0.0f),glm::vec3(252.0f,255.0f,0.0f),glm::vec3(165.0f,105.0f,0.0f),glm::vec3(255.0f,204.0f,0.0f),glm::vec3(255.0f,137.0f,0.0f)};
+const glm::vec3 BlockColors[16] = {glm::vec3(255.0f,255.0f,255.0f),glm::vec3(255.0f,0.0f,0.0f),glm::vec3(128.0f,0.0f,0.0f),
+									glm::vec3(255.0f,119.0f,173.0f),glm::vec3(255.0f,0.0f,102.0f), glm::vec3(156.0f,0.0f,255.0f),
+									glm::vec3(0.0f,0.0f,128.0f),glm::vec3(0.0f,0.0f,255.0f),glm::vec3(0.0f,186.0f,255.0f),
+									glm::vec3(0.0f,255.0f,204.0f),glm::vec3(0.0f,255.0f,48.0f),glm::vec3(0.0f,153.0f,0.0f),
+									glm::vec3(252.0f,255.0f,0.0f),glm::vec3(165.0f,105.0f,0.0f),glm::vec3(255.0f,204.0f,0.0f),
+									glm::vec3(255.0f,137.0f,0.0f)};
 
 GameState::GameState(){
 	curState = Loading;
@@ -70,31 +75,32 @@ GameOptions::GameOptions(){
 
 	texturePaths.clear();
 	modelPaths.clear();
-
+	
 	if(exists(p)){
 		if(is_directory(p)){
 			for(directory_entry& d : directory_iterator(p)){
 				if(is_directory(d)){
 					for(directory_entry& d2 : directory_iterator(d)){
 						if(is_regular_file(d2)){
-							if(d2.path().string().compare(d2.path().string().size()-4,4,".png") == 0 ||d2.path().string().compare(d2.path().string().size()-4,4,".BMP") == 0 ){
+							if(d2.path().string().compare(d2.path().string().size()-4,4,".png") == 0 || d2.path().string().compare(d2.path().string().size()-4,4,".BMP") == 0 ){
 								texturePaths.push_back(d2.path().string());
 							}else if(d2.path().string().compare(d2.path().string().size()-4,4,".obj") == 0 ){
 								modelPaths.push_back(d2.path().string());
 							}else{
-								std::cout << "NOT ONE OF THE TWO VALID TYPES!!!" << std::endl;
+								std::cerr << "NOT ONE OF THE TWO VALID TYPES!!!" << std::endl;
 							}
+						}else{
+							std::cerr << "this is not a regular file." << std::endl;
 						}
 					}
 				}
 			}
 		}else{
-			printf("Path provided is not a directory.\n");
+			std::cerr << "Path provided is not a directory." << std::endl;
 		}
 	}else{
-		printf("Path does not exist.\n");
+		std::cerr <<"Path does not exist."<< std::endl;
 	}
-
 	projVar[0] = 1.04f;
 	projVar[1] = 1.0f;
 	projVar[2] = 0.01f;
@@ -173,14 +179,13 @@ std::vector<std::string> GameOptions::getTPaths(){
 GameRenderer::GameRenderer(){
 	ViewMatrix = glm::mat4();
 	ProjectionMatrix = glm::mat4();
+	shaderProgram = 0;
 }
 
 void GameRenderer::Initialize(){
-	shaderProgram = glCreateProgram();
 	std::cout << "Starting to Load Shaders" << std::endl;
 	shaderProgram = createShadersProgram("./src/Source/VertexShader.glsl", "./src/Source/FragmentShader.glsl");
 	std::cout << "Finnished Loading Shaders" << std::endl;
-	glActiveTexture(GL_TEXTURE0);
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
 	camVec[1] = glm::vec3(0.0f,0.0f,0.0f);
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
@@ -264,15 +269,14 @@ GLuint GameRenderer::getTextureList(int index){
 }
 
 void InitOpenGL(){
-	std::cout << "Begin Init" << std::endl;
-	//glEnable(GL_CULL_FACE);
+	std::cerr << "Begin Init" << std::endl;
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glClearColor(1.0f,0.0f,1.0f,1.0f);
+	glClearColor(1.0f,1.0f,1.0f,1.0f);
 
-	//Lock cursor to window and make it invisible with sfml?
 
 	Renderer.Initialize();
 	Options.Initialize();
@@ -280,7 +284,6 @@ void InitOpenGL(){
 		testingChunk[i].setPosition(glm::vec2((i%3)-2, (i/3)-2));
 		testingChunk[i].Init();
 	}
-	std::cout << "End Init" << std::endl;
-	std::cout.flush();
+	std::cerr << "End Init" << std::endl;
 
 }

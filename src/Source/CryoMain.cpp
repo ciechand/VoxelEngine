@@ -14,8 +14,7 @@ int main (int argc, char ** argv){
 	set.depthBits = 24;
 	mainWindow.create(sf::VideoMode(1024,768), "Cryonyx", sf::Style::Default, set);
 
-	std::cout << "Starting Program" << std::endl; 
-	std::cout.flush();
+	std::cerr << "Starting Program" << std::endl; 
 
 	//Create and Initiate the global options for the program, all the reading from file is done within the constructor.
 	//Options = *new class GameOptions("./Cryoptions.config");
@@ -42,7 +41,6 @@ int main (int argc, char ** argv){
 				case sf::Event::MouseButtonPressed:
 					processMouseClicks(event);
 					break;
-
 
 				case sf::Event::MouseMoved:
 					processMouseMovement(event);

@@ -212,7 +212,7 @@ extern std::default_random_engine randomEng;
 
 extern const glm::vec3 BlockColors[16];
 
-#endif // Base
+#endif //Base
 
 #include "CryoGeneration.hpp"
 #include "CryoRendering.hpp"
