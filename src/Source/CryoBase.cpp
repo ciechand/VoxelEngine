@@ -12,12 +12,14 @@ GameState::GameState(){
 	curState = Loading;
 	camPos[0] = 0.0f;
 	camPos[1] = 0.0f;
+	moving = std::vector<bool>(6, false);
 }
 
 GameState::GameState(unsigned char cs){
 	curState = cs;
 	camPos[0] = 0.0f;
 	camPos[1] = 0.0f;
+	moving = std::vector<bool>(6, false);
 }
 
 void GameState::setState(unsigned char cs){
@@ -35,6 +37,18 @@ void GameState::setCamPos(float x, float y){
 
 float * GameState::getCamPos(){
 	return camPos;
+}
+
+void GameState::setMoving(int index, bool tag){
+	moving[index] = tag;
+}
+
+bool GameState::getMoving(int index){
+	return moving[index];
+}
+
+std::vector<bool> GameState::getMoving(){
+	return moving;
 }
 
 baseObj::baseObj(){
@@ -106,9 +120,9 @@ GameOptions::GameOptions(){
 	projVar[2] = 0.01f;
 	projVar[3] = 200.0f;
 
-	camPos[0] = 5.0f;
-	camPos[1] = 2.0f;
-	camPos[2] = 20.0f;
+	camRot[0] = 5.0f;
+	camRot[1] = 2.0f;
+	camRot[2] = 20.0f;
 }
 
 GameOptions::GameOptions(const char * optionsFileName){
@@ -145,14 +159,14 @@ float * GameOptions::getProjVars(){
 }
 
 
-void GameOptions::setCamPos(float * pos){
-	camPos[0] = pos[0];
-	camPos[1] = pos[1];
-	camPos[2] = pos[2];
+void GameOptions::setCamRot(glm::vec3 rot){
+	camRot[0] = rot[0];
+	camRot[1] = rot[1];
+	camRot[2] = rot[2];
 }
 
-float * GameOptions::getCamPos(){
-	return camPos;
+glm::vec3 GameOptions::getCamRot(){
+	return camRot;
 }
 
 

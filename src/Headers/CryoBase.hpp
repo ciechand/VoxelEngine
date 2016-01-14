@@ -86,13 +86,17 @@ enum BlockFace{Front, Back, Left, Right, Top, Bottom};
 //enum for the materials that blocks can be made of.
 enum Materials{Air, Stone};
 
+//Enum for Names of all the colors. may change from array to map or vector later.
 enum Colors16{None, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine, Cyan, Lime, Green, Yellow, Brown, Golden, Orange};
 
+//Enum for the directions of movement
+enum Directions{Forward, Backward, MLeft, MRight, Up, Down};
 
 //Class for holding the main state of the game.
 typedef class GameState{
 private:
 	unsigned char curState;
+	std::vector<bool> moving;
 	float camPos[2];
 public:
 	GameState();
@@ -103,6 +107,10 @@ public:
 
 	void setCamPos(float x, float y);
 	float * getCamPos();
+
+	void setMoving(int index, bool tag);
+	bool getMoving(int index);
+	std::vector<bool> getMoving();
 }GState;
 
 //Class for base object, many other object types such as Item and Block will inherit from this class.
@@ -128,7 +136,7 @@ public:
 typedef class GameOptions{
 private:
 	float projVar[4];
-	float camPos[3];
+	glm::vec3 camRot;
 	std::vector<std::string> modelPaths;
 	std::vector<std::string> texturePaths;
 public:
@@ -140,8 +148,8 @@ public:
 	void setProjVars(float * vars);
 	float * getProjVars();
 
-	void setCamPos(float * pos);
-	float * getCamPos();
+	void setCamRot(glm::vec3 rot);
+	glm::vec3 getCamRot();
 
 	void addMPaths(std::string path);
 	void clearMPaths();

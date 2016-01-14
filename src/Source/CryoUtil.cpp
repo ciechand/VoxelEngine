@@ -10,7 +10,7 @@ void processMouseClicks(sf::Event e){
 void processMouseMovement(sf::Event e){
 	if(State.getState() != Menu){
 		sf::Vector2u windowSize = mainWindow.getSize();
-		float * camRot = Options.getCamPos();
+		glm::vec3 camRot = Options.getCamRot();
 
 		float rotationPer[2] = {(((e.mouseMove.x-((int)windowSize.x/2))/((float)windowSize.x/2.0f))), (((e.mouseMove.y-((int)windowSize.y/2))/((float)windowSize.y/2.0f)))}; 
 
@@ -23,44 +23,41 @@ void processMouseMovement(sf::Event e){
 		rotationPer[0] = camRot[0]*PI*2;
 		rotationPer[1] = (camRot[1]*PI)+PI/2;
 
- 		glm::vec3 camPos = Renderer.getCamVec(0);
+ 		glm::vec3 camAt = Renderer.getCamVec(1);
  		glm::vec3 rotations = glm::vec3(-sin(rotationPer[0])*cos(rotationPer[1])*10.0f, -sin(rotationPer[1])*10.0f, cos(rotationPer[0])*cos(rotationPer[1])*10.0f);
  		//std::cout << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
  		glm::vec3 camUp = Renderer.getCamVec(2);
- 		Renderer.setViewMatrix(glm::lookAt(camPos+rotations, camPos+glm::vec3(0.0f,5.0f,0.0f), camUp));
+ 		Renderer.setViewMatrix(glm::lookAt(camAt+rotations, camAt+glm::vec3(0.0f,5.0f,0.0f), camUp));
 
- 		Renderer.setCamVec(1, camPos+rotations);
+ 		Renderer.setCamVec(0, camAt+rotations);
 
-		Options.setCamPos(camRot);
+		Options.setCamRot(camRot);
 
 	}
 }
-//Function for processing the keyboard inputs.
-void processKeyboard(sf::Event e){
-	glm::vec3 camPos = Renderer.getCamVec(0);
-	glm::vec3 camDir = Renderer.getCamVec(1);
-	glm::vec3 camUp = Renderer.getCamVec(2);
-	if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
-		camPos -= glm::normalize(glm::vec3(camDir.x,0.0f,camDir.z))*0.5f;
-	}
-	if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
-		camPos += glm::normalize(glm::vec3(camDir.x,0.0f,camDir.z))*0.5f;
-	}
-	if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-		camPos -= glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
-	}
-	if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
-		camPos += glm::normalize(glm::cross(camPos-camDir, camUp))*0.5f;
-	}
-	if(sf::Keyboard::isKeyPressed(sf::Keyboard::E)){
-		camPos -= camUp*0.5f;
-	}
-	if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q)){
-		camPos += camUp*0.5f;
-	}
+//Function for processing the keyboard inputs on press.
+void processKeyboardDown(sf::Event e){
 	switch (e.key.code){
 		case sf::Keyboard::Escape:	
 			State.setState(Exiting);
+			break;
+		case sf::Keyboard::W:	
+			State.setMoving(Forward, true);
+			break;
+		case sf::Keyboard::S:	
+			State.setMoving(Backward, true);
+			break;
+		case sf::Keyboard::A:	
+			State.setMoving(Left, true);
+			break;
+		case sf::Keyboard::D:	
+			State.setMoving(Right, true);
+			break;
+		case sf::Keyboard::E:	
+			State.setMoving(Down, true);
+			break;
+		case sf::Keyboard::Q:	
+			State.setMoving(Up, true);
 			break;
 		case sf::Keyboard::R:
 			(State.getState() != Menu)? State.setState(Menu):State.setState(Loading);
@@ -68,8 +65,61 @@ void processKeyboard(sf::Event e){
 		default:
 			break;
 	}
-	Renderer.setCamVec(0, camPos);
 }
+//Function for processing the keyboard inputs on Release.
+void processKeyboardUp(sf::Event e){
+	switch (e.key.code){
+		case sf::Keyboard::W:	
+			State.setMoving(Forward, false);
+			break;
+		case sf::Keyboard::S:	
+			State.setMoving(Backward, false);
+			break;
+		case sf::Keyboard::A:	
+			State.setMoving(Left, false);
+			break;
+		case sf::Keyboard::D:	
+			State.setMoving(Right, false);
+			break;
+		case sf::Keyboard::E:	
+			State.setMoving(Down, false);
+			break;
+		case sf::Keyboard::Q:	
+			State.setMoving(Up, false);
+			break;
+		default:
+			break;
+	}
+}
+
+
+void processMovement(){
+	glm::vec3 camPos = Renderer.getCamVec(0);
+	glm::vec3 camAt = Renderer.getCamVec(1);
+	glm::vec3 camUp = Renderer.getCamVec(2);
+	glm::vec3 camRot = Options.getCamRot();
+	std::vector<bool> movement = State.getMoving();
+	if(movement[Forward] == true){
+		camAt += glm::normalize(glm::vec3(camAt.x-camPos.x,0.0f,camAt.z-camPos.z))*0.05f;
+	}
+	if(movement[Backward] == true){
+		camAt -= glm::normalize(glm::vec3(camAt.x-camPos.x,0.0f,camAt.z-camPos.z))*0.05f;
+	}
+    if(movement[MLeft] == true){
+		camAt -= glm::normalize(glm::cross(camAt-camPos, camUp))*0.05f;
+	}
+	if(movement[MRight] == true){
+		camAt += glm::normalize(glm::cross(camAt-camPos, camUp))*0.05f;
+	}
+	if(movement[Down] == true){
+		camAt -= camUp*0.05f;
+	}
+	if(movement[Up] == true){
+		camAt += camUp*0.05f;
+	}
+	Renderer.setCamVec(1, camAt);
+}
+
 
 void windowResized(sf::Event e){
 	sf::Vector2u windowSize = mainWindow.getSize();
@@ -365,7 +415,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
 }
 
 bool compBlockDist(glm::mat4 a, glm::mat4 b){
-	float * camPos = Options.getCamPos();
+	glm::vec3 camPos = Options.getCamRot();
 	float dista = sqrt((a[3][0]-camPos[0])+(a[3][1]-camPos[1])+(a[3][2]-camPos[2]));
 	float distb = sqrt((b[3][0]-camPos[0])+(b[3][1]-camPos[1])+(b[3][2]-camPos[2]));
 	return (dista>distb)?true:false;

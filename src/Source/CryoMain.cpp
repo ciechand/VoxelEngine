@@ -33,19 +33,18 @@ int main (int argc, char ** argv){
 					mainWindow.close();
 					return 0;
 					break;
-
 				case sf::Event::KeyPressed:
-					processKeyboard(event);
+					processKeyboardDown(event);
 					break;
-
+				case sf::Event::KeyReleased:
+					processKeyboardUp(event);
+					break;
 				case sf::Event::MouseButtonPressed:
 					processMouseClicks(event);
 					break;
-
 				case sf::Event::MouseMoved:
 					processMouseMovement(event);
 					break;
-
 				case sf::Event::Resized:
 					windowResized(event);
 					break;
@@ -59,6 +58,7 @@ int main (int argc, char ** argv){
 					break;
 			}
 		}
+		processMovement();
 		display();
 	}
 

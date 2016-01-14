@@ -31,8 +31,7 @@ unsigned long long int Block::getID(){
 
 Chunk::Chunk(){
 	std::uniform_int_distribution<int> udistCol(0,15);
-	std::uniform_int_distribution<int> udistTex(0,1);
-	grid.assign(CHUNKDIMS, std::vector<std::vector<Block*> >(CHUNKDIMS, std::vector<Block*>(CHUNKHEIGHT, new Block(udistTex(randomEng),0,udistCol(randomEng)))));
+	grid.assign(CHUNKDIMS, std::vector<std::vector<Block*> >(CHUNKDIMS, std::vector<Block*>(CHUNKHEIGHT, new Block(1,0,udistCol(randomEng)))));
 	position = glm::vec2();
 }
 
