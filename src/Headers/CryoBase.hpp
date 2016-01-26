@@ -26,6 +26,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/integer.hpp>
 
 #include <boost/filesystem.hpp>
 
@@ -117,19 +118,19 @@ public:
 typedef class baseObj{
 protected:
 	glm::mat4 TransformMatrix;
-	int modelIdentifier;
-	int textureIdentifier;
+	GLint modelIdentifier;
+	glm::vec2 textureIdentifier;
 public:
 	baseObj();
 
 	void setTMatrix(glm::mat4 matrix);
 	glm::mat4 getTMatrix();
 
-	void setMID(int id);
-	int getMID();
+	void setMID(GLint id);
+	GLint getMID();
 
-	void setTID(int id);
-	int getTID();
+	void setTID(GLint id);
+	glm::vec2 getTID();
 }OBJ;
 
 //Main class for the GameOptions.
@@ -172,6 +173,8 @@ private:
 public:
 	GameRenderer();
 
+	~GameRenderer();
+	
 	void Initialize();
 
 	void setShaderProgram(const char * vertexPath, const char * fragmentPath);

@@ -54,7 +54,7 @@ std::vector<bool> GameState::getMoving(){
 baseObj::baseObj(){
 	TransformMatrix = glm::mat4(1.0);
 	modelIdentifier = 0;
-	textureIdentifier = 0;
+	textureIdentifier = glm::vec2(0,0);
 }
 
 void baseObj::setTMatrix(glm::mat4 matrix){
@@ -66,19 +66,19 @@ glm::mat4 baseObj::getTMatrix(){
 }
 
 
-void baseObj::setMID(int id){
+void baseObj::setMID(GLint id){
 	modelIdentifier = id;
 }
 
-int baseObj::getMID(){
+GLint baseObj::getMID(){
 	return modelIdentifier;
 }
 
 void baseObj::setTID(int id){
-	textureIdentifier = id;
+	textureIdentifier = glm::vec2(glm::mod(id,NUMTEX), floor((float)id/(float)NUMTEX));
 }
 
-int baseObj::getTID(){
+glm::vec2 baseObj::getTID(){
 	return textureIdentifier;
 }
 
@@ -194,6 +194,10 @@ GameRenderer::GameRenderer(){
 	ViewMatrix = glm::mat4();
 	ProjectionMatrix = glm::mat4();
 	shaderProgram = 0;
+}
+
+GameRenderer::~GameRenderer(){
+	glDeleteProgram(shaderProgram);
 }
 
 void GameRenderer::Initialize(){

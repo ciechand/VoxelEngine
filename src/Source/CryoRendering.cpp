@@ -55,15 +55,14 @@ void InstancedObject::Initialize(){
     glVertexAttribDivisor(modelMatrixPos+2, 1);
     glVertexAttribDivisor(modelMatrixPos+3, 1);
 
-    //model matrices
     GLuint texPosPos = glGetAttribLocation(Renderer.getShaderProgram(), "texPosIn");
     glEnableVertexAttribArray(texPosPos); 
-    glVertexAttribPointer(texPosPos, 1, GL_INT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+(sizeof(int))));
+    glVertexAttribPointer(texPosPos, 2, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+(sizeof(GLint))));
     glVertexAttribDivisor(texPosPos, 1);
 
     GLuint ColorPos = glGetAttribLocation(Renderer.getShaderProgram(), "iColor");
     glEnableVertexAttribArray(ColorPos); 
-    glVertexAttribPointer(ColorPos, 3, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+(sizeof(int)*2)+sizeof(unsigned long long int)));
+    glVertexAttribPointer(ColorPos, 3, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+sizeof(GLint)+sizeof(glm::vec2)));
     glVertexAttribDivisor(ColorPos, 1);
 
 	GLuint TexSizePos = glGetUniformLocation(Renderer.getShaderProgram(), "TexSize");
