@@ -14,6 +14,8 @@ private:
 	std::vector<Block> blockList;
 public:
 	InstancedObject();
+	~InstancedObject();
+
 	void Initialize();
 	void drawOBJ();
 	void Update();
@@ -50,6 +52,7 @@ public:
 	std::vector<GLuint> getIndices();
 
 	void addBlocks(Block B);
+	void setBlockList(std::vector<Block> B);
 	void clearBlocks();
 	std::vector<Block> getBlocks();
 

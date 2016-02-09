@@ -13,13 +13,10 @@ GameState::GameState(){
 	camPos[0] = 0.0f;
 	camPos[1] = 0.0f;
 	moving = std::vector<bool>(6, false);
-}
-
-GameState::GameState(unsigned char cs){
-	curState = cs;
-	camPos[0] = 0.0f;
-	camPos[1] = 0.0f;
-	moving = std::vector<bool>(6, false);
+	Player Self;
+	Self.setPos(glm::vec3(8.0f,0.0f,8.0f));
+	Self.setID(Players.size());
+	Players.push_back(Self);
 }
 
 void GameState::setState(unsigned char cs){
@@ -51,8 +48,24 @@ std::vector<bool> GameState::getMoving(){
 	return moving;
 }
 
+void GameState::addPlayer(Player p){
+	Players.push_back(p);
+}
+
+void GameState::setPlayer(int index, Player p){
+	Players[index] = p;
+}
+
+Player GameState::getPlayer(int index){
+	return Players[index];
+}
+
+std::vector<Player> GameState::getPlayerList(){
+	return Players;
+}
+
 baseObj::baseObj(){
-	TransformMatrix = glm::mat4(1.0);
+	TransformMatrix = glm::mat4(1.0f);
 	modelIdentifier = 0;
 	textureIdentifier = glm::vec2(0,0);
 }
@@ -118,7 +131,7 @@ GameOptions::GameOptions(){
 	projVar[0] = 1.04f;
 	projVar[1] = 1.0f;
 	projVar[2] = 0.01f;
-	projVar[3] = 200.0f;
+	projVar[3] = 2000.0f;
 
 	camRot[0] = 5.0f;
 	camRot[1] = 2.0f;
@@ -130,15 +143,25 @@ GameOptions::GameOptions(const char * optionsFileName){
 }
 
 void GameOptions::Initialize(){
-
+	IOBJ * tempOBJ;
 	std::cout << "loading "<< modelPaths.size() <<" Models: " << std::endl;
 	for(int i=0; i<modelPaths.size(); i++){
-		IOBJ * tempOBJ = new IOBJ();
+		tempOBJ = new IOBJ();
 		readOBJFile(tempOBJ, modelPaths[i].c_str());
 		tempOBJ->Initialize();
 		Renderer.addToIObjectList(tempOBJ);
 	} 
-
+	/*tempOBJ = Renderer.getIObject(0);
+	Block *playerPos = new Block();
+	playerPos->setTID(2);
+	tempOBJ->addBlocks(*playerPos);
+	Block *viewPos = new Block();
+	viewPos->setTID(2);
+	tempOBJ->addBlocks(*viewPos);
+	Renderer.setIObject(0, tempOBJ);
+	delete playerPos;
+	delete viewPos;
+*/
 	std::cout << "Finished Loading Models" << std::endl << "Loading Textures: " << std::endl;
 	for(int i=0; i<texturePaths.size(); i++){
 		std::cout << texturePaths[i] << " Loaded" << std::endl;
@@ -197,7 +220,9 @@ GameRenderer::GameRenderer(){
 }
 
 GameRenderer::~GameRenderer(){
-	glDeleteProgram(shaderProgram);
+	for(int i=0; i<TextureList.size(); i++){
+		glDeleteTextures(1, &TextureList.data()[i]);
+	}
 }
 
 void GameRenderer::Initialize(){
@@ -205,7 +230,7 @@ void GameRenderer::Initialize(){
 	shaderProgram = createShadersProgram("./src/Source/VertexShader.glsl", "./src/Source/FragmentShader.glsl");
 	std::cout << "Finnished Loading Shaders" << std::endl;
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
-	camVec[1] = glm::vec3(0.0f,0.0f,0.0f);
+	camVec[1] = glm::vec3(16.0f,0.0f,16.0f);
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
 }
 
@@ -298,10 +323,7 @@ void InitOpenGL(){
 
 	Renderer.Initialize();
 	Options.Initialize();
-	for(int i=0; i<9; i++){
-		testingChunk[i].setPosition(glm::vec2((i%3)-2, (i/3)-2));
-		testingChunk[i].Init();
-	}
+
 	std::cerr << "End Init" << std::endl;
 
 }

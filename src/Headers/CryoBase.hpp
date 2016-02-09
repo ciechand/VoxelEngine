@@ -30,14 +30,20 @@
 
 #include <boost/filesystem.hpp>
 
+
 // GLOBAL CONSTANT DEFINITIONS
 #define PI 3.1415926535f
 #define TEXDIMS 16
 #define NUMTEX 100
 #define BLOCKSCALE 2.0f
-#define CHUNKDIMS 5
+#define CHUNKDIMS 16
 #define CHUNKHEIGHT 1
-#define LOOKSPEED 0.01f
+#define LOOKSPEED 1.0f
+#define MOVESPEED 0.5f
+#define CAMERADIST 10.0f
+#define FOCUSDIST 200.0f
+#define RENDERRADIUS 5
+
 
 //MACROS
 #define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
@@ -48,6 +54,8 @@
 //Forward declaring any classes necessary
 typedef class InstancedObject IOBJ;
 typedef class Chunk Chunk;
+typedef class Player Player;
+typedef class Block Block;
 
 //Enumeration of the states the game can be in.
 // [0] = Paused
@@ -93,13 +101,18 @@ enum Colors16{None, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine, Cy
 //Enum for the directions of movement
 enum Directions{Forward, Backward, MLeft, MRight, Up, Down};
 
+//Enum for typesof Blocks
+enum BlockTypes{Placeable, Selector};
+
 //Class for holding the main state of the game.
 typedef class GameState{
 private:
 	unsigned char curState;
 	std::vector<bool> moving;
 	float camPos[2];
+	std::vector<Player> Players;
 public:
+	std::vector<Block> Selectors;
 	GameState();
 	GameState(unsigned char cs);
 	
@@ -112,6 +125,11 @@ public:
 	void setMoving(int index, bool tag);
 	bool getMoving(int index);
 	std::vector<bool> getMoving();
+
+	void addPlayer(Player p);
+	void setPlayer(int index, Player p);
+	Player getPlayer(int index);
+	std::vector<Player> getPlayerList();
 }GState;
 
 //Class for base object, many other object types such as Item and Block will inherit from this class.
@@ -216,9 +234,9 @@ void InitOpenGL();
 extern GRend Renderer;
 extern OPT Options;
 extern GState State;
-extern Chunk testingChunk[9];
-extern sf::Window mainWindow;
+extern std::vector<Chunk*> World;
 
+extern sf::Window mainWindow;
 extern std::default_random_engine randomEng;
 
 extern const glm::vec3 BlockColors[16];
@@ -228,3 +246,4 @@ extern const glm::vec3 BlockColors[16];
 #include "CryoGeneration.hpp"
 #include "CryoRendering.hpp"
 #include "CryoUtil.hpp"
+#include "CryoPlayer.hpp"

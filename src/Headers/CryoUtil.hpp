@@ -1,6 +1,22 @@
 #ifndef util
 #define util
 
+typedef class Ray{
+	public:
+		glm::vec3 Origin;
+		glm::vec3 Direction;
+		glm::vec3 InverseDirection;
+		float times[2];
+		int sign[3];
+		Ray();
+		Ray(glm::vec3 O, glm::vec3 D, float t0, float t1);
+
+}Ray;
+
+bool Intersection(Block b, Ray r);
+
+Block * pickBlock();
+
 //Functions for processing Opengl things such as keyboard and mouse movement.
 void processMouseClicks(sf::Event e);
 void processMouseMovement(sf::Event e);

@@ -3,6 +3,14 @@
 InstancedObject::InstancedObject(){
 }
 
+
+InstancedObject::~InstancedObject(){
+	glDeleteVertexArrays(1, &vertexArrayObject);
+	glDeleteBuffers(3, &vertexBufferObjects[0]);
+	glDeleteBuffers(1, &elementBuffer);
+}
+
+
 void InstancedObject::Initialize(){
 	GLuint location = 0;
 	glGenVertexArrays(1, &vertexArrayObject);
@@ -35,8 +43,9 @@ void InstancedObject::Initialize(){
 
 	//model matrices
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), NULL, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), &blockList[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), &State.Selectors[0]);
 
 	GLuint modelMatrixPos = glGetAttribLocation(Renderer.getShaderProgram(), "modelMatrix");
 
@@ -85,14 +94,15 @@ void InstancedObject::drawOBJ(){
 	if(blockList.size() != 0){
 		glBindVertexArray(vertexArrayObject);
 		Update();
-		glDrawElementsInstanced(GL_TRIANGLES, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size());
+		glDrawElementsInstanced(GL_TRIANGLES, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size()+State.Selectors.size());
 	}
 }
 
 void InstancedObject::Update(){
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), NULL, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), &blockList[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), &State.Selectors[0]);
 
 }
 
@@ -196,6 +206,10 @@ std::vector<GLuint> InstancedObject::getIndices(){
 void InstancedObject::addBlocks(Block B){
 	blockList.push_back(B);
 }
+
+void InstancedObject::setBlockList(std::vector<Block> B){
+	blockList = B;
+}	
 
 void InstancedObject::clearBlocks(){
 	blockList.clear();

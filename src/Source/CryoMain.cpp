@@ -6,7 +6,7 @@ std::default_random_engine randomEng(time(0));
 GRend Renderer;
 OPT Options;
 GState State;
-Chunk testingChunk[9];
+std::vector<Chunk*> World;
 
 int main (int argc, char ** argv){
 	//First things first, int sfml (The main windowing extention that I am using)
@@ -24,7 +24,7 @@ int main (int argc, char ** argv){
 	glewInit();
 
 	InitOpenGL();
-
+	std::cerr << "InitComplete" << std::endl;
 	while(State.getState() != Exiting){
 		sf::Event event;
 		while(mainWindow.pollEvent(event)){
@@ -60,6 +60,9 @@ int main (int argc, char ** argv){
 		}
 		processMovement();
 		display();
+	}
+	for(int i=0; i<World.size(); i++){
+		delete World[i];
 	}
 
 	mainWindow.close();
