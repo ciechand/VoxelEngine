@@ -3,26 +3,40 @@
 
 typedef class Block:public OBJ{
 private:
-	//unsigned long long int objID; //This object ID is a unique identifier for every block, the first 16 bits are for the block identifier(4 for x, 4 for z, and 8 for y), the next 6 are the x coords of the chunk, then 6 for y coord of chunk, then the last 4 are for the dimension. 
 	glm::vec3 color;
 	glm::vec3 Position;
 	int Type; 
 	int Owner;
+	int ID;
 public:
 	Block();
-	Block(GLint id, GLint mat, int c); 
-	
+	Block(GLint id, GLint tex, int c); 
+/*	Block& operator=(const Block& B){
+		this->setTMatrix(B.getTMatrix());
+		this->setMID(B.getMID());
+		this->setTID(B.getTID());
+		this->setColor(B.getColor());
+		this->setPos(B.getPos());
+		this->setType(B.getType());
+		this->setOwner(B.getOwner());
+		this->setID(B.getID());
+		return *this;	
+	}*/
 	void setColor(int c);	
-	glm::vec3 getColor();
+	void setColor(glm::vec3 c);
+	glm::vec3 getColor() const;
 
 	void setPos(glm::vec3 point);
-	glm::vec3 getPos();
+	glm::vec3 getPos() const;
 
 	void setType(int t);
-	int getType();
+	int getType() const;
 
 	void setOwner(int o);
-	int getOwner();
+	int getOwner() const;
+
+	void setID(int id);
+	int getID() const;
 }Block;
 
 typedef class Chunk{

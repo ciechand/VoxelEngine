@@ -13,21 +13,11 @@ typedef class Ray{
 
 }Ray;
 
-bool Intersection(Block b, Ray r);
+int Intersection(Block b, Ray r);
 
 Block * pickBlock();
 
-//Functions for processing Opengl things such as keyboard and mouse movement.
-void processMouseClicks(sf::Event e);
-void processMouseMovement(sf::Event e);
-void processKeyboardDown(sf::Event e);
-void processKeyboardUp(sf::Event e);
-void windowResized(sf::Event e);
-
-//functions for processing things that will tick in the world e.g. movement.
-void processMovement();
-
-//Reads a file in and interprets it into a NULL-Terminated string.
+//Reads a file in and interprets it into a nullptr-Terminated string.
 std::string readFileToString(const char * fileName);
 
 //Function for loading in an OBJ file.

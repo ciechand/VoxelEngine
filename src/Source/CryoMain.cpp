@@ -7,6 +7,7 @@ GRend Renderer;
 OPT Options;
 GState State;
 std::vector<Chunk*> World;
+sf::Clock masterClock;
 
 int main (int argc, char ** argv){
 	//First things first, int sfml (The main windowing extention that I am using)
@@ -59,6 +60,7 @@ int main (int argc, char ** argv){
 			}
 		}
 		processMovement();
+		tickUpdate();
 		display();
 	}
 	for(int i=0; i<World.size(); i++){

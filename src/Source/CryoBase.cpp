@@ -17,6 +17,8 @@ GameState::GameState(){
 	Self.setPos(glm::vec3(8.0f,0.0f,8.0f));
 	Self.setID(Players.size());
 	Players.push_back(Self);
+	masterClock.restart();
+	timeElapsed = masterClock.getElapsedTime();
 }
 
 void GameState::setState(unsigned char cs){
@@ -52,16 +54,24 @@ void GameState::addPlayer(Player p){
 	Players.push_back(p);
 }
 
-void GameState::setPlayer(int index, Player p){
+void GameState::setPlayer(int index, Player& p){
 	Players[index] = p;
 }
 
-Player GameState::getPlayer(int index){
+Player& GameState::getPlayer(int index){
 	return Players[index];
 }
 
 std::vector<Player> GameState::getPlayerList(){
 	return Players;
+}
+
+sf::Time GameState::getTime(){
+	return timeElapsed;
+}
+
+void GameState::setTime(sf::Time t){
+	timeElapsed = t;
 }
 
 baseObj::baseObj(){
@@ -74,7 +84,7 @@ void baseObj::setTMatrix(glm::mat4 matrix){
 	TransformMatrix = matrix;
 }
 
-glm::mat4 baseObj::getTMatrix(){
+glm::mat4 baseObj::getTMatrix() const{
 	return TransformMatrix;
 }
 
@@ -83,7 +93,7 @@ void baseObj::setMID(GLint id){
 	modelIdentifier = id;
 }
 
-GLint baseObj::getMID(){
+GLint baseObj::getMID() const{
 	return modelIdentifier;
 }
 
@@ -91,7 +101,12 @@ void baseObj::setTID(int id){
 	textureIdentifier = glm::vec2(glm::mod(id,NUMTEX), floor((float)id/(float)NUMTEX));
 }
 
-glm::vec2 baseObj::getTID(){
+void baseObj::setTID(glm::vec2 id){
+	textureIdentifier = id;
+}
+
+
+glm::vec2 baseObj::getTID() const{
 	return textureIdentifier;
 }
 
@@ -142,6 +157,9 @@ GameOptions::GameOptions(const char * optionsFileName){
 	GameOptions();
 }
 
+GameOptions::~GameOptions(){
+}
+
 void GameOptions::Initialize(){
 	IOBJ * tempOBJ;
 	std::cout << "loading "<< modelPaths.size() <<" Models: " << std::endl;
@@ -150,18 +168,12 @@ void GameOptions::Initialize(){
 		readOBJFile(tempOBJ, modelPaths[i].c_str());
 		tempOBJ->Initialize();
 		Renderer.addToIObjectList(tempOBJ);
-	} 
-	/*tempOBJ = Renderer.getIObject(0);
-	Block *playerPos = new Block();
-	playerPos->setTID(2);
-	tempOBJ->addBlocks(*playerPos);
-	Block *viewPos = new Block();
-	viewPos->setTID(2);
-	tempOBJ->addBlocks(*viewPos);
-	Renderer.setIObject(0, tempOBJ);
-	delete playerPos;
-	delete viewPos;
-*/
+	}
+/*	tempOBJ = Renderer.getIObject(0);
+	Block *playerPos;
+	tempOBJ->addBlocks(playerPos);
+	playerPos->setTID(2)*/
+
 	std::cout << "Finished Loading Models" << std::endl << "Loading Textures: " << std::endl;
 	for(int i=0; i<texturePaths.size(); i++){
 		std::cout << texturePaths[i] << " Loaded" << std::endl;
@@ -223,6 +235,9 @@ GameRenderer::~GameRenderer(){
 	for(int i=0; i<TextureList.size(); i++){
 		glDeleteTextures(1, &TextureList.data()[i]);
 	}
+	for(int i=0; i<InstancedObjectsList.size(); i++){
+		delete InstancedObjectsList[i];
+	}
 }
 
 void GameRenderer::Initialize(){
@@ -282,14 +297,20 @@ void GameRenderer::clearIObjectList(){
 	InstancedObjectsList.clear();
 }
 
-std::vector<IOBJ *> GameRenderer::getIObjectList(){
+std::vector<IOBJ *>& GameRenderer::getIObjectList(){
 	return InstancedObjectsList;
 }
 
 IOBJ * GameRenderer::getIObject(int index){
+	if(index >= InstancedObjectsList.size())
+			return nullptr;
 	return InstancedObjectsList[index];
-
 } 
+
+int GameRenderer::getIObjectSize(){
+	return InstancedObjectsList.size();
+} 
+
 
 void GameRenderer::addToTextureList(const char * textureFile){
 	GLuint tempTex;
@@ -320,10 +341,65 @@ void InitOpenGL(){
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(1.0f,1.0f,1.0f,1.0f);
 
-
 	Renderer.Initialize();
 	Options.Initialize();
 
 	std::cerr << "End Init" << std::endl;
 
+}
+
+
+void tickUpdate(){
+	Player self = State.getPlayer(0);
+	glm::vec3 selfPos = self.getPos();
+	glm::vec2 prevChunk = self.getChunk();
+	glm::vec2 curChunk =  glm::vec2(floor(selfPos.x/(CHUNKDIMS*BLOCKSCALE)), floor(selfPos.z/(CHUNKDIMS*BLOCKSCALE)));
+	//std::cout << "PrevChunk: x->" << prevChunk.x << ": Y->" << prevChunk.y << std::endl;
+	//std::cout << "CurChunk: x->" << curChunk.x << ": Y->" << curChunk.y << std::endl;
+	Chunk * c;
+	if(World.size() == 0){
+		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
+				c = new Chunk(prevChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2)));
+				c->Init();
+				World.push_back(c);
+		}
+	}
+	if(curChunk!=prevChunk){
+		self.setChunk(curChunk);
+		glm::vec2 chunkDif = curChunk-prevChunk;
+		//std::cout << chunkDif.x <<" : " << chunkDif.y << std::endl;
+		bool found[RENDERRADIUS*RENDERRADIUS] = {false};
+
+		//std::cout << "CurChunk: " << curChunk.x << " : " << curChunk.y << std::endl;
+		for(int i=0; i<World.size(); i++){
+			glm::vec2 Wpos = World[i]->getPosition();
+			std::cout << "Chunk " << i << ": X->" << Wpos.x << " ; Y->" << Wpos.y << std::endl;
+			for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
+				if(Wpos == curChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2))) found[i] = true;
+			}
+		}
+		//std::cout << std::endl;
+		//std::cout << "Found:" <<std::endl;
+		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
+			if(found[i] != true){
+				c = new Chunk(curChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2)));
+				c->Init();
+				World.push_back(c);
+			}
+			//std::cout <<"\t" << found[i] << std::endl;
+
+		}	
+		//std::cout << std::endl;
+	}
+	//std::cout << "Before Pick." << std::endl;
+	Block * b = pickBlock();
+	self = State.getPlayer(0);
+	//std::cout << "After Pick." << std::endl;
+	self.setSelected(b);
+	self.removeSelect(Selector);
+	if(b!=nullptr){
+		//std::cout << b->getID() << std::endl << std::flush;
+		self.addSelect(b->getTMatrix(), Red, Selector);
+	}
+	State.setPlayer(0, self);
 }

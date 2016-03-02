@@ -51,15 +51,18 @@ public:
 	void clearIndices();
 	std::vector<GLuint> getIndices();
 
-	void addBlocks(Block B);
-	void setBlockList(std::vector<Block> B);
+	void addBlocks(Block & B);
+	void setBlockList(std::vector<Block>& B);
+	void removeBlock(int blockpos);
 	void clearBlocks();
-	std::vector<Block> getBlocks();
-
+	std::vector<Block>& getBlocks();
+	Block & getBlocks(int index);
+	int getBlocksSize();
 
 }IOBJ;
 
 void display();
+
 
 
 #endif //rendering

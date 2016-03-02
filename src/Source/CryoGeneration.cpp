@@ -5,6 +5,7 @@ Block::Block():OBJ(){
 	Position = glm::vec3();
 	Type = 0;
 	Owner = -1;
+	ID = -1;
 }
 
 Block::Block(GLint id, GLint mat, int c):OBJ(){
@@ -14,13 +15,17 @@ Block::Block(GLint id, GLint mat, int c):OBJ(){
 	Position = glm::vec3();
 	Type = 0;
 	Owner = -1;
+	ID = -1;
 }
 
 void Block::setColor(int c){
 	color = BlockColors[c];
 }	
+void Block::setColor(glm::vec3 c){
+	color = c;
+}	
 
-glm::vec3 Block::getColor(){
+glm::vec3 Block::getColor() const{
 	return color;
 }
 
@@ -30,7 +35,7 @@ void Block::setPos(glm::vec3 point){
 	TransformMatrix = glm::translate(TransformMatrix, dPos);
 }
 
-glm::vec3 Block::getPos(){
+glm::vec3 Block::getPos() const{
 	return Position;
 }
 
@@ -38,7 +43,7 @@ void Block::setType(int t){
 	Type = t;
 }
 
-int Block::getType(){
+int Block::getType() const{
 	return Type;
 }
 
@@ -46,17 +51,26 @@ void Block::setOwner(int o){
 	Owner = o;
 }
 
-int Block::getOwner(){
+int Block::getOwner() const{
 	return Owner;
 }
 
+void Block::setID(int id){
+	ID = id;
+}
+
+int Block::getID() const{
+	return ID;
+}
+
+
 Chunk::Chunk(){
-	grid.assign(CHUNKDIMS*CHUNKDIMS*CHUNKHEIGHT, NULL);
+	grid.assign(CHUNKDIMS*CHUNKDIMS*CHUNKHEIGHT, nullptr);
 	position = glm::vec2();
 }
 
 Chunk::Chunk(glm::vec2 p){
-	grid.assign(CHUNKDIMS*CHUNKDIMS*CHUNKHEIGHT, NULL);
+	grid.assign(CHUNKDIMS*CHUNKDIMS*CHUNKHEIGHT, nullptr);
 	position = p;
 }
 
@@ -64,8 +78,8 @@ Chunk::~Chunk(){
 	for(int i=0; i<CHUNKHEIGHT; i++){
 		for(int j=0; j<CHUNKDIMS; j++){
 			for(int k=0;k<CHUNKDIMS; k++){
-				if(grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]==NULL) continue;
-				delete grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k];
+				if(grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]!=nullptr)
+					delete grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k];
 			}
 		}
 	}
@@ -76,22 +90,23 @@ void Chunk::Init(){
 	std::uniform_int_distribution<int> udistCol(0,15);
 	std::uniform_int_distribution<int> udistTex(1,2);
 	int rc = udistCol(randomEng);
+	IOBJ * tempOBJ = Renderer.getIObject(0);
 	for(int i=0; i<CHUNKHEIGHT; i++){
 		for(int j=0; j<CHUNKDIMS; j++){
 			for(int k=0;k<CHUNKDIMS; k++){
 				grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k] = new Block();
-				if(grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k] == NULL) continue;
+				std::cout << "ID: " << tempOBJ->getBlocksSize()-1 << ",Address Outside: " << grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k] << std::endl;
+				if(grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k] == nullptr) continue;
 				grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->setTID(2);
 				//rc = udistCol(randomEng);
 				grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->setColor(rc);
 				grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->setPos(glm::vec3((k+(position.x*CHUNKDIMS))*BLOCKSCALE,i*BLOCKSCALE,(j+(position.y*CHUNKDIMS))*BLOCKSCALE));
 				//std::cout << (k+(position.x*CHUNKDIMS))*BLOCKSCALE << ":" << i*BLOCKSCALE << ":" << (j+(position.y*CHUNKDIMS))*BLOCKSCALE << std::endl;
-				IOBJ * tempOBJ = Renderer.getIObject(grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getMID());
-				tempOBJ->addBlocks(*grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]);
+				grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->setID(tempOBJ->getBlocksSize());
 				//std::cerr << "Texture of block: " << grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getTID() << std::endl;
 				//std::cout << "Color of Block: " << grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getColor().x << ":" << grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getColor().y <<":" << grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getColor().z <<std::endl;
-				Renderer.setIObject(grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getMID(), tempOBJ);
 				//printMatrix(T);
+				tempOBJ->addBlocks(*grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]);
 			}
 		}
 	}
@@ -107,24 +122,19 @@ glm::vec2 Chunk::getPosition(){
 }
 
 bool blockCmp(Block *a, Block *b){
-	bool same[7] = {false};
-	if(a->getMID() == b->getMID())
-		same[0] = true;
-	if(a->getTID() == b->getTID())
-		same[1] = true;
-	if(a->getColor() == b->getColor())
-		same[2] = true;
-	if(a->getPos() == b->getPos())
-		same[3] = true;
-	if(a->getType() == b->getType())
-		same[4] = true;
-	if(a->getOwner() == b->getOwner())
-		same[5] = true;
-	if(a->getTMatrix() == b->getTMatrix())
-		same[6] = true;
-	for(int i=0; i<7; i++){
-		if(same[i] == false)
-			return false;
-	}
+	if(a->getMID() != b->getMID())
+		return false;
+	if(a->getTID() != b->getTID())
+		return false;
+	if(a->getColor() != b->getColor())
+		return false;
+	if(a->getPos() != b->getPos())
+		return false;
+	if(a->getType() != b->getType())
+		return false;
+	if(a->getOwner() != b->getOwner())
+		return false;
+	if(a->getTMatrix() != b->getTMatrix())
+		return false;
 	return true;
 }

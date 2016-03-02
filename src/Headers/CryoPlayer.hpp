@@ -8,11 +8,16 @@ typedef class Player{
 		glm::vec2 curChunk;
 		Ray SightLine;
 		glm::vec3 movingDirection;
+		Block *selected;
+		int selectedSide;
 	public:
 		Player();
 
-		void addSelect(Block * b);
+		void addSelect(glm::mat4 position);
+		void addSelect(glm::mat4 position, Colors16 c);
+		void addSelect(glm::mat4 position, Colors16 c, SelectTypes type);
 		void removeSelect();
+		void removeSelect(SelectTypes type);
 
 		void setPos(glm::vec3 p);
 		glm::vec3 getPos();
@@ -28,6 +33,13 @@ typedef class Player{
 
 		void setID(int id);
 		int getID();
+
+		void setSelected(Block * b);
+		void clearSelected();
+		Block * getSelected();
+
+		void setSelectedSide(int side);
+		int getSelectedSide();
 }Player;
 
 #endif //player

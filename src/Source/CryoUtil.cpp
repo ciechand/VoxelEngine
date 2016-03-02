@@ -23,61 +23,89 @@ Ray::Ray(glm::vec3 O, glm::vec3 D, float t0, float t1){
 	times[1] = t1;
 }
 
-bool Intersection(Block * b, Ray r){
+int Intersection(Block * b, Ray r){
+	//std::cout << b << std::endl;
+	int side[2] = {-1,-1};
 	float tmin, tmax, tymin, tymax, tzmin,tzmax;
+	if(b == nullptr)
+		return -1;
+	int bID = b->getID();
+	//std::cout << "Block ID: " << bID << std::endl;
 	glm::vec3 bpos = b->getPos();
-	std::cout << "Block Coords: " << bpos.x << ": " << bpos.y << ": " << bpos.z << std::endl;
-	glm::vec3 bounds[2] = {glm::vec3(bpos.x-1.0f,bpos.y-1.0f,bpos.z-1.0f), glm::vec3(bpos.x+1.0f,bpos.y+1.0f,bpos.z+1.0f)};
+	//std::cout << "Block Coords: " << bpos.x << ": " << bpos.y << ": " << bpos.z << std::endl;
+	glm::vec3 bounds[2] = {glm::vec3(bpos.x-(BLOCKSCALE/2),bpos.y-(BLOCKSCALE/2),bpos.z-(BLOCKSCALE/2)), glm::vec3(bpos.x+(BLOCKSCALE/2),bpos.y+(BLOCKSCALE/2),bpos.z+(BLOCKSCALE/2))};
+
+
+	//std::cout << "Intersection Block xs\n\tX: " << tmin << " \n\tY: " << tmax << std::endl;
+	//std::cout << "Intersection Block xs\n\tX: " << tmin << " \n\tY: " << tmax << std::endl;
 
 	tmin = (bounds[r.sign[0]].x - r.Origin.x) * r.InverseDirection.x;
 	tmax = (bounds[1-r.sign[0]].x - r.Origin.x) * r.InverseDirection.x;
+	side[0] = 0;
+	side[1] = 0;
 	tymin = (bounds[r.sign[1]].y - r.Origin.y) * r.InverseDirection.y;
 	tymax = (bounds[1-r.sign[1]].y - r.Origin.y) * r.InverseDirection.y;
-	std::cout << "Intersection Block Mins\n\tX: " << tmin << " \n\tY: " << tymin << std::endl; 
-	std::cout << "Intersection Block Maxs\n\tX: " << tmax << " \n\tY: " << tymax << std::endl << std::endl; 
+	//std::cout << "Intersection Block xs\n\tX: " << tmin << " \n\tY: " << tmax << std::endl; 
+	//std::cout << "Intersection Block ys\n\tX: " << tymin << " \n\tY: " << tymax << std::endl; 
 	if((tmin > tymax) || (tymin > tmax))
-		return false;
-	if(tymin > tmin)
+		return -1;
+	if(tymin > tmin){
 		tmin = tymin;
-	if(tymax < tmax)
+		side[0] = 1;
+	}
+	if(tymax < tmax){
 		tmax = tymax;
-
+		side[1] = 1;
+	}
 	tzmin = (bounds[r.sign[2]].z - r.Origin.z) * r.InverseDirection.z;
 	tzmax = (bounds[1-r.sign[2]].z - r.Origin.z) * r.InverseDirection.z;
-	std::cout << "Intersection Block zs\n\tX: " << tzmin << " \n\tY: " << tzmax << std::endl << std::endl; 
+	//std::cout << "Intersection Block zs\n\tX: " << tzmin << " \n\tY: " << tzmax << std::endl << std::endl; 
 	if((tmin > tzmax) || (tzmin > tmax))
-		return false;
-	if(tzmin > tmin)
+		return -1;
+	if(tzmin > tmin){
 		tmin = tzmin;
-	if(tzmax < tmax)
+		side[0] = 2;
+	}
+	if(tzmax < tmax){
 		tmax = tzmax;
-	return ((tmin < r.times[1])&&(tmax>r.times[0]));
+		side[1] = 2;
+	}
+	int finalSide = (r.sign[side[0]])+(side[0]*2);
+	if ((tmin < r.times[1]) && (tmax > r.times[0]))
+		return finalSide;
+	else
+		return -1;
 }
 
 Block * pickBlock(){
 	Ray sight;
 	std::vector<Block*> viableBlockList;
-	glm::vec3 playerPos = State.getPlayer(0).getPos();
+	std::vector<int> viableSides;
+	Player self = State.getPlayer(0);
+	glm::vec3 playerPos = self.getPos();
+	//playerPos = glm::vec3(playerPos.x,playerPos.y,playerPos.z);
 	glm::vec3 camPos = Renderer.getCamVec(0);
 
-
 	glm::vec3 lookingDirection = playerPos-camPos;
+	lookingDirection = glm::normalize(lookingDirection)*FOCUSDIST;
 	glm::vec3 finalPoint = playerPos+lookingDirection;
+
+	//finalPoint = glm::normalize(finalPoint)*FOCUSDIST;
+	//finalPoint = glm::vec3(floor(finalPoint.x),floor(finalPoint.y),floor(finalPoint.z));
+
 	sight = Ray(playerPos,lookingDirection,0.0f,FOCUSDIST);
 
-	finalPoint = glm::normalize(finalPoint)*FOCUSDIST;
+	//std::cout << "After Declarations." << std::endl;
 
-	std::cout << std::endl;
+	//std::cout << std::endl;
 
-	std::cout << "PlayerPos: " << playerPos.x << ":" << playerPos.y << ":" << playerPos.z << std::endl;
-	std::cout << "finalPos: " << finalPoint.x << ":" << finalPoint.y << ":" << finalPoint.z << std::endl;
+	//std::cout << "PlayerPos: " << playerPos.x << ":" << playerPos.y << ":" << playerPos.z << std::endl;
+	//std::cout << "finalPos: " << finalPoint.x << ":" << finalPoint.y << ":" << finalPoint.z << std::endl;
 
 	if(playerPos.y/BLOCKSCALE >= (CHUNKHEIGHT) && finalPoint.y/BLOCKSCALE >= (CHUNKHEIGHT) )
-		return NULL;
+		return nullptr;
 	if (playerPos.y/BLOCKSCALE <= 0.0f && finalPoint.y/BLOCKSCALE <= 0.0f)
-		return NULL;
-	if((playerPos.y/BLOCKSCALE >= (CHUNKHEIGHT) && finalPoint.y/BLOCKSCALE <= 0.0f) || (playerPos.y/BLOCKSCALE <= 0.0f && finalPoint.y/BLOCKSCALE >= (CHUNKHEIGHT) ))
-		return NULL;
+		return nullptr;
 
 	glm::vec2 finalChunk = glm::vec2(floor(finalPoint.x/(CHUNKDIMS*BLOCKSCALE)), floor(finalPoint.z/(CHUNKDIMS*BLOCKSCALE)));
 	glm::vec2 startChunk = glm::vec2(floor(playerPos.x/(CHUNKDIMS*BLOCKSCALE)), floor(playerPos.z/(CHUNKDIMS*BLOCKSCALE)));
@@ -85,18 +113,22 @@ Block * pickBlock(){
 	glm::vec2 chunkDif = finalChunk-startChunk;
 	std::vector<glm::vec2> CheckedChunks;
 	CheckedChunks.push_back(startChunk);
-	if(startChunk != startChunk+chunkDif)
-		CheckedChunks.push_back(startChunk+chunkDif);
-	if(startChunk != startChunk+glm::vec2(chunkDif.x,0.0f))
-		CheckedChunks.push_back(startChunk+glm::vec2(chunkDif.x,0.0f));
-	if(startChunk != startChunk+glm::vec2(0.0f, chunkDif.y))
-		CheckedChunks.push_back(startChunk+glm::vec2(0.0f, chunkDif.y));
+	//std::cout << "Pushed Back Start Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+	for(int cx=fminf(startChunk.x,finalChunk.x); cx<=fmaxf(startChunk.x,finalChunk.x); cx++){
+		for(int cy=fminf(startChunk.y,finalChunk.y); cy<=fmax(startChunk.y,finalChunk.y); cy++){
+			//std::cout << "Pushed Back Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+			if(startChunk != glm::vec2(cx,cy))
+				CheckedChunks.push_back(glm::vec2(cx,cy));
+		}
+	}
 	//This needs to scope out an area in between PlayerPos and FinalPoint, need to control signs Correctly so this doesnt exit automatically. Also, make sure to use the dimentions of the chunk as boundries. (fminf(),fmaxf)
-	Chunk * tempChunk;
+	//std::cout << "Chunkmath Done, Checking " << CheckedChunks.size() <<" world chunks." << std::endl;
+	Chunk * tempChunk = nullptr;
 	glm::vec2 chunkPos = glm::vec2();
+	int inter = -1;
 
 	for(int c=0; c<CheckedChunks.size(); c++){
-		std::cout << "CheckedChunk\n\tX: " << CheckedChunks[c].x << " \n\tY: " << CheckedChunks[c].y << std::endl; 
+		//std::cout << "CheckedChunk\n\tX: " << CheckedChunks[c].x << " \n\tY: " << CheckedChunks[c].y << std::endl; 
 		for(int i=0; i<World.size(); i++){
 			chunkPos = World[i]->getPosition();
 			//std::cerr << "Chunk\n\tX: " << chunkPos.x << " \n\tY: " << chunkPos.y << std::endl; 
@@ -105,47 +137,52 @@ Block * pickBlock(){
 				break;
 			}
 		}
-
-	
-		int endofChunkx = (int)floor(CheckedChunks[c].x*CHUNKDIMS*BLOCKSCALE);
-		int endofChunkz = (int)floor(CheckedChunks[c].y*CHUNKDIMS*BLOCKSCALE);
-		int beginBoundx = (int)floor(fmaxf(fminf(playerPos.x, finalPoint.x), (CheckedChunks[c].x*CHUNKDIMS*BLOCKSCALE)));
-		int endBoundx = (int)floor(fminf(fmaxf(playerPos.x, finalPoint.x),(CheckedChunks[c].x*CHUNKDIMS*BLOCKSCALE)+(CHUNKDIMS*BLOCKSCALE)));
-		int beginBoundz = (int)floor(fmaxf(fminf(playerPos.z, finalPoint.z), (CheckedChunks[c].y*CHUNKDIMS*BLOCKSCALE))); 
-		int endBoundz = (int)floor(fminf(fmaxf(playerPos.z, finalPoint.z),(CheckedChunks[c].y*CHUNKDIMS*BLOCKSCALE)+(CHUNKDIMS*BLOCKSCALE)));
-		std::cout << "Boundx: " << beginBoundx << ":" << endBoundx << std::endl;
+		if(tempChunk == nullptr) {
+			std::cerr << "tempChunk is nullptr, WTF?!" << std::endl;
+			return nullptr;
+		}
+		int Chunkx = (int)CheckedChunks[c].x*CHUNKDIMS*BLOCKSCALE;
+		int Chunkz = (int)CheckedChunks[c].y*CHUNKDIMS*BLOCKSCALE;
+		int beginBoundx = (int)fmaxf(fminf(playerPos.x, finalPoint.x), Chunkx);
+		int endBoundx = (int)fminf(fmaxf(playerPos.x, finalPoint.x), (Chunkx+(CHUNKDIMS*BLOCKSCALE))-1);
+		int beginBoundz = (int)fmaxf(fminf(playerPos.z, finalPoint.z), Chunkz); 
+		int endBoundz = (int)fminf(fmaxf(playerPos.z, finalPoint.z), (Chunkz+(CHUNKDIMS*BLOCKSCALE))-1);
+/*		std::cout << "Boundx: " << beginBoundx << ":" << endBoundx << std::endl;
 		std::cout << "Boundz: " << beginBoundz << ":" << endBoundz << std::endl;
-		std::cout << "chunkx: " << endofChunkx << std::endl; 
-		std::cout << "chunkz: " << endofChunkz << std::endl; 
+		std::cout << "chunkx: " << CheckedChunks[c].x << std::endl; 
+		std::cout << "chunkz: " << CheckedChunks[c].y << std::endl; */
 		glm::vec2 Boundx;
 		glm::vec2 Boundz;
-		Boundx = glm::vec2(beginBoundx-endofChunkx,endBoundx-endofChunkx);
-		Boundz = glm::vec2(beginBoundz-endofChunkz,endBoundz-endofChunkz);
-		Boundx = floor(Boundx/BLOCKSCALE);
-		Boundz = floor(Boundz/BLOCKSCALE);
-		std::cout << "Boundx: " << Boundx.x << ":" << Boundx.y << std::endl;
-		std::cout << "Boundz: " << Boundz.x << ":" << Boundz.y << std::endl;
-		if(tempChunk == NULL) std::cerr << "tempChunk is NULL, WTF?!" << std::endl;
+		Boundx = glm::vec2(beginBoundx-Chunkx,endBoundx-Chunkx);
+		Boundz = glm::vec2(beginBoundz-Chunkz,endBoundz-Chunkz);
+		Boundx = Boundx/BLOCKSCALE;
+		Boundz = Boundz/BLOCKSCALE;
+/*		std::cout << "Boundx: " << Boundx.x << ":" << Boundx.y << std::endl;
+		std::cout << "Boundz: " << Boundz.x << ":" << Boundz.y << std::endl;*/
+
 		for(int i=fmaxf(fminf(playerPos.y/BLOCKSCALE,finalPoint.y/BLOCKSCALE),0.0f); i<fminf(fmaxf(playerPos.y/BLOCKSCALE,finalPoint.y/BLOCKSCALE),CHUNKHEIGHT); i++){
-			for(int j=(int)(Boundz.x); j<(int)(Boundz.y); j++){
-				for(int k=(int)(Boundx.x); k<(int)(Boundx.y); k++){
-		
-					std::cout << "\tX: " << k << "\n\tY: " << i << "\n\tZ: " << j << std::endl;
-					if(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k] == NULL) {
-						//std::cerr << "HUH?" << std::endl;
+			for(int j=(int)(Boundz.x); j<=(int)(Boundz.y); j++){
+				for(int k=(int)(Boundx.x); k<=(int)(Boundx.y); k++){
+					inter = -1;
+					//std::cout << "\tk: " << k << "\n\ti: " << i << "\n\tj: " << j << std::endl;
+					if(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k] == nullptr) 
 						continue;
-					}
+					//std::cout << "Chunk Number: " << CheckedChunks[c].x << ":" << CheckedChunks[c].y << std::endl;
 					//std::cout << "Block Number: " << k << ":" << i << ":" << j << std::endl;
-					bool inter = Intersection(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k], sight);
-					if(inter==true) viableBlockList.push_back(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]);
+					//tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getPos();
+					inter = Intersection(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k], sight);
+					if(inter!=-1){
+						viableBlockList.push_back(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]);
+						viableSides.push_back(inter);
+					}
 				}
 			}
 		}
 	}
-
+	//std::cout << "After Intersection." << std::endl;
 	if(viableBlockList.size() == 0)
-		return NULL;
-	std::cout << "There Exists a Viable Block at" << std::endl;
+		return nullptr;
+
 	glm::vec3 blockPos;
 	glm::vec3 camDist;
 	float tempDist = 0.0f;
@@ -160,195 +197,17 @@ Block * pickBlock(){
 			minBlock = i;
 		}
 	} 
-
+ 	blockPos = viableBlockList[minBlock]->getPos();
+ 	self.setSelectedSide(viableSides[minBlock]);
+ 	State.setPlayer(0, self);
+ 	//std::cout << "There Exists a Viable Block at" << std::endl;
+ 	//std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
 	return viableBlockList[minBlock];
 
 }
 
-//Function that will process the mouse inputs.
-void processMouseClicks(sf::Event e){
 
-
-}
-
-//function that will process the passive mouse movement.
-void processMouseMovement(sf::Event e){
-	if(State.getState() != Menu){
-		sf::Vector2u windowSize = mainWindow.getSize();
-		glm::vec3 camRot = Options.getCamRot();
-
-		float rotationPer[2] = {(((e.mouseMove.x-((int)windowSize.x/2))/((float)windowSize.x/2.0f))*LOOKSPEED), (((e.mouseMove.y-((int)windowSize.y/2))/((float)windowSize.y/2.0f))*LOOKSPEED)}; 
-
-		camRot[0] += rotationPer[0];
-		camRot[1] += rotationPer[1];
-
-		(camRot[0]>1.0f)?camRot[0] = -1.0f:(camRot[0]<0.0f)?camRot[0] +=1.0f:camRot[0]=camRot[0];	
-		(camRot[1]>1.0f)?camRot[1] = 0.9999f:(camRot[1]<0.0f)?camRot[1] = 0.0001f:camRot[1]=camRot[1];
-
-		rotationPer[0] = camRot[0]*PI*2;
-		rotationPer[1] = (camRot[1]*PI)+PI/2;
-
- 		glm::vec3 camAt = Renderer.getCamVec(1);
- 		glm::vec3 rotations = glm::vec3(-sin(rotationPer[0])*cos(rotationPer[1])*CAMERADIST, -sin(rotationPer[1])*CAMERADIST, cos(rotationPer[0])*cos(rotationPer[1])*CAMERADIST);
- 		//std::cout << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
- 		glm::vec3 camUp = Renderer.getCamVec(2);
- 		Renderer.setViewMatrix(glm::lookAt(camAt+rotations, camAt+glm::vec3(0.0f,0.0f,0.0f), camUp));
-
- 		Renderer.setCamVec(0, camAt+rotations);
-
-		Options.setCamRot(camRot);
-
-	}
-}
-//Function for processing the keyboard inputs on press.
-void processKeyboardDown(sf::Event e){
-	switch (e.key.code){
-		case sf::Keyboard::Escape:	
-			State.setState(Exiting);
-			break;
-		case sf::Keyboard::W:	
-			State.setMoving(Forward, true);
-			break;
-		case sf::Keyboard::S:	
-			State.setMoving(Backward, true);
-			break;
-		case sf::Keyboard::A:	
-			State.setMoving(Left, true);
-			break;
-		case sf::Keyboard::D:	
-			State.setMoving(Right, true);
-			break;
-		case sf::Keyboard::E:	
-			State.setMoving(Down, true);
-			break;
-		case sf::Keyboard::Q:	
-			State.setMoving(Up, true);
-			break;
-		case sf::Keyboard::R:
-			(State.getState() != Menu)? State.setState(Menu):State.setState(Loading);
-			break;
-		default:
-			break;
-	}
-}
-//Function for processing the keyboard inputs on Release.
-void processKeyboardUp(sf::Event e){
-	switch (e.key.code){
-		case sf::Keyboard::W:	
-			State.setMoving(Forward, false);
-			break;
-		case sf::Keyboard::S:	
-			State.setMoving(Backward, false);
-			break;
-		case sf::Keyboard::A:	
-			State.setMoving(Left, false);
-			break;
-		case sf::Keyboard::D:	
-			State.setMoving(Right, false);
-			break;
-		case sf::Keyboard::E:	
-			State.setMoving(Down, false);
-			break;
-		case sf::Keyboard::Q:	
-			State.setMoving(Up, false);
-			break;
-		default:
-			break;
-	}
-}
-
-
-void processMovement(){
-	glm::vec3 camPos = Renderer.getCamVec(0);
-	glm::vec3 camAt = Renderer.getCamVec(1);
-	glm::vec3 camUp = Renderer.getCamVec(2);
-	glm::vec3 camRot = Options.getCamRot();
-	std::vector<bool> movement = State.getMoving();
-	glm::vec3 cross = glm::cross(camAt-camPos, camUp);
-	if(cross == glm::vec3(0.0f))
-		cross = glm::cross(camAt-camPos, glm::vec3(camAt.x-camPos.x,0.0f, camAt.z-camPos.z));
-	if(movement[Forward] == true){
-		camAt += glm::normalize(glm::vec3(camAt.x-camPos.x,0.0f,camAt.z-camPos.z))*MOVESPEED;
-	}
-	if(movement[Backward] == true){
-		camAt -= glm::normalize(glm::vec3(camAt.x-camPos.x,0.0f,camAt.z-camPos.z))*MOVESPEED;
-	}
-    if(movement[MLeft] == true){
-			camAt -= glm::normalize(cross)*MOVESPEED;
-	}
-	if(movement[MRight] == true){
-			camAt += glm::normalize(cross)*MOVESPEED;
-	}
-	if(movement[Down] == true){
-		camAt -= camUp*MOVESPEED;
-	}
-	if(movement[Up] == true){
-		camAt += camUp*MOVESPEED;
-	}
-	Renderer.setCamVec(1, camAt);
-	Player self = State.getPlayer(0);
-	self.setPos(camAt);
-	State.setPlayer(0, self);
-
-/*	IOBJ * tempOBJ = Renderer.getIObject(0);
-	std::vector<Block> blockList = tempOBJ->getBlocks();
-	blockList[0].setPos(camAt);
-	blockList[1].setPos(camAt+(camAt-camPos));
-	tempOBJ->setBlockList(blockList);
-	Renderer.setIObject(0, tempOBJ);*/
-
-	glm::vec2 prevChunk = self.getChunk();
-	glm::vec2 curChunk =  glm::vec2(floor(camAt.x/(CHUNKDIMS*BLOCKSCALE)), floor(camAt.z/(CHUNKDIMS*BLOCKSCALE)));
-	if(World.size() == 0){
-		Chunk * c;
-		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
-				c = new Chunk(prevChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2)));
-				c->Init();
-				World.push_back(c);
-		}
-	}
-	if(curChunk!=prevChunk){
-		self.setChunk(curChunk);
-		glm::vec2 chunkDif = curChunk-prevChunk;
-		//std::cout << chunkDif.x <<" : " << chunkDif.y << std::endl;
-		bool found[RENDERRADIUS*RENDERRADIUS] = {false};
-
-		//std::cout << "CurChunk: " << curChunk.x << " : " << curChunk.y << std::endl;
-		for(int i=0; i<World.size(); i++){
-			glm::vec2 Wpos = World[i]->getPosition();
-			//std::cout << "Chunk " << i << ": X->" << Wpos.x << " ; Y->" << Wpos.y << std::endl;
-			for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
-				if(Wpos == curChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2))) found[i] = true;
-			}
-		}
-		//std::cout << std::endl;
-		Chunk * c;
-		//std::cout << "Found:" <<std::endl;
-		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
-			if(found[i] != true){
-				c = new Chunk(curChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2)));
-				c->Init();
-				World.push_back(c);
-			}
-			//std::cout <<"\t" << found[i] << std::endl;
-
-		}	
-		//std::cout << std::endl;
-	}
-	Block * b = pickBlock();
-	//self.removeSelect();
-	if(b!=NULL){
-		self.addSelect(b);
-	}
-}
-
-
-void windowResized(sf::Event e){
-	sf::Vector2u windowSize = mainWindow.getSize();
-	glViewport(0,0,e.size.width, e.size.height);
-}
-
-// Create a NULL-terminated string by reading the provided file
+// Create a nullptr-terminated string by reading the provided file
 std::string readFileToString(const char* filePath)
 {
 
@@ -371,14 +230,14 @@ std::string readFileToString(const char* filePath)
 
 void readOBJFile(IOBJ * Object, const char * fileName){
 	//Make sure the object file has a name already assigned
-	if (fileName == NULL){
+	if (fileName == nullptr){
 		perror("Have not set a filename, Please do so before trying to load an obj file again.");
 		return;
 	}
 	std::cout << "Loading in Asset as : " << fileName << std::endl;
 	//opening the OBJ file for reading
 	FILE * objFile = fopen(fileName, "r");
-	if (objFile == NULL){
+	if (objFile == nullptr){
 		perror("THAT FILE DOES NOT EXIST");
 		exit(EXIT_FAILURE);
 	}
@@ -387,7 +246,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 	std::vector<GLuint> vertexIndices;
 	std::vector<GLuint> normalIndices;
 	std::vector<GLuint> textureIndices;
-	while (fgets(fileBuffer, 128, objFile) != NULL){
+	while (fgets(fileBuffer, 128, objFile) != nullptr){
 		//checking which identifier you are currently reading and assigning appropriately.
 		char identifier[3];
 		sscanf(fileBuffer, "%s", identifier);
@@ -482,8 +341,8 @@ void loadBMP(const char * fileName, GLuint * textureID){
 	}
 
 	//create png struct
-	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL,
-	NULL, NULL);
+	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr,
+	nullptr, nullptr);
 	if (!png_ptr) {
 		fclose(fp);
 		perror("TEXTURE LOAD ERROR 2");
@@ -492,7 +351,7 @@ void loadBMP(const char * fileName, GLuint * textureID){
 	//create png info struct
 	png_infop info_ptr = png_create_info_struct(png_ptr);
 	if (!info_ptr) {
-		png_destroy_read_struct(&png_ptr, (png_infopp) NULL, (png_infopp) NULL);
+		png_destroy_read_struct(&png_ptr, (png_infopp) nullptr, (png_infopp) nullptr);
 		fclose(fp);
 		perror("TEXTURE LOAD ERROR 3");
 	}
@@ -500,7 +359,7 @@ void loadBMP(const char * fileName, GLuint * textureID){
 	//create png info struct
 	png_infop end_info = png_create_info_struct(png_ptr);
 	if (!end_info) {
-		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp) NULL);
+		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp) nullptr);
 		fclose(fp);
 		perror("TEXTURE LOAD ERROR 4");
 	}
@@ -527,7 +386,7 @@ void loadBMP(const char * fileName, GLuint * textureID){
 
 	// get info about png
 	png_get_IHDR(png_ptr, info_ptr, &twidth, &theight, &bit_depth, &color_type,
-	NULL, NULL, NULL);
+	nullptr, nullptr, nullptr);
 
 	//update width and height based on png info
 	int width = twidth;
@@ -596,26 +455,26 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
 
     // Compile vertex shader
     std::cout << "Compiling vertex shader." << std::endl;
-    glShaderSource(vertShader, 1, &vertShaderSrc, NULL);
+    glShaderSource(vertShader, 1, &vertShaderSrc, nullptr);
     glCompileShader(vertShader);
 
     // Check vertex shader
     glGetShaderiv(vertShader, GL_COMPILE_STATUS, &result);
     glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> vertShaderError((logLength > 1) ? logLength : 1);
-    glGetShaderInfoLog(vertShader, logLength, NULL, &vertShaderError[0]);
+    glGetShaderInfoLog(vertShader, logLength, nullptr, &vertShaderError[0]);
     if(logLength > 1)std::cout << "vert Errors: " << &vertShaderError[0] << std::endl;
 
     // Compile fragment shader
     std::cout << "Compiling fragment shader." << std::endl;
-    glShaderSource(fragShader, 1, &fragShaderSrc, NULL);
+    glShaderSource(fragShader, 1, &fragShaderSrc, nullptr);
     glCompileShader(fragShader);
 
     // Check fragment shader
     glGetShaderiv(fragShader, GL_COMPILE_STATUS, &result);
     glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> fragShaderError((logLength > 1) ? logLength : 1);
-    glGetShaderInfoLog(fragShader, logLength, NULL, &fragShaderError[0]);
+    glGetShaderInfoLog(fragShader, logLength, nullptr, &fragShaderError[0]);
     if(logLength > 1) std::cout << "Frag Errors: " << &fragShaderError[0] << std::endl;
 
     std::cout << "Linking program" << std::endl;
@@ -627,7 +486,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     glGetProgramiv(program, GL_LINK_STATUS, &result);
     glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> programError( (logLength > 1) ? logLength : 1 );
-    glGetProgramInfoLog(program, logLength, NULL, &programError[0]);
+    glGetProgramInfoLog(program, logLength, nullptr, &programError[0]);
     if(logLength > 1)std::cout << "Prog Errors: " <<&programError[0] << std::endl;
 
     glDeleteShader(vertShader);

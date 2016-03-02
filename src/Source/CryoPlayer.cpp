@@ -5,25 +5,52 @@ Player::Player(){
 	curChunk = glm::vec2();
 	movingDirection = glm::vec3();
 	ID = 0;
+	selected = nullptr;
+	selectedSide = -1;
 }
 
-void Player::addSelect(Block * b){
-	for(int i=0; i<State.Selectors.size(); i++){	
-		if(blockCmp(b,&State.Selectors[i])) // need to add == operator overloaded funtion to BLOCK
-			return;
-	}
-	Block *newB = new Block();
-	newB->setType(Selector);
-	newB->setTID(1);
-	newB->setColor(Red);
-	newB->setOwner(0);
-	newB->setTMatrix(glm::scale(b->getTMatrix(), glm::vec3(1.01f,1.01f,1.01f)));
-	State.Selectors.push_back(*newB);
+void Player::addSelect(glm::mat4 position){
+	int size = State.Selectors.size();
+	State.Selectors.emplace_back();
+	State.Selectors[size].setType(Selector);
+	State.Selectors[size].setTID(1);
+	State.Selectors[size].setColor(Red);
+	State.Selectors[size].setOwner(ID);
+	State.Selectors[size].setTMatrix(glm::scale(position, glm::vec3(1.01f,1.01f,1.01f)));
 }
+
+void Player::addSelect(glm::mat4 position, Colors16 c){
+	int size = State.Selectors.size();
+	State.Selectors.emplace_back();
+	State.Selectors[size].setType(Selector);
+	State.Selectors[size].setTID(1);
+	State.Selectors[size].setColor(c);
+	State.Selectors[size].setOwner(ID);
+	State.Selectors[size].setTMatrix(glm::scale(position, glm::vec3(1.01f,1.01f,1.01f)));
+}
+
+void Player::addSelect(glm::mat4 position, Colors16 c, SelectTypes type){
+	int size = State.Selectors.size();
+	State.Selectors.emplace_back();
+	State.Selectors[size].setType(type);
+	State.Selectors[size].setTID(1);
+	State.Selectors[size].setColor(c);
+	State.Selectors[size].setOwner(ID);
+	State.Selectors[size].setTMatrix(glm::scale(position, glm::vec3(1.01f,1.01f,1.01f)));
+}
+
 
 void Player::removeSelect(){
 	for(int i=0; i<State.Selectors.size(); i++){
 		if(State.Selectors[i].getOwner() == ID){
+			State.Selectors.erase(State.Selectors.begin()+i);
+		}
+	}
+}
+
+void Player::removeSelect(SelectTypes type){
+	for(int i=0; i<State.Selectors.size(); i++){
+		if(State.Selectors[i].getOwner() == ID && State.Selectors[i].getType() == type){
 			State.Selectors.erase(State.Selectors.begin()+i);
 		}
 	}
@@ -69,4 +96,24 @@ void Player::setID(int id){
 
 int Player::getID(){
 	return ID;
+}
+
+void Player::setSelected(Block * b){
+	selected = b;
+}
+
+void Player::clearSelected(){
+	selected = nullptr;
+}
+
+Block * Player::getSelected(){
+	return selected;
+}
+
+void Player::setSelectedSide(int side){
+	selectedSide = side;
+}
+
+int Player::getSelectedSide(){
+	return selectedSide;
 }

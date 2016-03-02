@@ -14,6 +14,7 @@
 #include <map>
 #include <random>
 #include <png.h>
+#include <utility>
 
 #include <GL/glew.h>
 #include <GL/glu.h>
@@ -33,15 +34,16 @@
 
 // GLOBAL CONSTANT DEFINITIONS
 #define PI 3.1415926535f
+#define TIMECOMPENSATE 100.0f
 #define TEXDIMS 16
 #define NUMTEX 100
 #define BLOCKSCALE 2.0f
 #define CHUNKDIMS 16
-#define CHUNKHEIGHT 1
+#define CHUNKHEIGHT 2
 #define LOOKSPEED 1.0f
 #define MOVESPEED 0.5f
 #define CAMERADIST 10.0f
-#define FOCUSDIST 200.0f
+#define FOCUSDIST 15.0f
 #define RENDERRADIUS 5
 
 
@@ -83,14 +85,14 @@ enum TransformMatrixAtributes{Translate, Scale, Rotate};
 enum VertexAttributes{Positions, Normals, Textures, ModelMatrices, TexturePos};
 
 //Enum for faces of cube for texture mapping.
-// [0] = Front
-// [1] = Back
-// [2] = Left
-// [3] = Right
-// [4] = Top
-// [5] = Bottom
+// [0] = Left = x
+// [1] = Right = x
+// [2] = Top = y
+// [3] = Bottom = y
+// [4] = Front = z
+// [5] = Back = z
 
-enum BlockFace{Front, Back, Left, Right, Top, Bottom};
+enum BlockFace{Left, Right, Top, Bottom, Front, Back};
 
 //enum for the materials that blocks can be made of.
 enum Materials{Air, Stone};
@@ -102,7 +104,10 @@ enum Colors16{None, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine, Cy
 enum Directions{Forward, Backward, MLeft, MRight, Up, Down};
 
 //Enum for typesof Blocks
-enum BlockTypes{Placeable, Selector};
+enum BlockTypes{Placeable};
+
+//Enum for typesof Selector
+enum SelectTypes{Selector, Highlight};
 
 //Class for holding the main state of the game.
 typedef class GameState{
@@ -111,6 +116,7 @@ private:
 	std::vector<bool> moving;
 	float camPos[2];
 	std::vector<Player> Players;
+	sf::Time timeElapsed;
 public:
 	std::vector<Block> Selectors;
 	GameState();
@@ -127,9 +133,12 @@ public:
 	std::vector<bool> getMoving();
 
 	void addPlayer(Player p);
-	void setPlayer(int index, Player p);
-	Player getPlayer(int index);
+	void setPlayer(int index, Player& p);
+	Player& getPlayer(int index);
 	std::vector<Player> getPlayerList();
+
+	sf::Time getTime();
+	void setTime(sf::Time t);
 }GState;
 
 //Class for base object, many other object types such as Item and Block will inherit from this class.
@@ -142,13 +151,14 @@ public:
 	baseObj();
 
 	void setTMatrix(glm::mat4 matrix);
-	glm::mat4 getTMatrix();
+	glm::mat4 getTMatrix() const;
 
 	void setMID(GLint id);
-	GLint getMID();
+	GLint getMID() const;
 
 	void setTID(GLint id);
-	glm::vec2 getTID();
+	void setTID(glm::vec2 id);
+	glm::vec2 getTID() const;
 }OBJ;
 
 //Main class for the GameOptions.
@@ -161,6 +171,7 @@ private:
 public:
 	GameOptions();
 	GameOptions(const char * optionsFileName);
+	~GameOptions();
 
 	void Initialize();
 
@@ -186,8 +197,8 @@ private:
 	glm::vec3 camVec[3];
 	glm::mat4 ViewMatrix;
 	glm::mat4 ProjectionMatrix;
-	std::vector<IOBJ*> InstancedObjectsList;
 	std::vector<GLuint> TextureList;
+	std::vector<IOBJ*> InstancedObjectsList;
 public:
 	GameRenderer();
 
@@ -211,8 +222,9 @@ public:
 	void setIObject(int index, IOBJ * object);
 	void addToIObjectList(IOBJ * object);
 	void clearIObjectList();
-	std::vector<IOBJ *> getIObjectList();
+	std::vector<IOBJ *>& getIObjectList();
 	IOBJ * getIObject(int index);
+	int getIObjectSize();
 
 	void addToTextureList(const char * textureFile);
 	void clearTextureList();
@@ -230,11 +242,13 @@ typedef struct vertexInfo{
 }Vinf;
 
 void InitOpenGL();
+void tickUpdate();
 
 extern GRend Renderer;
 extern OPT Options;
 extern GState State;
 extern std::vector<Chunk*> World;
+extern sf::Clock masterClock;
 
 extern sf::Window mainWindow;
 extern std::default_random_engine randomEng;
@@ -247,3 +261,4 @@ extern const glm::vec3 BlockColors[16];
 #include "CryoRendering.hpp"
 #include "CryoUtil.hpp"
 #include "CryoPlayer.hpp"
+#include "CryoInput.hpp"
