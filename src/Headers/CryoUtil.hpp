@@ -13,9 +13,42 @@ typedef class Ray{
 
 }Ray;
 
-int Intersection(Block b, Ray r);
+typedef class CollisionResult{
+	public:
+		int side;
+		float minCol;
+		float maxCol;
+		CollisionResult();
+		CollisionResult(int s, float n, float x);
+}ColRes;
 
-Block * pickBlock();
+typedef class BoundingBox{
+	private:
+		glm::vec3 Position;
+		glm::vec3 prevPos;
+		glm::vec3 Limbs;
+	public:
+		BoundingBox();
+		
+		glm::vec3 getPrevPos();
+
+		void setPos(glm::vec3 pos);
+		glm::vec3 getPos();
+		
+		void setLimbs(glm::vec3 limb);
+		glm::vec3 getLimbs();
+
+		glm::vec3 getMin();
+		glm::vec3 getMax();
+}BBox;
+
+
+ColRes Intersection(BBox bounds, Ray r);
+ColRes Intersection(BBox a, BBox b);
+
+glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & axis);
+
+std::pair<Block *, int> pickBlock(Ray sight);
 
 //Reads a file in and interprets it into a nullptr-Terminated string.
 std::string readFileToString(const char * fileName);
@@ -37,6 +70,13 @@ void printMatrix(glm::mat4 matrix);
 void printMatrix(glm::mat3 matrix);
 void printShaderInfoLog(GLuint obj);
 void printProgramInfoLog(GLuint obj);
+
+float clamp(float min, float max, float f);
+double clamp(double min, double max, double f);
+int clamp(int min, int max, int f);
+
+int blockNamesFind(std::string s);
+glm::mat4 alignVec(glm::vec3 a, glm::vec3 b);
 
 
 #endif //util

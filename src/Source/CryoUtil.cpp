@@ -23,92 +23,186 @@ Ray::Ray(glm::vec3 O, glm::vec3 D, float t0, float t1){
 	times[1] = t1;
 }
 
-int Intersection(Block * b, Ray r){
-	//std::cout << b << std::endl;
-	int side[2] = {-1,-1};
+CollisionResult::CollisionResult(){
+	side = -1;
+	minCol = -1.0f;
+	maxCol = -1.0f;
+}
+
+CollisionResult::CollisionResult(int s, float n, float x){
+	side = s;
+	minCol = n;
+	maxCol = x;
+}
+
+BoundingBox::BoundingBox(){
+	Position = glm::vec3(-1.0f);
+	prevPos = glm::vec3(-1.0f);
+	Limbs = glm::vec3(-1.0f);
+}
+
+glm::vec3 BoundingBox::getPrevPos(){
+	return prevPos;	
+}
+
+void BoundingBox::setPos(glm::vec3 pos){
+	if(Position == glm::vec3(-1.0f) && prevPos == glm::vec3(-1.0f))
+		prevPos = pos;
+	else
+		prevPos = Position;
+	Position = pos;
+} 
+
+glm::vec3 BoundingBox::getPos(){
+	return Position;
+}
+
+void BoundingBox::setLimbs(glm::vec3 limb){
+	Limbs = limb;
+}
+
+glm::vec3 BoundingBox::getLimbs(){
+	return Limbs;
+}
+
+glm::vec3 BoundingBox::getMin(){
+	return Position-Limbs;
+}
+
+glm::vec3 BoundingBox::getMax(){
+	return Position+Limbs;
+}
+
+
+ColRes Intersection(BBox bounding, Ray r){
+	int side = -1;
 	float tmin, tmax, tymin, tymax, tzmin,tzmax;
-	if(b == nullptr)
-		return -1;
-	int bID = b->getID();
-	//std::cout << "Block ID: " << bID << std::endl;
-	glm::vec3 bpos = b->getPos();
-	//std::cout << "Block Coords: " << bpos.x << ": " << bpos.y << ": " << bpos.z << std::endl;
-	glm::vec3 bounds[2] = {glm::vec3(bpos.x-(BLOCKSCALE/2),bpos.y-(BLOCKSCALE/2),bpos.z-(BLOCKSCALE/2)), glm::vec3(bpos.x+(BLOCKSCALE/2),bpos.y+(BLOCKSCALE/2),bpos.z+(BLOCKSCALE/2))};
-
-
-	//std::cout << "Intersection Block xs\n\tX: " << tmin << " \n\tY: " << tmax << std::endl;
-	//std::cout << "Intersection Block xs\n\tX: " << tmin << " \n\tY: " << tmax << std::endl;
-
+	ColRes cr;
+	if(bounding.getLimbs() == glm::vec3(-1.0f))
+		return cr;
+	glm::vec3 bounds[2] = {bounding.getMin(),bounding.getMax()};
+	//~~~~~~~~~~~~X
 	tmin = (bounds[r.sign[0]].x - r.Origin.x) * r.InverseDirection.x;
 	tmax = (bounds[1-r.sign[0]].x - r.Origin.x) * r.InverseDirection.x;
-	side[0] = 0;
-	side[1] = 0;
+	side = 0;
+	//~~~~~~~~~~~~Y
 	tymin = (bounds[r.sign[1]].y - r.Origin.y) * r.InverseDirection.y;
 	tymax = (bounds[1-r.sign[1]].y - r.Origin.y) * r.InverseDirection.y;
-	//std::cout << "Intersection Block xs\n\tX: " << tmin << " \n\tY: " << tmax << std::endl; 
-	//std::cout << "Intersection Block ys\n\tX: " << tymin << " \n\tY: " << tymax << std::endl; 
 	if((tmin > tymax) || (tymin > tmax))
-		return -1;
+		return cr;
 	if(tymin > tmin){
 		tmin = tymin;
-		side[0] = 1;
+		side = 1;
 	}
 	if(tymax < tmax){
 		tmax = tymax;
-		side[1] = 1;
+		//side = 1;
 	}
+	//~~~~~~~~~~~~Z
 	tzmin = (bounds[r.sign[2]].z - r.Origin.z) * r.InverseDirection.z;
 	tzmax = (bounds[1-r.sign[2]].z - r.Origin.z) * r.InverseDirection.z;
-	//std::cout << "Intersection Block zs\n\tX: " << tzmin << " \n\tY: " << tzmax << std::endl << std::endl; 
+
 	if((tmin > tzmax) || (tzmin > tmax))
-		return -1;
+		return cr;
 	if(tzmin > tmin){
 		tmin = tzmin;
-		side[0] = 2;
+		side = 2;
 	}
 	if(tzmax < tmax){
 		tmax = tzmax;
-		side[1] = 2;
+		//side = 2;
 	}
-	int finalSide = (r.sign[side[0]])+(side[0]*2);
-	if ((tmin < r.times[1]) && (tmax > r.times[0]))
-		return finalSide;
-	else
-		return -1;
+	//~~~~~~~~~~~~Return
+	if ((tmin < r.times[1]) && (tmax > r.times[0])){
+		int finalSide = (1-r.sign[side])+(side*2);
+		cr = ColRes(finalSide, tmin, tmax);
+		return cr;
+	}else
+		return cr;
 }
 
-Block * pickBlock(){
-	Ray sight;
+ColRes Intersection(BBox a, BBox b){
+
+	float u0, u1;
+
+	glm::vec3 dif = b.getPrevPos()-a.getPrevPos();
+	glm::vec3 al = a.getLimbs();
+	glm::vec3 bl = b.getLimbs(); 
+	ColRes cr;
+	//std::cout << "BlockPos: \n\tX: "<<b.getPos().x <<  "\n\tY: "<<b.getPos().y <<  "\n\tZ: "<<b.getPos().z << std::endl;
+	//std::cout << "Dif: \n\tX: "<< dif.x <<  "\n\tY: "<< dif.y <<  "\n\tZ: "<< dif.z << std::endl;
+	//std::cout << "difCompare: \n\tX: "<< al.x+bl.x <<  "\n\tY: "<< al.y+bl.y <<  "\n\tZ: "<< al.z+bl.z << std::endl;
+	if(fabs(dif.x)<=al.x+bl.x && fabs(dif.y)<=al.y+bl.y && (fabs(dif.z)<=al.z+bl.z)){
+		cr = ColRes(0, 0.0f, 0.0f);
+		return cr;
+	}
+
+	glm::vec3 av = a.getPos()-a.getPrevPos();
+	glm::vec3 bv = b.getPos()-b.getPrevPos();
+	glm::vec3 u_0(0.0f,0.0f,0.0f);
+	glm::vec3 u_1(1.0f,1.0f,1.0f);
+	glm::vec3 v = bv-av;
+
+	glm::vec3 amin = a.getMin()-glm::vec3(0.01f);
+	glm::vec3 amax = a.getMax()+glm::vec3(0.01f);
+	glm::vec3 bmin = b.getMin()-glm::vec3(0.01f);
+	glm::vec3 bmax = b.getMax()+glm::vec3(0.01f);
+
+	for(int i=0; i<3; i++){
+		if(amax[i] < bmin[i] && v[i] < 0)
+			u_0[i] = (amax[i] - bmin[i] ) / v[i];
+		else if(bmax[i] < amin[i] && v[i] > 0)
+			u_0[i] = (amin[i] - bmax[i] ) / v[i];
+		if(bmax[i] > amin[i] && v[i] < 0)
+			u_1[i] = (amin[i] - bmax[i] ) / v[i];
+		else if(amax[i] > bmin[i] && v[i] > 0)
+			u_1[i] = (amax[i] - bmin[i] ) / v[i];
+	}
+	u0 = fmaxf(u_0.x,fmaxf(u_0.y,u_0.z));
+	u1 = fminf(u_1.x,fminf(u_1.y,u_1.z));
+
+	//std::cout << "MinTime: " << u0 << std::endl;
+	//std::cout << "MaxTime: " << u1 << std::endl;
+	if(u0 == 0.0f && u1 == 1.0f)
+		return cr;
+	if(u0<=u1){
+		cr = ColRes(0,u0,u1);
+		return cr;
+	}
+	else
+		return cr;
+	
+}
+
+glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & axis){
+	float deltaTime = State.getdTime();
+	//std::cout << "Starting Collide Check" << std::endl;
 	std::vector<Block*> viableBlockList;
-	std::vector<int> viableSides;
-	Player self = State.getPlayer(0);
-	glm::vec3 playerPos = self.getPos();
-	//playerPos = glm::vec3(playerPos.x,playerPos.y,playerPos.z);
-	glm::vec3 camPos = Renderer.getCamVec(0);
+	std::vector<ColRes> colTimes;
 
-	glm::vec3 lookingDirection = playerPos-camPos;
-	lookingDirection = glm::normalize(lookingDirection)*FOCUSDIST;
-	glm::vec3 finalPoint = playerPos+lookingDirection;
+	BoundingBox movedBox = playerBox;
+	movedBox.setPos((movedBox.getPos()+moveDir));
+	//playerBox.setPos(playerBox.getPos());
 
-	//finalPoint = glm::normalize(finalPoint)*FOCUSDIST;
-	//finalPoint = glm::vec3(floor(finalPoint.x),floor(finalPoint.y),floor(finalPoint.z));
+	glm::vec3 playerMin = playerBox.getMin();
+	glm::vec3 playerMax = playerBox.getMax();
+	//glm::vec3 pLimbs =  playerBox.getLimbs();
+	glm::vec3 movedMin = movedBox.getMin();
+	glm::vec3 movedMax = movedBox.getMax();
 
-	sight = Ray(playerPos,lookingDirection,0.0f,FOCUSDIST);
+	//std::cout << "Position of Char: \n\tX: "<< playerBox.getPos().x <<  "\n\tY: "<< playerBox.getPos().y <<  "\n\tZ: "<< playerBox.getPos().z << std::endl;
+	//std::cout << "PMin: \n\tX: "<< playerMin.x <<  "\n\tY: "<< playerMin.y <<  "\n\tZ: "<< playerMin.z << std::endl;
+	//std::cout << "PMax: \n\tX: "<< playerMax.x <<  "\n\tY: "<< playerMax.y <<  "\n\tZ: "<< playerMax.z << std::endl;
+	//std::cout << "MMax: \n\tX: "<< movedMin.x <<  "\n\tY: "<< movedMin.y <<  "\n\tZ: "<< movedMin.z << std::endl;
+	//std::cout << "MMin: \n\tX: "<< movedMax.x <<  "\n\tY: "<< movedMax.y <<  "\n\tZ: "<< movedMax.z << std::endl;
+	//std::cout << "Player Limbs: \n\tX: "<< pLimbs.x <<  "\n\tY: "<< pLimbs.y <<  "\n\tZ: "<< pLimbs.z << std::endl;
+	//std::cout << "Moved Position of Char: \n\tX: "<< movedBox.getPos().x <<  "\n\tY: "<< movedBox.getPos().y <<  "\n\tZ: "<< movedBox.getPos().z << std::endl;
 
-	//std::cout << "After Declarations." << std::endl;
+	glm::vec3 minCorner = {fminf(playerMin.x,movedMin.x),fminf(playerMin.y,movedMin.y),fminf(playerMin.z,movedMin.z)};
+	glm::vec3 maxCorner = {fmaxf(playerMax.x,movedMax.x),fmaxf(playerMax.y,movedMax.y),fmaxf(playerMax.z,movedMax.z)};
 
-	//std::cout << std::endl;
-
-	//std::cout << "PlayerPos: " << playerPos.x << ":" << playerPos.y << ":" << playerPos.z << std::endl;
-	//std::cout << "finalPos: " << finalPoint.x << ":" << finalPoint.y << ":" << finalPoint.z << std::endl;
-
-	if(playerPos.y/BLOCKSCALE >= (CHUNKHEIGHT) && finalPoint.y/BLOCKSCALE >= (CHUNKHEIGHT) )
-		return nullptr;
-	if (playerPos.y/BLOCKSCALE <= 0.0f && finalPoint.y/BLOCKSCALE <= 0.0f)
-		return nullptr;
-
-	glm::vec2 finalChunk = glm::vec2(floor(finalPoint.x/(CHUNKDIMS*BLOCKSCALE)), floor(finalPoint.z/(CHUNKDIMS*BLOCKSCALE)));
-	glm::vec2 startChunk = glm::vec2(floor(playerPos.x/(CHUNKDIMS*BLOCKSCALE)), floor(playerPos.z/(CHUNKDIMS*BLOCKSCALE)));
+	glm::vec2 finalChunk = glm::vec2(floor(maxCorner.x/(CHUNKDIMS*BLOCKSCALE)), floor(maxCorner.z/(CHUNKDIMS*BLOCKSCALE)));
+	glm::vec2 startChunk = glm::vec2(floor(minCorner.x/(CHUNKDIMS*BLOCKSCALE)), floor(minCorner.z/(CHUNKDIMS*BLOCKSCALE)));
 
 	glm::vec2 chunkDif = finalChunk-startChunk;
 	std::vector<glm::vec2> CheckedChunks;
@@ -121,17 +215,15 @@ Block * pickBlock(){
 				CheckedChunks.push_back(glm::vec2(cx,cy));
 		}
 	}
-	//This needs to scope out an area in between PlayerPos and FinalPoint, need to control signs Correctly so this doesnt exit automatically. Also, make sure to use the dimentions of the chunk as boundries. (fminf(),fmaxf)
+	//This needs to scope out an area in between minCorner and maxCorner, need to control signs Correctly so this doesnt exit automatically. Also, make sure to use the dimentions of the chunk as boundries. (fminf(),fmaxf)
 	//std::cout << "Chunkmath Done, Checking " << CheckedChunks.size() <<" world chunks." << std::endl;
 	Chunk * tempChunk = nullptr;
-	glm::vec2 chunkPos = glm::vec2();
-	int inter = -1;
+	glm::vec2 chunkPos;
+	ColRes col;
 
 	for(int c=0; c<CheckedChunks.size(); c++){
-		//std::cout << "CheckedChunk\n\tX: " << CheckedChunks[c].x << " \n\tY: " << CheckedChunks[c].y << std::endl; 
 		for(int i=0; i<World.size(); i++){
-			chunkPos = World[i]->getPosition();
-			//std::cerr << "Chunk\n\tX: " << chunkPos.x << " \n\tY: " << chunkPos.y << std::endl; 
+			chunkPos = World[i]->getPos();
 			if(chunkPos == CheckedChunks[c]){
 				tempChunk = World[i];
 				break;
@@ -139,73 +231,182 @@ Block * pickBlock(){
 		}
 		if(tempChunk == nullptr) {
 			std::cerr << "tempChunk is nullptr, WTF?!" << std::endl;
-			return nullptr;
+			std::cout << "tempChunk is nullptr, WTF?!" << std::endl;
+			return glm::vec3(-1.0f);
 		}
+
+		//std::cout << "Chunk\n\tX: " << chunkPos.x << " \n\tY: " << chunkPos.y << std::endl; 
+		//std::cout << "MinCorner: \n\tX: "<< minCorner.x <<  "\n\tY: "<< minCorner.y <<  "\n\tZ: "<< minCorner.z << std::endl;
+		//std::cout << "MaxCorner: \n\tX: "<< maxCorner.x <<  "\n\tY: "<< maxCorner.y <<  "\n\tZ: "<< maxCorner.z << std::endl;
+
 		int Chunkx = (int)CheckedChunks[c].x*CHUNKDIMS*BLOCKSCALE;
 		int Chunkz = (int)CheckedChunks[c].y*CHUNKDIMS*BLOCKSCALE;
-		int beginBoundx = (int)fmaxf(fminf(playerPos.x, finalPoint.x), Chunkx);
-		int endBoundx = (int)fminf(fmaxf(playerPos.x, finalPoint.x), (Chunkx+(CHUNKDIMS*BLOCKSCALE))-1);
-		int beginBoundz = (int)fmaxf(fminf(playerPos.z, finalPoint.z), Chunkz); 
-		int endBoundz = (int)fminf(fmaxf(playerPos.z, finalPoint.z), (Chunkz+(CHUNKDIMS*BLOCKSCALE))-1);
-/*		std::cout << "Boundx: " << beginBoundx << ":" << endBoundx << std::endl;
-		std::cout << "Boundz: " << beginBoundz << ":" << endBoundz << std::endl;
-		std::cout << "chunkx: " << CheckedChunks[c].x << std::endl; 
-		std::cout << "chunkz: " << CheckedChunks[c].y << std::endl; */
+		float beginBoundx = fmaxf(minCorner.x, Chunkx);
+		float endBoundx = fminf(maxCorner.x, (Chunkx+((CHUNKDIMS-1)*BLOCKSCALE)));
+		float beginBoundz = fmaxf(minCorner.z, Chunkz); 
+		float endBoundz = fminf(maxCorner.z, (Chunkz+((CHUNKDIMS-1)*BLOCKSCALE)));
+		glm::vec2 Boundx = glm::vec2(beginBoundx-Chunkx,endBoundx-Chunkx);
+		glm::vec2 Boundz = glm::vec2(beginBoundz-Chunkz,endBoundz-Chunkz);
+		Boundx = Boundx/BLOCKSCALE;
+		Boundz = Boundz/BLOCKSCALE;
+		//std::cout << "ChunkBegins: \n\tX: " << Chunkx << " -> " << Chunkx+((CHUNKDIMS-1)*BLOCKSCALE) << "\n\tZ: " << Chunkz << " -> " << Chunkz+((CHUNKDIMS-1)*BLOCKSCALE) <<std::endl;
+		//glm::vec3 clampedMinBounds = {clamp(chunkx,chunkx+((CHUNKDIMS-1)*BLOCKSCALE),minCorner.x),clamp(0.0f,CHUNKHEIGHT-1,minCorner.y),clamp(chunkz,chunkz+((CHUNKDIMS-1)*BLOCKSCALE),minCorner.z)};
+		//glm::vec3 clampedMaxBounds = {clamp(chunkx,chunkx+((CHUNKDIMS-1)*BLOCKSCALE),maxCorner.x),clamp(0.0f,CHUNKHEIGHT-1,maxCorner.y),clamp(chunkz,chunkz+((CHUNKDIMS-1)*BLOCKSCALE),maxCorner.z)};
+		//clampedMinBounds -= BLOCKSCALE;
+		//clampedMaxBounds -= BLOCKSCALE;
+		//std::cout << "Starting Block Check in Chunk: \n\tX:" << chunkPos.x << "\n\tZ:" << chunkPos.y << std::endl;
+		//std::cout << "Bounds:" << std::endl;
+		//std::cout << "X Bounds: \n\tMin: " << Boundx.x << "\n\tMax: " << Boundx.y <<std::endl;
+		//std::cout << "Y Bounds: \n\tMin: " << fmaxf(minCorner.y/BLOCKSCALE,0) << "\n\tMax: " << fminf(maxCorner.y/BLOCKSCALE,CHUNKHEIGHT-1) <<std::endl;
+		//std::cout << "Z Bounds: \n\tMin: " << Boundz.x << "\n\tMax: " << Boundz.y <<std::endl;
+		//std::cout << "Blocks:" << std::endl;
+		for(int i=floor(fmaxf(minCorner.y/BLOCKSCALE,0)); i<=ceil(fminf(maxCorner.y/BLOCKSCALE,CHUNKHEIGHT-1)); i++){
+			for(int j=floor(Boundz.x); j<=ceil(Boundz.y); j++){
+				for(int k=floor(Boundx.x); k<=ceil(Boundx.y); k++){
+					col = ColRes();
+					int curBlock = (i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k;
+					IOBJ * tempOBJ = Renderer.getIObject(tempChunk->grid[curBlock].first);
+					Block * tempB = tempOBJ->getBlocks(tempChunk->grid[curBlock].second);
+					if(tempB!=nullptr)
+						col = Intersection(movedBox, tempB->getBounds());
+					//std::cout << "\tk: " << k << "\n\ti: " << i << "\n\tj: " << j << std::endl;
+					if(col.side!=-1.0f){
+						viableBlockList.push_back(tempB);
+						colTimes.push_back(col);
+					}
+				}
+			}
+		}
+	}
+	if(viableBlockList.size() == 0 || colTimes.size() == 0)
+		return glm::vec3(1.0f);
+	//std::cout << "Sides :" << std::endl;	
+	int signs[2] = {1,-1};
+	float minTime = 1.0f;
+	glm::vec3 minAxisTime(1.0f,1.0f,1.0f);
+
+
+	glm::vec3 ppos = playerBox.getPos();
+	for(int i=0; i<colTimes.size(); i++){
+		Ray r(ppos, viableBlockList[i]->getPos()-ppos, 0.0f, glm::length(viableBlockList[i]->getPos()-ppos));
+		//std::cout << "Before Block Inter:" << std::endl;
+		ColRes cr = Intersection(viableBlockList[i]->getBounds(), r);
+		axis = cr.side/2;
+		//std::cout << "BlockPos: \n\tX: "<< viableBlockList[i]->getPos().x <<  "\n\tY: "<< viableBlockList[i]->getPos().y <<  "\n\tZ: "<< viableBlockList[i]->getPos().z << std::endl;
+		//std::cout << "ColTime " << i << ": " << colTimes[i] << std::endl;
+		//std::cout << "side: " << side << std::endl;
+		//std::cout << "minAxis " << i << ": \n\tX: "<< minAxisTime.x <<  "\n\tY: "<< minAxisTime.y <<  "\n\tZ: "<< minAxisTime.z << std::endl;
+		if(colTimes[i].minCol < minAxisTime[axis])
+			minAxisTime[axis] = colTimes[i].minCol;
+	}
+
+	return minAxisTime;
+}
+
+std::pair<Block *, int> pickBlock(Ray sight){
+	std::vector<Block*> viableBlockList;
+	std::vector<ColRes> viableSides;
+
+	glm::vec3 origin = sight.Origin;
+	glm::vec3 destination = origin+(glm::normalize(sight.Direction)*sight.times[1]);
+
+	if(origin.y/BLOCKSCALE >= (CHUNKHEIGHT) && destination.y/BLOCKSCALE >= (CHUNKHEIGHT) )
+		return std::make_pair(nullptr,-1);
+	if (origin.y/BLOCKSCALE <= 0.0f && destination.y/BLOCKSCALE <= 0.0f)
+		return std::make_pair(nullptr,-1);
+
+	glm::vec2 startChunk = glm::vec2(floor(origin.x/(CHUNKDIMS*BLOCKSCALE)), floor(origin.z/(CHUNKDIMS*BLOCKSCALE)));
+	glm::vec2 finalChunk = glm::vec2(floor(destination.x/(CHUNKDIMS*BLOCKSCALE)), floor(destination.z/(CHUNKDIMS*BLOCKSCALE)));
+
+	glm::vec2 chunkDif = finalChunk-startChunk;
+	std::vector<glm::vec2> CheckedChunks;
+	CheckedChunks.push_back(startChunk);
+	//std::cout << "Pushed Back Start Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+	for(int cx=fminf(startChunk.x,finalChunk.x); cx<=fmaxf(startChunk.x,finalChunk.x); cx++){
+		for(int cy=fminf(startChunk.y,finalChunk.y); cy<=fmaxf(startChunk.y,finalChunk.y); cy++){
+			//std::cout << "Pushed Back Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+			if(startChunk != glm::vec2(cx,cy))
+				CheckedChunks.push_back(glm::vec2(cx,cy));
+		}
+	}
+	//This needs to scope out an area in between origin and destination, need to control signs Correctly so this doesnt exit automatically. Also, make sure to use the dimentions of the chunk as boundries. (fminf(),fmaxf)
+	//std::cout << "Chunkmath Done, Checking " << CheckedChunks.size() <<" world chunks." << std::endl;
+	Chunk * tempChunk = nullptr;
+	glm::vec2 chunkPos;
+	ColRes inter;
+
+	for(int c=0; c<CheckedChunks.size(); c++){
+		for(int i=0; i<World.size(); i++){
+			chunkPos = World[i]->getPos();
+			//std::cout << "Chunk\n\tX: " << chunkPos.x << " \n\tY: " << chunkPos.y << std::endl; 
+			if(chunkPos == CheckedChunks[c]){
+				tempChunk = World[i];
+				break;
+			}
+		}
+		if(tempChunk == nullptr) {
+			std::cerr << "tempChunk is nullptr, WTF?!" << std::endl;
+			return std::make_pair(nullptr,-1);
+		}
+		int Chunkx = CheckedChunks[c].x*CHUNKDIMS*BLOCKSCALE;
+		int Chunkz = CheckedChunks[c].y*CHUNKDIMS*BLOCKSCALE;
+		float beginBoundx = fmaxf(fminf(origin.x, destination.x), Chunkx);
+		float endBoundx = fminf(fmaxf(origin.x, destination.x), (Chunkx+((CHUNKDIMS-1)*BLOCKSCALE)));
+		float beginBoundz = fmaxf(fminf(origin.z, destination.z), Chunkz); 
+		float endBoundz = fminf(fmaxf(origin.z, destination.z), (Chunkz+((CHUNKDIMS-1)*BLOCKSCALE)));
 		glm::vec2 Boundx;
 		glm::vec2 Boundz;
 		Boundx = glm::vec2(beginBoundx-Chunkx,endBoundx-Chunkx);
 		Boundz = glm::vec2(beginBoundz-Chunkz,endBoundz-Chunkz);
 		Boundx = Boundx/BLOCKSCALE;
 		Boundz = Boundz/BLOCKSCALE;
-/*		std::cout << "Boundx: " << Boundx.x << ":" << Boundx.y << std::endl;
-		std::cout << "Boundz: " << Boundz.x << ":" << Boundz.y << std::endl;*/
 
-		for(int i=fmaxf(fminf(playerPos.y/BLOCKSCALE,finalPoint.y/BLOCKSCALE),0.0f); i<fminf(fmaxf(playerPos.y/BLOCKSCALE,finalPoint.y/BLOCKSCALE),CHUNKHEIGHT); i++){
-			for(int j=(int)(Boundz.x); j<=(int)(Boundz.y); j++){
-				for(int k=(int)(Boundx.x); k<=(int)(Boundx.y); k++){
-					inter = -1;
+		for(int i=floor(fmaxf(fminf(origin.y/BLOCKSCALE,destination.y/BLOCKSCALE),0.0f)); i<=ceil(fminf(fmaxf(origin.y/BLOCKSCALE,destination.y/BLOCKSCALE),CHUNKHEIGHT-1)); i++){
+			for(int j=floor(Boundz.x); j<=ceil(Boundz.y); j++){
+				for(int k=floor(Boundx.x); k<=ceil(Boundx.y); k++){
+					inter = ColRes();
 					//std::cout << "\tk: " << k << "\n\ti: " << i << "\n\tj: " << j << std::endl;
-					if(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k] == nullptr) 
-						continue;
-					//std::cout << "Chunk Number: " << CheckedChunks[c].x << ":" << CheckedChunks[c].y << std::endl;
-					//std::cout << "Block Number: " << k << ":" << i << ":" << j << std::endl;
-					//tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]->getPos();
-					inter = Intersection(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k], sight);
-					if(inter!=-1){
-						viableBlockList.push_back(tempChunk->grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]);
-						viableSides.push_back(inter);
+					int curBlock = (i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k;
+					IOBJ * tempOBJ = Renderer.getIObject(tempChunk->grid[curBlock].first);
+					Block * tempB = tempOBJ->getBlocks(tempChunk->grid[curBlock].second);
+					if(tempB!=nullptr){
+						inter = Intersection(tempB->getBounds(), sight);
+						if(inter.side!=-1){
+							viableBlockList.push_back(tempB);
+							viableSides.push_back(inter);
+						}
 					}
 				}
 			}
 		}
 	}
 	//std::cout << "After Intersection." << std::endl;
-	if(viableBlockList.size() == 0)
-		return nullptr;
+	if(viableBlockList.size() == 0 || viableSides.size() == 0)
+		return std::make_pair(nullptr,-1);
 
-	glm::vec3 blockPos;
-	glm::vec3 camDist;
-	float tempDist = 0.0f;
-	float finalDist = 99999.0f;
-	int minBlock = viableBlockList.size();
-	for(int i=0; i<viableBlockList.size(); i++){
-		blockPos = viableBlockList[i]->getPos();
-		camDist = blockPos-playerPos;
-		tempDist = sqrt(pow(camDist.x,2)+pow(camDist.y,2)+pow(camDist.z,2));
-		if(tempDist <= finalDist){
-			finalDist = tempDist;
+	float finalDist = (float)std::numeric_limits<float>::max();
+	int minBlock = -1;
+	for(int i=0; i<viableSides.size(); i++){
+		//std::cout << "I: " << i << std::endl;
+		//glm::vec3 blockPos = viableBlockList[i]->getPos();
+ 		//std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
+		// std::cout << "Side: " << viableSides[i].side << std::endl;
+  		//std::cout << "PrevFDist: " << finalDist << std::endl;
+		//std::cout << "Cur Dist: " << viableSides[i].minCol*sight.times[1] << std::endl;
+		if(viableSides[i].minCol*sight.times[1] < finalDist){
+			finalDist = viableSides[i].minCol*sight.times[1];
 			minBlock = i;
 		}
-	} 
- 	blockPos = viableBlockList[minBlock]->getPos();
- 	self.setSelectedSide(viableSides[minBlock]);
- 	State.setPlayer(0, self);
- 	//std::cout << "There Exists a Viable Block at" << std::endl;
- 	//std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
-	return viableBlockList[minBlock];
-
+	}
+	if(minBlock == -1)
+		return std::make_pair(nullptr,-1);
+	
+/*	std::cout << "MinBlock: " << minBlock << std::endl;
+ 	std::cout << "There Exists a Viable Block at" << std::endl;
+ 	std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
+ 	std::cout << "minSide: " << viableSides[minBlock].side << std::endl;*/
+	return std::make_pair(viableBlockList[minBlock], viableSides[minBlock].side);
 }
-
 
 // Create a nullptr-terminated string by reading the provided file
 std::string readFileToString(const char* filePath)
@@ -267,15 +468,26 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 			sscanf(fileBuffer, "%*s %f %f", &tex.x, &tex.y);
 			Object->addTextureCoords(tex);
 		} else if (strcmp(identifier, "f") == 0){
+			Object->setDrawType(GL_TRIANGLES);
 			GLuint indices[9];
 			sscanf(fileBuffer, "%*s %d/%d/%d %d/%d/%d %d/%d/%d", &indices[0], &indices[1], &indices[2], &indices[3], &indices[4], &indices[5], &indices[6], &indices[7], &indices[8]);
 			for (int j = 0; j < 3; j++){
 				vertexIndices.push_back(indices[(3 * j)] - 1);
 				normalIndices.push_back(indices[(3 * j) + 2] - 1);
 				textureIndices.push_back(indices[(3 * j) + 1] - 1);
-
 			}
-		} else{
+		} else if (strcmp(identifier, "l") == 0){
+			Object->setDrawType(GL_LINES);
+			GLuint indices[4];
+			sscanf(fileBuffer, "%*s %d/%d %d/%d", &indices[0], &indices[1], &indices[2], &indices[3]);
+			for (int j = 0; j < 2; j++){
+				vertexIndices.push_back(indices[2*j] - 1);
+				normalIndices.push_back(0);
+				textureIndices.push_back(indices[(2*j)+1] - 1);
+			}
+			Object->addTextureCoords(glm::vec2());
+			Object->addVertexNormals(glm::vec4());
+		}else{
 			perror("Incorrect Identifier!"); //WTF KINDA OBJ FILE ARE YOU READING?!
 		}
 	}
@@ -290,7 +502,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 	//This needs to be done since open gl only allows one index array for each object so, you need to reorganize the indices that are read in from the OBJ file.
 
 	for (size_t i = 0; i < vertexIndices.size(); i++){
-		struct vertexInfo v = { Object->getVertices(vertexIndices[i]), Object->getVertexNormals(normalIndices[i]), Object->getTextureCoords(textureIndices[i])};
+		struct vertexInfo v = {Object->getVertices(vertexIndices[i]), Object->getVertexNormals(normalIndices[i]), Object->getTextureCoords(textureIndices[i])};
 		bool exists = false;
 		GLuint index = 0;
 		//Checking for unique (vertex,normal,texture) triplets.
@@ -313,6 +525,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 			indexMap[v] = index;
 		}
 	};
+
 	//The vectors must be re-applied so that the order is correct in correspondence with the new index array.
 	Object->setVertices(verts);
 	Object->setVertexNormals(norms);
@@ -510,7 +723,7 @@ void printMatrix(glm::mat4 matrix){
 	cout << "4X4 Matrix: " << endl;
 	for (int i = 0; i < 4; i++){
 		for (int j = 0; j < 4; j++){
-			cout << matrix[j][i];
+			cout << matrix[j][i]  << " | ";
 		}
 		cout << endl;
 	}	
@@ -523,7 +736,7 @@ void printMatrix(glm::mat3 matrix){
 	cout << "4X4 Matrix: " << endl;
 	for (int i = 0; i < 3; i++){
 		for (int j = 0; j < 3; j++){
-			cout << matrix[j][i];
+			cout << matrix[j][i] << " | ";
 		}
 		cout << endl;
 	}	
@@ -567,4 +780,52 @@ void printProgramInfoLog(GLuint obj)
     }else{
     	std::cerr << "No Program Problems." << std::endl;
     }
+}
+
+float clamp(float min, float max, float f){
+	if(f < min)
+		f = min;
+	if(f > max)
+		f = max;
+	return f;
+}
+
+double clamp(double min, double max, double f){
+	if(f < min)
+		f = min;
+	if(f > max)
+		f = max;
+	return f;
+}
+
+int clamp(int min, int max, int f){
+	if(f < min)
+		f = min;
+	if(f > max)
+		f = max;
+	return f;
+}
+
+int blockNamesFind(std::string s){
+	int found = -1;
+	for(int i=0; i<BlockNames.size(); i++){
+		if(s.compare(BlockNames[i])==0)
+			found = i;
+	}
+	return found;
+}
+
+glm::mat4 alignVec(glm::vec3 a, glm::vec3 b){
+	if(a == b || a == -b)
+		return glm::mat4();
+	a = glm::normalize(a);
+	b = glm::normalize(b);
+	glm::vec3 cross = glm::cross(a,b);
+	float sinAngle = glm::length(cross);
+	float cosAngle = glm::dot(a,b);
+	glm::mat3 skew = {0.0f,-(cross.z),(cross.y),
+					  (cross.z),0.0f,-(cross.x),
+					  -(cross.y),(cross.x),0.0f};
+	glm::mat3 rot = glm::mat3()+skew+(skew*skew)*(float)((1.0f-cosAngle)/pow(sinAngle,2));
+	return glm::mat4(rot);
 }

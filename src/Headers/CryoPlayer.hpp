@@ -4,14 +4,19 @@
 typedef class Player{
 	private:
 		int ID;
-		glm::vec3 Position;
+		glm::vec3 position;
 		glm::vec2 curChunk;
+		glm::vec3 relBlock;
 		Ray SightLine;
 		glm::vec3 movingDirection;
+		glm::vec3 velocity;
 		Block *selected;
 		int selectedSide;
+		bool jumping;
+		BBox bounds;
 	public:
 		Player();
+		~Player();
 
 		void addSelect(glm::mat4 position);
 		void addSelect(glm::mat4 position, Colors16 c);
@@ -31,8 +36,14 @@ typedef class Player{
 		void setChunk(glm::vec2 c);
 		glm::vec2 getChunk();
 
+		void setRelBlock(glm::vec3 bp);
+		glm::vec3 getRelBlock();
+
 		void setID(int id);
 		int getID();
+
+		void setVelocity(glm::vec3 a);
+		glm::vec3 getVelocity();
 
 		void setSelected(Block * b);
 		void clearSelected();
@@ -40,6 +51,13 @@ typedef class Player{
 
 		void setSelectedSide(int side);
 		int getSelectedSide();
+
+		void setJumping(bool j);
+		bool getJumping();
+
+		void setBounds(BBox & b);
+		void setBounds(glm::vec3 a);
+		BBox & getBounds();
 }Player;
 
 #endif //player

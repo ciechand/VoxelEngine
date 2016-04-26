@@ -15,6 +15,7 @@
 #include <random>
 #include <png.h>
 #include <utility>
+#include <limits>
 
 #include <GL/glew.h>
 #include <GL/glu.h>
@@ -30,22 +31,27 @@
 #include <glm/gtc/integer.hpp>
 
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 
 
 // GLOBAL CONSTANT DEFINITIONS
 #define PI 3.1415926535f
-#define TIMECOMPENSATE 100.0f
+#define TIMECOMPENSATE 60.0f
 #define TEXDIMS 16
 #define NUMTEX 100
 #define BLOCKSCALE 2.0f
-#define CHUNKDIMS 16
-#define CHUNKHEIGHT 2
+#define CHUNKDIMS 17
+#define CHUNKHEIGHT 20.0f
 #define LOOKSPEED 1.0f
-#define MOVESPEED 0.5f
-#define CAMERADIST 10.0f
+#define MOVESPEED 5.0f
+#define CAMERADIST 20.0f
 #define FOCUSDIST 15.0f
-#define RENDERRADIUS 5
-
+#define RRADIUS 2
+#define RENDERRADIUS (2*(RRADIUS)+1)
+#define GRAVITY -9.81f
+#define TVEL 100.0f
+#define PLAYERHEIGHT BLOCKSCALE*1.5f
+#define PLAYERWIDTH BLOCKSCALE*0.9f
 
 //MACROS
 #define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
@@ -54,10 +60,11 @@
 #define Base
 
 //Forward declaring any classes necessary
-typedef class InstancedObject IOBJ;
-typedef class Chunk Chunk;
-typedef class Player Player;
+typedef class BoundingBox BBox;
 typedef class Block Block;
+typedef class Chunk Chunk;
+typedef class InstancedObject IOBJ;
+typedef class Player Player;
 
 //Enumeration of the states the game can be in.
 // [0] = Paused
@@ -85,14 +92,14 @@ enum TransformMatrixAtributes{Translate, Scale, Rotate};
 enum VertexAttributes{Positions, Normals, Textures, ModelMatrices, TexturePos};
 
 //Enum for faces of cube for texture mapping.
-// [0] = Left = x
-// [1] = Right = x
-// [2] = Top = y
-// [3] = Bottom = y
-// [4] = Front = z
-// [5] = Back = z
+// [0] = Left = +x
+// [1] = Right = -x
+// [2] = Top = +y
+// [3] = Bottom = -y
+// [4] = Front = +z
+// [5] = Back = -z
 
-enum BlockFace{Left, Right, Top, Bottom, Front, Back};
+enum BlockFace{Right, Left, Top, Bottom, Front, Back};
 
 //enum for the materials that blocks can be made of.
 enum Materials{Air, Stone};
@@ -117,6 +124,7 @@ private:
 	float camPos[2];
 	std::vector<Player> Players;
 	sf::Time timeElapsed;
+	float deltaTime;
 public:
 	std::vector<Block> Selectors;
 	GameState();
@@ -134,11 +142,14 @@ public:
 
 	void addPlayer(Player p);
 	void setPlayer(int index, Player& p);
-	Player& getPlayer(int index);
+	Player * getPlayer(int index);
 	std::vector<Player> getPlayerList();
 
 	sf::Time getTime();
 	void setTime(sf::Time t);
+
+	float getdTime();
+	void setdTime(float t);
 }GState;
 
 //Class for base object, many other object types such as Item and Block will inherit from this class.
@@ -244,16 +255,22 @@ typedef struct vertexInfo{
 void InitOpenGL();
 void tickUpdate();
 
+
 extern GRend Renderer;
 extern OPT Options;
 extern GState State;
 extern std::vector<Chunk*> World;
 extern sf::Clock masterClock;
+extern std::pair<glm::uint,glm::uint> PlayerPos;
+extern std::pair<glm::uint,glm::uint> ViewLinePos;
 
 extern sf::Window mainWindow;
 extern std::default_random_engine randomEng;
 
 extern const glm::vec3 BlockColors[16];
+extern const glm::vec3 DirectionalVectors[6];
+extern std::vector<std::string> BlockNames;
+
 
 #endif //Base
 

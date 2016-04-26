@@ -12,6 +12,7 @@ private:
 	std::vector<glm::vec2> textureCoords;
 	std::vector<GLuint> indices;
 	std::vector<Block> blockList;
+	GLenum drawType;
 public:
 	InstancedObject();
 	~InstancedObject();
@@ -51,14 +52,16 @@ public:
 	void clearIndices();
 	std::vector<GLuint> getIndices();
 
-	void addBlocks(Block & B);
+	void addBlocks();
 	void setBlockList(std::vector<Block>& B);
 	void removeBlock(int blockpos);
 	void clearBlocks();
 	std::vector<Block>& getBlocks();
-	Block & getBlocks(int index);
+	Block * getBlocks(int index);
 	int getBlocksSize();
 
+	GLenum getDrawType();
+	void setDrawType(GLenum t);
 }IOBJ;
 
 void display();

@@ -1,6 +1,7 @@
 #include "../Headers/CryoBase.hpp"
 
 InstancedObject::InstancedObject(){
+	drawType = 0;
 }
 
 
@@ -20,8 +21,8 @@ void InstancedObject::Initialize(){
 	glGenBuffers(3, &vertexBufferObjects[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[0]);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec4) + vertexNormals.size()*sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), &vertices[0]);
-	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), &vertexNormals[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
+	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
 
 	GLuint vPos = glGetAttribLocation(Renderer.getShaderProgram(), "vPosition");
 	glEnableVertexAttribArray(vPos);
@@ -35,7 +36,7 @@ void InstancedObject::Initialize(){
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[1]);
 
 	glBufferData(GL_ARRAY_BUFFER, textureCoords.size() * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size() * sizeof(glm::vec2), &textureCoords[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size() * sizeof(glm::vec2), textureCoords.data());
 
 	GLuint texCoordinatePos = glGetAttribLocation(Renderer.getShaderProgram(), "textureCoordinatesIn");
 	glEnableVertexAttribArray(texCoordinatePos);
@@ -44,8 +45,8 @@ void InstancedObject::Initialize(){
 	//model matrices
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
 	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), &blockList[0]);
-	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), &State.Selectors[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
+	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), State.Selectors.data());
 
 	GLuint modelMatrixPos = glGetAttribLocation(Renderer.getShaderProgram(), "modelMatrix");
 
@@ -84,25 +85,27 @@ void InstancedObject::Initialize(){
 	glGenBuffers(1, &elementBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indices.size() * sizeof(GLuint), &indices[0]);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indices.size() * sizeof(GLuint), indices.data());
 
 	glm::mat4 p = glm::perspective(Options.getProjVars()[0],Options.getProjVars()[1],Options.getProjVars()[2],Options.getProjVars()[3]);
 	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
+
+	addBlocks();
 }
 
 void InstancedObject::drawOBJ(){
 	if(blockList.size() != 0){
 		glBindVertexArray(vertexArrayObject);
 		Update();
-		glDrawElementsInstanced(GL_TRIANGLES, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size()+State.Selectors.size());
+		glDrawElementsInstanced(drawType, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size()+State.Selectors.size());
 	}
 }
 
 void InstancedObject::Update(){
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
 	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), &blockList[0]);
-	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), &State.Selectors[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
+	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), State.Selectors.data());
  }
 
 void InstancedObject::setVertexArrayObject(GLuint VAO){
@@ -202,10 +205,8 @@ std::vector<GLuint> InstancedObject::getIndices(){
 	return indices;
 }
 
-void InstancedObject::addBlocks(Block& B){
-	blockList.push_back(B);
-	//std::cout << "NUM: "  << blockList.size()-1 << ": Address Inside B: " << B << std::endl;
-	//std::cout << "NUM: "  << blockList.size()-1 << ": Address Inside &: " << &blockList[blockList.size()-1] << std::endl;
+void InstancedObject::addBlocks(){
+	blockList.emplace_back();
 }
 
 void InstancedObject::setBlockList(std::vector<Block>& B){
@@ -217,12 +218,25 @@ void InstancedObject::removeBlock(int blockPos){
 	//std::cerr << "Inside Address of OBJ: " << this << std::endl;
 	//std::cerr << "Address of blockList: " << &blockList << std::endl;
 	//std::cerr << "Address of block Removed: " << &(blockList[blockpos]) << std::endl;
-	//std::cerr << "Block Removed at ID: " << blockPos << ";\n\tWith Position: "<< pos.x << ": " << pos.y << ": " << pos.z << ";" << std::endl;
-	blockList[blockList.size()-1].setID(blockList[blockPos].getID());
-	std::iter_swap(blockList.begin()+blockPos, blockList.end()-1);
+	//std::cout << "Block Removed at ID: " << blockPos << ";\n\tWith Position: "<< pos.x << ": " << pos.y << ": " << pos.z << ";" << std::endl;
+	//std::cout << "End Block ID: " << (blockList.end()-1)->getID() << std::endl;
+	if((blockList.end()-1) != (blockList.begin()+blockPos)){
+		std::iter_swap(blockList.begin()+blockPos, blockList.end()-1);
+		(blockList.begin()+blockPos)->setID((blockList.end()-1)->getID());
+
+		glm::vec3 bpos = (blockList.begin()+blockPos)->getPos();
+		glm::vec2 chunk = glm::vec2(floor(bpos.x/(BLOCKSCALE*CHUNKDIMS)),floor(bpos.z/(BLOCKSCALE*CHUNKDIMS)));
+		glm::vec3 relpos = glm::vec3(((bpos.x)/BLOCKSCALE)-(chunk.x*CHUNKDIMS),bpos.y/BLOCKSCALE, ((bpos.z)/BLOCKSCALE)-(chunk.y*CHUNKDIMS));
+		for(int i=0; i<World.size(); i++){
+			if(World[i]->getPos() == chunk){
+				World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x].second = blockPos;	
+				break;
+			}
+		}
+	}
 	blockList.erase(blockList.end()-1);
 
-	//std::cerr << "\tStart: " << blockpos << "\n\tEnd: " << blockList.size() << std::endl;
+	//std::cerr << "\tStart: " << blockPos << "\n\tEnd: " << blockList.size() << std::endl;
 }
 
 void InstancedObject::clearBlocks(){
@@ -233,12 +247,22 @@ std::vector<Block>& InstancedObject::getBlocks(){
 	return blockList;
 }
 
-Block & InstancedObject::getBlocks(int index){
-	return blockList[index];	
+Block * InstancedObject::getBlocks(int index){
+	if(index >= blockList.size() || index == 0)
+		return nullptr;
+	return &(blockList[index]);	
 }
 
 int InstancedObject::getBlocksSize(){
 	return blockList.size();
+}
+
+GLenum InstancedObject::getDrawType(){
+	return drawType;
+}
+
+void InstancedObject::setDrawType(GLenum t){
+	drawType = t;
 }
 
 void display(){

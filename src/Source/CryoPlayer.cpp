@@ -1,12 +1,17 @@
 #include "../Headers/CryoBase.hpp"
 
 Player::Player(){
-	Position = glm::vec3();
+	position = glm::vec3();
 	curChunk = glm::vec2();
 	movingDirection = glm::vec3();
 	ID = 0;
 	selected = nullptr;
 	selectedSide = -1;
+	jumping = false;
+	bounds.setLimbs(glm::vec3((PLAYERWIDTH/2),(PLAYERHEIGHT/2),(PLAYERWIDTH/2)));
+}
+
+Player::~Player(){
 }
 
 void Player::addSelect(glm::mat4 position){
@@ -57,11 +62,13 @@ void Player::removeSelect(SelectTypes type){
 }
 
 void Player::setPos(glm::vec3 p){
-	Position = p;
+	position = p;
+	//setChunk(glm::vec2(floor(position.x/(CHUNKDIMS*BLOCKSCALE)), floor(position.z/(CHUNKDIMS*BLOCKSCALE))));
+	setBounds(position);
 }
 
 glm::vec3 Player::getPos(){
-	return Position;
+	return position;
 }
 
 
@@ -90,6 +97,14 @@ glm::vec2 Player::getChunk(){
 	return curChunk;
 }
 
+void Player::setRelBlock(glm::vec3 b){
+	relBlock = b;
+}
+
+glm::vec3 Player::getRelBlock(){
+	return relBlock;
+}
+
 void Player::setID(int id){
 	ID = id;
 }
@@ -97,6 +112,15 @@ void Player::setID(int id){
 int Player::getID(){
 	return ID;
 }
+
+void Player::setVelocity(glm::vec3 a){
+	velocity = a;
+}
+
+glm::vec3 Player::getVelocity(){
+	return velocity;
+}
+
 
 void Player::setSelected(Block * b){
 	selected = b;
@@ -116,4 +140,24 @@ void Player::setSelectedSide(int side){
 
 int Player::getSelectedSide(){
 	return selectedSide;
+}
+
+void Player::setJumping(bool j){
+	jumping = j;
+}
+
+bool Player::getJumping(){
+	return jumping;
+}
+
+void Player::setBounds(BBox & b){
+	bounds = b;
+}
+
+void Player::setBounds(glm::vec3 a){
+	bounds.setPos(a);
+}
+
+BBox & Player::getBounds(){
+	return bounds;
 }

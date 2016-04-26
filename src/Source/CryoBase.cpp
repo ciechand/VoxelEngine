@@ -8,13 +8,25 @@ const glm::vec3 BlockColors[16] = {glm::vec3(255.0f,255.0f,255.0f),glm::vec3(255
 									glm::vec3(252.0f,255.0f,0.0f),glm::vec3(165.0f,105.0f,0.0f),glm::vec3(255.0f,204.0f,0.0f),
 									glm::vec3(255.0f,137.0f,0.0f)};
 
+//A Constant Array for Directional Vectors. See CryoBase.hpp - BlockFace enum for which number are which direction.
+const glm::vec3 DirectionalVectors[6] = {glm::vec3(1.0f*BLOCKSCALE,0.0f,0.0f),
+									  glm::vec3(-1.0f*BLOCKSCALE,0.0f,0.0f),
+									  glm::vec3(0.0f,1.0f*BLOCKSCALE,0.0f),
+									  glm::vec3(0.0f,-1.0f*BLOCKSCALE,0.0f),
+									  glm::vec3(0.0f,0.0f,1.0f*BLOCKSCALE),
+									  glm::vec3(0.0f,0.0f,-1.0f*BLOCKSCALE)};
+
+
+std::vector<std::string> BlockNames;
+
+
 GameState::GameState(){
 	curState = Loading;
 	camPos[0] = 0.0f;
 	camPos[1] = 0.0f;
 	moving = std::vector<bool>(6, false);
 	Player Self;
-	Self.setPos(glm::vec3(8.0f,0.0f,8.0f));
+	Self.setPos(glm::vec3(8.5f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.5f));
 	Self.setID(Players.size());
 	Players.push_back(Self);
 	masterClock.restart();
@@ -58,8 +70,8 @@ void GameState::setPlayer(int index, Player& p){
 	Players[index] = p;
 }
 
-Player& GameState::getPlayer(int index){
-	return Players[index];
+Player * GameState::getPlayer(int index){
+	return &(Players[index]);
 }
 
 std::vector<Player> GameState::getPlayerList(){
@@ -72,6 +84,14 @@ sf::Time GameState::getTime(){
 
 void GameState::setTime(sf::Time t){
 	timeElapsed = t;
+}
+
+float GameState::getdTime(){
+	return deltaTime;
+}
+
+void GameState::setdTime(float t){
+	deltaTime = t;
 }
 
 baseObj::baseObj(){
@@ -128,6 +148,9 @@ GameOptions::GameOptions(){
 								texturePaths.push_back(d2.path().string());
 							}else if(d2.path().string().compare(d2.path().string().size()-4,4,".obj") == 0 ){
 								modelPaths.push_back(d2.path().string());
+
+								int pathSize = d2.path().parent_path().string().size();
+								BlockNames.push_back(d2.path().string().substr(pathSize+1,d2.path().string().size()-4-(pathSize+1))); 
 							}else{
 								std::cerr << "NOT ONE OF THE TWO VALID TYPES!!!" << std::endl;
 							}
@@ -163,16 +186,37 @@ GameOptions::~GameOptions(){
 void GameOptions::Initialize(){
 	IOBJ * tempOBJ;
 	std::cout << "loading "<< modelPaths.size() <<" Models: " << std::endl;
+	std::cout << "Block Names:\n"; 
 	for(int i=0; i<modelPaths.size(); i++){
+		std::cout << "\t->" << BlockNames[i] << std::endl;
 		tempOBJ = new IOBJ();
 		readOBJFile(tempOBJ, modelPaths[i].c_str());
 		tempOBJ->Initialize();
+		//Need to add a blank block at 0 so that the uint which is an index at 0 is never pointing to a block.
 		Renderer.addToIObjectList(tempOBJ);
 	}
-/*	tempOBJ = Renderer.getIObject(0);
-	Block *playerPos;
-	tempOBJ->addBlocks(playerPos);
-	playerPos->setTID(2)*/
+	std::cout << std::endl;
+
+	int sphereIndex = blockNamesFind("Sphere");
+	tempOBJ = Renderer.getIObject(sphereIndex);
+	tempOBJ->addBlocks();
+	PlayerPos = std::make_pair(sphereIndex,tempOBJ->getBlocksSize()-1);
+	Block * bp = tempOBJ->getBlocks(PlayerPos.second);
+	bp->setMID(sphereIndex);
+	bp->setTID(2);
+	bp->setPos(glm::vec3(8.5f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.5f));
+	bp->setID(tempOBJ->getBlocksSize()-1);
+
+	int lineIndex = blockNamesFind("Line");
+	tempOBJ = Renderer.getIObject(lineIndex);
+	tempOBJ->addBlocks();
+	ViewLinePos = std::make_pair(lineIndex,tempOBJ->getBlocksSize()-1);
+	bp = tempOBJ->getBlocks(ViewLinePos.second);
+	bp->setMID(lineIndex);
+	bp->setTID(2);
+	bp->setPos(glm::vec3(8.5f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.5f));
+	bp->setID(tempOBJ->getBlocksSize()-1);
+	bp->setColor(Pink);
 
 	std::cout << "Finished Loading Models" << std::endl << "Loading Textures: " << std::endl;
 	for(int i=0; i<texturePaths.size(); i++){
@@ -245,7 +289,7 @@ void GameRenderer::Initialize(){
 	shaderProgram = createShadersProgram("./src/Source/VertexShader.glsl", "./src/Source/FragmentShader.glsl");
 	std::cout << "Finnished Loading Shaders" << std::endl;
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
-	camVec[1] = glm::vec3(16.0f,0.0f,16.0f);
+	camVec[1] = glm::vec3(8.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.0f);
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
 }
 
@@ -350,12 +394,21 @@ void InitOpenGL(){
 
 
 void tickUpdate(){
-	Player self = State.getPlayer(0);
-	glm::vec3 selfPos = self.getPos();
-	glm::vec2 prevChunk = self.getChunk();
+	sf::Time curTime = masterClock.getElapsedTime();
+	sf::Time lastTime = State.getTime();
+	float deltaTime = curTime.asSeconds() - lastTime.asSeconds();
+	//std::cout << "Cur: " << curTime.asSeconds() << "\n\tLast: " << lastTime.asSeconds() << "\n\tDelta: " << deltaTime << std::endl;
+	State.setTime(curTime);
+	State.setdTime(deltaTime);
+	Player * self = State.getPlayer(0);
+
+	glm::vec3 selfPos = self->getPos();
+	glm::vec2 prevChunk = self->getChunk();
 	glm::vec2 curChunk =  glm::vec2(floor(selfPos.x/(CHUNKDIMS*BLOCKSCALE)), floor(selfPos.z/(CHUNKDIMS*BLOCKSCALE)));
 	//std::cout << "PrevChunk: x->" << prevChunk.x << ": Y->" << prevChunk.y << std::endl;
 	//std::cout << "CurChunk: x->" << curChunk.x << ": Y->" << curChunk.y << std::endl;
+
+
 	Chunk * c;
 	if(World.size() == 0){
 		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
@@ -365,19 +418,20 @@ void tickUpdate(){
 		}
 	}
 	if(curChunk!=prevChunk){
-		self.setChunk(curChunk);
+		self->setChunk(curChunk);
 		glm::vec2 chunkDif = curChunk-prevChunk;
 		//std::cout << chunkDif.x <<" : " << chunkDif.y << std::endl;
 		bool found[RENDERRADIUS*RENDERRADIUS] = {false};
 
 		//std::cout << "CurChunk: " << curChunk.x << " : " << curChunk.y << std::endl;
 		for(int i=0; i<World.size(); i++){
-			glm::vec2 Wpos = World[i]->getPosition();
-			std::cout << "Chunk " << i << ": X->" << Wpos.x << " ; Y->" << Wpos.y << std::endl;
+			glm::vec2 Wpos = World[i]->getPos();
+			//std::cout << "Chunk " << i << ": X->" << Wpos.x << " ; Y->" << Wpos.y << std::endl;
 			for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
 				if(Wpos == curChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2))) found[i] = true;
 			}
 		}
+
 		//std::cout << std::endl;
 		//std::cout << "Found:" <<std::endl;
 		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
@@ -392,14 +446,38 @@ void tickUpdate(){
 		//std::cout << std::endl;
 	}
 	//std::cout << "Before Pick." << std::endl;
-	Block * b = pickBlock();
-	self = State.getPlayer(0);
+	glm::vec3 camPos = Renderer.getCamVec(0);
+	glm::vec3 lookingDirection = selfPos-camPos;
+	lookingDirection = glm::normalize(lookingDirection)*FOCUSDIST;
+
+	Ray sight(selfPos,lookingDirection,0.0f,FOCUSDIST);
+
+	IOBJ * tempOBJ = Renderer.getIObject(ViewLinePos.first);
+	Block * bp = tempOBJ->getBlocks(ViewLinePos.second);
+	glm::mat4 mats = glm::scale(glm::mat4(), glm::vec3(FOCUSDIST));
+	glm::mat4 matt = glm::translate(glm::mat4(), selfPos);
+	glm::mat4 matr = alignVec(glm::vec3(0.0f,1.0f,0.0f),lookingDirection);
+	bp->setPos(selfPos);
+	bp->setTMatrix(matt*glm::transpose(matr)*mats);
+
+	printMatrix(bp->getTMatrix());
+	std::cout << "Final Vec: \n\tX: "<< lookingDirection.x <<  "\n\tY: "<< lookingDirection.y <<  "\n\tZ: "<< lookingDirection.z << std::endl;
+	std::cout << "Test Vec: \n\tX: "<< (glm::transpose(matr)*glm::vec4(0.0f,1.0f,0.0f,0.0f)).x*FOCUSDIST <<  "\n\tY: "<< (glm::transpose(matr)*glm::vec4(0.0f,1.0f,0.0f,0.0f)).y*FOCUSDIST <<  "\n\tZ: "<< (glm::transpose(matr)*glm::vec4(0.0f,1.0f,0.0f,0.0f)).z*FOCUSDIST << std::endl;
+	std::pair<Block *, int> pickedBlock = pickBlock(sight);
 	//std::cout << "After Pick." << std::endl;
-	self.setSelected(b);
-	self.removeSelect(Selector);
-	if(b!=nullptr){
+	self->setSelected(pickedBlock.first);
+	self->setSelectedSide(pickedBlock.second);
+	self->removeSelect();
+	if(pickedBlock.first != nullptr){
 		//std::cout << b->getID() << std::endl << std::flush;
-		self.addSelect(b->getTMatrix(), Red, Selector);
+		self->addSelect(pickedBlock.first->getTMatrix(), Red, Selector);
 	}
-	State.setPlayer(0, self);
+
+	//std::cerr << side << std::endl;
+	if(pickedBlock.second != -1 && pickedBlock.first != nullptr){
+		glm::mat4 trans = glm::translate(pickedBlock.first->getTMatrix(), DirectionalVectors[pickedBlock.second]);
+		self->addSelect(trans, Green, Highlight);
+	}
+
 }
+

@@ -3,6 +3,8 @@
 sf::Window mainWindow;
 std::default_random_engine randomEng(time(0));
 
+std::pair<glm::uint, glm::uint> PlayerPos;
+std::pair<glm::uint, glm::uint> ViewLinePos;
 GRend Renderer;
 OPT Options;
 GState State;
@@ -59,8 +61,8 @@ int main (int argc, char ** argv){
 					break;
 			}
 		}
-		processMovement();
 		tickUpdate();
+		processMovement();
 		display();
 	}
 	for(int i=0; i<World.size(); i++){
