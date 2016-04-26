@@ -190,14 +190,6 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 	glm::vec3 movedMin = movedBox.getMin();
 	glm::vec3 movedMax = movedBox.getMax();
 
-	//std::cout << "Position of Char: \n\tX: "<< playerBox.getPos().x <<  "\n\tY: "<< playerBox.getPos().y <<  "\n\tZ: "<< playerBox.getPos().z << std::endl;
-	//std::cout << "PMin: \n\tX: "<< playerMin.x <<  "\n\tY: "<< playerMin.y <<  "\n\tZ: "<< playerMin.z << std::endl;
-	//std::cout << "PMax: \n\tX: "<< playerMax.x <<  "\n\tY: "<< playerMax.y <<  "\n\tZ: "<< playerMax.z << std::endl;
-	//std::cout << "MMax: \n\tX: "<< movedMin.x <<  "\n\tY: "<< movedMin.y <<  "\n\tZ: "<< movedMin.z << std::endl;
-	//std::cout << "MMin: \n\tX: "<< movedMax.x <<  "\n\tY: "<< movedMax.y <<  "\n\tZ: "<< movedMax.z << std::endl;
-	//std::cout << "Player Limbs: \n\tX: "<< pLimbs.x <<  "\n\tY: "<< pLimbs.y <<  "\n\tZ: "<< pLimbs.z << std::endl;
-	//std::cout << "Moved Position of Char: \n\tX: "<< movedBox.getPos().x <<  "\n\tY: "<< movedBox.getPos().y <<  "\n\tZ: "<< movedBox.getPos().z << std::endl;
-
 	glm::vec3 minCorner = {fminf(playerMin.x,movedMin.x),fminf(playerMin.y,movedMin.y),fminf(playerMin.z,movedMin.z)};
 	glm::vec3 maxCorner = {fmaxf(playerMax.x,movedMax.x),fmaxf(playerMax.y,movedMax.y),fmaxf(playerMax.z,movedMax.z)};
 
@@ -235,10 +227,6 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 			return glm::vec3(-1.0f);
 		}
 
-		//std::cout << "Chunk\n\tX: " << chunkPos.x << " \n\tY: " << chunkPos.y << std::endl; 
-		//std::cout << "MinCorner: \n\tX: "<< minCorner.x <<  "\n\tY: "<< minCorner.y <<  "\n\tZ: "<< minCorner.z << std::endl;
-		//std::cout << "MaxCorner: \n\tX: "<< maxCorner.x <<  "\n\tY: "<< maxCorner.y <<  "\n\tZ: "<< maxCorner.z << std::endl;
-
 		int Chunkx = (int)CheckedChunks[c].x*CHUNKDIMS*BLOCKSCALE;
 		int Chunkz = (int)CheckedChunks[c].y*CHUNKDIMS*BLOCKSCALE;
 		float beginBoundx = fmaxf(minCorner.x, Chunkx);
@@ -250,10 +238,6 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 		Boundx = Boundx/BLOCKSCALE;
 		Boundz = Boundz/BLOCKSCALE;
 		//std::cout << "ChunkBegins: \n\tX: " << Chunkx << " -> " << Chunkx+((CHUNKDIMS-1)*BLOCKSCALE) << "\n\tZ: " << Chunkz << " -> " << Chunkz+((CHUNKDIMS-1)*BLOCKSCALE) <<std::endl;
-		//glm::vec3 clampedMinBounds = {clamp(chunkx,chunkx+((CHUNKDIMS-1)*BLOCKSCALE),minCorner.x),clamp(0.0f,CHUNKHEIGHT-1,minCorner.y),clamp(chunkz,chunkz+((CHUNKDIMS-1)*BLOCKSCALE),minCorner.z)};
-		//glm::vec3 clampedMaxBounds = {clamp(chunkx,chunkx+((CHUNKDIMS-1)*BLOCKSCALE),maxCorner.x),clamp(0.0f,CHUNKHEIGHT-1,maxCorner.y),clamp(chunkz,chunkz+((CHUNKDIMS-1)*BLOCKSCALE),maxCorner.z)};
-		//clampedMinBounds -= BLOCKSCALE;
-		//clampedMaxBounds -= BLOCKSCALE;
 		//std::cout << "Starting Block Check in Chunk: \n\tX:" << chunkPos.x << "\n\tZ:" << chunkPos.y << std::endl;
 		//std::cout << "Bounds:" << std::endl;
 		//std::cout << "X Bounds: \n\tMin: " << Boundx.x << "\n\tMax: " << Boundx.y <<std::endl;
@@ -387,12 +371,6 @@ std::pair<Block *, int> pickBlock(Ray sight){
 	float finalDist = (float)std::numeric_limits<float>::max();
 	int minBlock = -1;
 	for(int i=0; i<viableSides.size(); i++){
-		//std::cout << "I: " << i << std::endl;
-		//glm::vec3 blockPos = viableBlockList[i]->getPos();
- 		//std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
-		// std::cout << "Side: " << viableSides[i].side << std::endl;
-  		//std::cout << "PrevFDist: " << finalDist << std::endl;
-		//std::cout << "Cur Dist: " << viableSides[i].minCol*sight.times[1] << std::endl;
 		if(viableSides[i].minCol*sight.times[1] < finalDist){
 			finalDist = viableSides[i].minCol*sight.times[1];
 			minBlock = i;
@@ -401,10 +379,6 @@ std::pair<Block *, int> pickBlock(Ray sight){
 	if(minBlock == -1)
 		return std::make_pair(nullptr,-1);
 	
-/*	std::cout << "MinBlock: " << minBlock << std::endl;
- 	std::cout << "There Exists a Viable Block at" << std::endl;
- 	std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
- 	std::cout << "minSide: " << viableSides[minBlock].side << std::endl;*/
 	return std::make_pair(viableBlockList[minBlock], viableSides[minBlock].side);
 }
 
