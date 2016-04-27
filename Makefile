@@ -11,11 +11,13 @@ all: compile
 compile: $(TARGETO)
 	$(CXX) $(CPPFLAGS) -o $(TARGETEXE) $^ $(INC)
 
+-include $(TARGETD)
+
 ./src/Objects/%.o:./src/Source/%.cpp $(HPPS)
 	$(CXX) $(CPPFLAGS) -o $@ -c $<
 
-./src/Dependencies/%.d:./src/Objects/%.o
-	$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
+./src/Dependencies/%.d:./src/Objects/%.o $(HPPS)
+	$(CPP) $(CFLAGS) $< -MM -MT $(@:./src/Dependencies/%.d=./src/Objects/%.o) >$@
 
 clean:
 	rm -rf *.o *.exe
