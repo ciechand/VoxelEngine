@@ -43,12 +43,12 @@
 #define CHUNKDIMS 17
 #define CHUNKHEIGHT 20.0f
 #define LOOKSPEED 1.0f
-#define MOVESPEED 5.0f
+#define MOVESPEED 10.0f
 #define CAMERADIST 20.0f
 #define FOCUSDIST 15.0f
 #define RRADIUS 2
 #define RENDERRADIUS (2*(RRADIUS)+1)
-#define GRAVITY -9.81f
+#define GRAVITY -2.0f
 #define TVEL 100.0f
 #define PLAYERHEIGHT BLOCKSCALE*1.5f
 #define PLAYERWIDTH BLOCKSCALE*0.9f
@@ -108,7 +108,7 @@ enum Materials{Air, Stone};
 enum Colors16{None, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine, Cyan, Lime, Green, Yellow, Brown, Golden, Orange};
 
 //Enum for the directions of movement
-enum Directions{Forward, Backward, MLeft, MRight, Up, Down};
+enum KeyFlags{Forward, Backward, MLeft, MRight, Up, Down, OpenInv, InvDown, NUMBER_OF_FLAGS};
 
 //Enum for typesof Blocks
 enum BlockTypes{Placeable};
@@ -120,6 +120,7 @@ enum SelectTypes{Selector, Highlight};
 typedef class GameState{
 private:
 	unsigned char curState;
+	bool projChange;
 	std::vector<bool> moving;
 	float camPos[2];
 	std::vector<Player> Players;
@@ -132,6 +133,9 @@ public:
 	
 	void setState(unsigned char cs);
 	unsigned char getState();
+
+	void setProjChange(bool pc);
+	bool getProjChange();
 
 	void setCamPos(float x, float y);
 	float * getCamPos();
@@ -187,6 +191,7 @@ public:
 	void Initialize();
 
 	void setProjVars(float * vars);
+	void setProjVars(int index, float vars);
 	float * getProjVars();
 
 	void setCamRot(glm::vec3 rot);

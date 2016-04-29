@@ -223,7 +223,7 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 		}
 		if(tempChunk == nullptr) {
 			std::cerr << "tempChunk is nullptr, WTF?!" << std::endl;
-			std::cout << "tempChunk is nullptr, WTF?!" << std::endl;
+		//std::cout << "tempChunk is nullptr, WTF?!" << std::endl;
 			return glm::vec3(-1.0f);
 		}
 
@@ -279,8 +279,7 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 		//std::cout << "BlockPos: \n\tX: "<< viableBlockList[i]->getPos().x <<  "\n\tY: "<< viableBlockList[i]->getPos().y <<  "\n\tZ: "<< viableBlockList[i]->getPos().z << std::endl;
 		//std::cout << "ColTime " << i << ": " << colTimes[i] << std::endl;
 		//std::cout << "side: " << side << std::endl;
-		//std::cout << "minAxis " << i << ": \n\tX: "<< minAxisTime.x <<  "\n\tY: "<< minAxisTime.y <<  "\n\tZ: "<< minAxisTime.z << std::endl;
-		if(colTimes[i].minCol < minAxisTime[axis])
+		if(colTimes[i].minCol < minAxisTime[axis] && glm::dot(glm::normalize(DirectionalVectors[cr.side]),glm::normalize(moveDir)) <= PI/8)
 			minAxisTime[axis] = colTimes[i].minCol;
 	}
 
@@ -409,7 +408,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 		perror("Have not set a filename, Please do so before trying to load an obj file again.");
 		return;
 	}
-	std::cout << "Loading in Asset as : " << fileName << std::endl;
+//std::cout << "Loading in Asset as : " << fileName << std::endl;
 	//opening the OBJ file for reading
 	FILE * objFile = fopen(fileName, "r");
 	if (objFile == nullptr){
@@ -504,7 +503,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 	Object->setVertices(verts);
 	Object->setVertexNormals(norms);
 	Object->setTextureCoords(tex);
-	std::cout << "Finnished Loading in Asset of : " << fileName << std::endl;
+//std::cout << "Finnished Loading in Asset of : " << fileName << std::endl;
 }
 
 void loadBMP(const char * fileName, GLuint * textureID){
@@ -641,7 +640,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     int logLength;
 
     // Compile vertex shader
-    std::cout << "Compiling vertex shader." << std::endl;
+   //std::cout << "Compiling vertex shader." << std::endl;
     glShaderSource(vertShader, 1, &vertShaderSrc, nullptr);
     glCompileShader(vertShader);
 
@@ -650,10 +649,10 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> vertShaderError((logLength > 1) ? logLength : 1);
     glGetShaderInfoLog(vertShader, logLength, nullptr, &vertShaderError[0]);
-    if(logLength > 1)std::cout << "vert Errors: " << &vertShaderError[0] << std::endl;
+    if(logLength > 1) std::cout << "vert Errors: " << &vertShaderError[0] << std::endl;
 
     // Compile fragment shader
-    std::cout << "Compiling fragment shader." << std::endl;
+   	std::cerr << "Compiling fragment shader." << std::endl;
     glShaderSource(fragShader, 1, &fragShaderSrc, nullptr);
     glCompileShader(fragShader);
 
@@ -664,7 +663,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     glGetShaderInfoLog(fragShader, logLength, nullptr, &fragShaderError[0]);
     if(logLength > 1) std::cout << "Frag Errors: " << &fragShaderError[0] << std::endl;
 
-    std::cout << "Linking program" << std::endl;
+   	std::cerr << "Linking program" << std::endl;
     GLuint program = glCreateProgram();
     glAttachShader(program, vertShader);
     glAttachShader(program, fragShader);
@@ -674,7 +673,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> programError( (logLength > 1) ? logLength : 1 );
     glGetProgramInfoLog(program, logLength, nullptr, &programError[0]);
-    if(logLength > 1)std::cout << "Prog Errors: " <<&programError[0] << std::endl;
+    if(logLength > 1) std::cout << "Prog Errors: " <<&programError[0] << std::endl;
 
     glDeleteShader(vertShader);
     glDeleteShader(fragShader);

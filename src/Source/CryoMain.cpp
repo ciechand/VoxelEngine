@@ -33,8 +33,7 @@ int main (int argc, char ** argv){
 		while(mainWindow.pollEvent(event)){
 			switch(event.type){
 				case sf::Event::Closed:
-					mainWindow.close();
-					return 0;
+					State.setState(Exiting);
 					break;
 				case sf::Event::KeyPressed:
 					processKeyboardDown(event);
@@ -62,7 +61,9 @@ int main (int argc, char ** argv){
 			}
 		}
 		tickUpdate();
+	//std::cout << "Movement Processing" << std::endl;
 		processMovement();
+	//std::cout << "Display" << std::endl;
 		display();
 	}
 	for(int i=0; i<World.size(); i++){

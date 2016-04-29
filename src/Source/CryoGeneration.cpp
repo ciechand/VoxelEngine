@@ -100,39 +100,18 @@ Chunk::Chunk(){
 			heightMap[i][j] = -1;
 		}
 	}
-	std::uniform_int_distribution<int> chunkDist(1, CHUNKHEIGHT);
+	std::uniform_int_distribution<int> chunkDist(1, CHUNKHEIGHT-1);
 	heightMap[0][0] = chunkDist(randomEng);
 	heightMap[0][CHUNKDIMS-1] = chunkDist(randomEng);
 	heightMap[CHUNKDIMS-1][0] = chunkDist(randomEng);
 	heightMap[CHUNKDIMS-1][CHUNKDIMS-1] = chunkDist(randomEng);
 }
 
-Chunk::Chunk(glm::vec2 p){
-	grid.assign(CHUNKDIMS*CHUNKDIMS*CHUNKHEIGHT, std::make_pair(0,0));
-	heightMap.resize(CHUNKDIMS);
-	for(int i=0; i<CHUNKDIMS; i++){
-		heightMap[i].resize(CHUNKDIMS);
-		for(int j=0; j<CHUNKDIMS; j++){
-			heightMap[i][j] = -1;
-		}
-	}
-	std::uniform_int_distribution<int> chunkDist(1, CHUNKHEIGHT);
-	heightMap[0][0] = chunkDist(randomEng);
-	heightMap[0][CHUNKDIMS-1] = chunkDist(randomEng);
-	heightMap[CHUNKDIMS-1][0] = chunkDist(randomEng);
-	heightMap[CHUNKDIMS-1][CHUNKDIMS-1] = chunkDist(randomEng);
+Chunk::Chunk(glm::vec2 p):Chunk(){
 	position = p;
 }
 
 Chunk::~Chunk(){
-/*	for(int i=0; i<CHUNKHEIGHT; i++){
-		for(int j=0; j<CHUNKDIMS; j++){
-			for(int k=0;k<CHUNKDIMS; k++){
-				if(grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k]!=nullptr)
-					delete grid[(i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k];
-			}
-		}
-	}*/
 }
 
 void Chunk::Init(){
@@ -338,7 +317,7 @@ float average(std::vector<int> vc){
 	float sum = 0.0f;
 	for(int i=0; i<vc.size(); i++){
 		if(std::isnan(vc[i]))
-			std::cout <<  "vc #"<< i <<" is Nan. It actually is: " << vc[i] << std::endl;
+		std::cerr <<  "vc #"<< i <<" is Nan. It actually is: " << vc[i] << std::endl;
 		else
 			sum+=vc[i];
 	}

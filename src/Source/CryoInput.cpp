@@ -4,87 +4,84 @@
 //Function that will process the mouse inputs.
 void processMouseClicks(sf::Event e){
 	Player * self = State.getPlayer(0);
+	unsigned char curState = State.getState();
 	if(e.mouseButton.button == sf::Mouse::Left){
-		Block * selec = self->getSelected();
-		//std::cerr << "Block: " << World[0]->grid[10]->getPos().x << " : " << World[0]->grid[10]->getPos().y << std::endl;
-		if(selec == nullptr)
-			return;
-		IOBJ * tempOBJ = Renderer.getIObject(selec->getMID());
-		if(tempOBJ == nullptr)
-			return;
-		//std::cerr << std::endl;
-		//std::cerr << "Outside Address of OBJ: " << tempOBJ << std::endl;
-		glm::vec3 bpos = selec->getPos();
-		glm::vec2 chunk = glm::vec2(floor(bpos.x/(BLOCKSCALE*CHUNKDIMS)),floor(bpos.z/(BLOCKSCALE*CHUNKDIMS)));
-		glm::vec3 relpos = glm::vec3(((bpos.x)/BLOCKSCALE)-(chunk.x*CHUNKDIMS),bpos.y/BLOCKSCALE, ((bpos.z)/BLOCKSCALE)-(chunk.y*CHUNKDIMS));
-		//std::cerr << "Chunk: " << chunk.x << ": " << chunk.y << ";\n\tPos: " << relpos.x << ": " << relpos.y << ": " << relpos.z << ";" << std::endl; 
-		for(int i=0; i<World.size(); i++){
-			if(World[i]->getPos() == chunk){
-				//std::cerr << "Address of world being removed: " << World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x] << std::endl;
-				if(selec->getOwner() == 0 || selec->getOwner() == -1){
-					glm::vec3 blockPos = selec->getPos();
-			 		std::cout << "Removing Block At: " << std::endl;
-					std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
-
-					tempOBJ->removeBlock(selec->getID());
-				}	
-				World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x] = std::make_pair(0,0);
-				break;
-			}
-		}
-		self->clearSelected();
-		self->removeSelect(Selector);
-	}else if(e.mouseButton.button == sf::Mouse::Right){
-		Block * selec = self->getSelected();
-		//std::cerr << "Block: " << World[0]->grid[10]->getPos().x << " : " << World[0]->grid[10]->getPos().y << std::endl;
-		if(selec == nullptr)
-			return;
-		IOBJ * tempOBJ = Renderer.getIObject(selec->getMID());
-		glm::vec3 blockPos = selec->getPos();
-		int side = self->getSelectedSide();
-		glm::vec3 newPos =  blockPos + DirectionalVectors[side];
-		if(newPos.y >= CHUNKHEIGHT*BLOCKSCALE || newPos.y < 0.0f)
-			return;
-		glm::vec2 chunk = glm::vec2(floor(newPos.x/(BLOCKSCALE*CHUNKDIMS)),floor(newPos.z/(BLOCKSCALE*CHUNKDIMS)));
-		glm::vec3 relpos = glm::vec3(((newPos.x)/BLOCKSCALE)-(chunk.x*CHUNKDIMS),newPos.y/BLOCKSCALE, ((newPos.z)/BLOCKSCALE)-(chunk.y*CHUNKDIMS));
-		for(int i=0; i<World.size(); i++){
-			if(World[i]->getPos() == chunk){
-				int curBlock = (relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x;
-				Block * blockp = tempOBJ->getBlocks(World[i]->grid[curBlock].second);
-				if(blockp != nullptr)
+		if(curState == Running){
+			Block * selec = self->getSelected();
+			if(selec == nullptr)
+				return;
+			IOBJ * tempOBJ = Renderer.getIObject(selec->getMID());
+			if(tempOBJ == nullptr)
+				return;
+			glm::vec3 bpos = selec->getPos();
+			glm::vec2 chunk = glm::vec2(floor(bpos.x/(BLOCKSCALE*CHUNKDIMS)),floor(bpos.z/(BLOCKSCALE*CHUNKDIMS)));
+			glm::vec3 relpos = glm::vec3(((bpos.x)/BLOCKSCALE)-(chunk.x*CHUNKDIMS),bpos.y/BLOCKSCALE, ((bpos.z)/BLOCKSCALE)-(chunk.y*CHUNKDIMS));
+			//std::cerr << "Chunk: " << chunk.x << ": " << chunk.y << ";\n\tPos: " << relpos.x << ": " << relpos.y << ": " << relpos.z << ";" << std::endl; 
+			for(int i=0; i<World.size(); i++){
+				if(World[i]->getPos() == chunk){
+						//std::cerr << "Address of world being removed: " << World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x] << std::endl;
+						if(selec->getOwner() == 0 || selec->getOwner() == -1){
+							glm::vec3 blockPos = selec->getPos();
+					 	//std::cout << "Removing Block At: " << std::endl;
+						//std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
+						//std::cout << "ID -> " << selec->getID() << std::endl;
+						tempOBJ->removeBlock(selec->getID());
+					}	
+					World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x] = std::make_pair(0,0);
 					break;
-				tempOBJ->addBlocks();
-				World[i]->grid[curBlock].second = tempOBJ->getBlocksSize()-1;
-				blockp = tempOBJ->getBlocks(World[i]->grid[curBlock].second);
-				blockp->setTID(1);
-				blockp->setColor(None);
-				blockp->setPos(newPos);
-				blockp->setID(tempOBJ->getBlocksSize()-1);
-				break;
+				}
+			}
+			self->clearSelected();
+			self->removeSelect(Selector);
+		}
+	}else if(e.mouseButton.button == sf::Mouse::Right){
+		if(curState == Running){
+			Block * selec = self->getSelected();
+			//std::cerr << "Block: " << World[0]->grid[10]->getPos().x << " : " << World[0]->grid[10]->getPos().y << std::endl;
+			if(selec == nullptr)
+				return;
+			IOBJ * tempOBJ = Renderer.getIObject(selec->getMID());
+			glm::vec3 blockPos = selec->getPos();
+			int side = self->getSelectedSide();
+			glm::vec3 newPos =  blockPos + DirectionalVectors[side];
+			if(newPos.y >= CHUNKHEIGHT*BLOCKSCALE || newPos.y < 0.0f || glm::length(newPos - self->getPos()) <= BLOCKSCALE)
+				return;
+			glm::vec2 chunk = glm::vec2(floor(newPos.x/(BLOCKSCALE*CHUNKDIMS)),floor(newPos.z/(BLOCKSCALE*CHUNKDIMS)));
+			glm::vec3 relpos = glm::vec3(((newPos.x)/BLOCKSCALE)-(chunk.x*CHUNKDIMS),newPos.y/BLOCKSCALE, ((newPos.z)/BLOCKSCALE)-(chunk.y*CHUNKDIMS));
+			for(int i=0; i<World.size(); i++){
+				if(World[i]->getPos() == chunk){
+					int curBlock = (relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x;
+					Block * blockp = tempOBJ->getBlocks(World[i]->grid[curBlock].second);
+					if(blockp != nullptr)
+						break;
+					tempOBJ->addBlocks();
+					World[i]->grid[curBlock].second = tempOBJ->getBlocksSize()-1;
+					blockp = tempOBJ->getBlocks(World[i]->grid[curBlock].second);
+					blockp->setTID(1);
+					blockp->setColor(None);
+					blockp->setPos(newPos);
+					blockp->setID(tempOBJ->getBlocksSize()-1);
+					break;
+				}
 			}
 		}
 	}else if(e.mouseButton.button == sf::Mouse::Middle){
-		Block * selec = self->getSelected();
-		if(selec == nullptr)
-			return;
-		int col = selec->getColorNumber();
-		col++;
-		if(col>=16)
-			col = col%16;
-		selec->setColor(col);
-
-/*		IOBJ * tempOBJ = Renderer.getIObject(selec->getMID());
-		std::vector<Block> bs = tempOBJ->getBlocks();
-		std::cout << "Block Changed: " << selec->getID() << std::endl;
-		for(int i=0; i<bs.size(); i++){
-			std::cout << "Block " << i << " Has Color: " << bs[i].getColorNumber() << std::endl;
-		}*/
+		if(curState == Running){
+			Block * selec = self->getSelected();
+			if(selec == nullptr)
+				return;
+			int col = selec->getColorNumber();
+			col++;
+			if(col>=16)
+				col = col%16;
+			selec->setColor(col);
+		}
 	}
 }
 
 //function that will process the passive mouse movement.
 void processMouseMovement(sf::Event e){
-	if(State.getState() != Menu){
+	if(State.getState() == Running){
 		sf::Vector2u windowSize = mainWindow.getSize();
 		glm::vec3 camRot = Options.getCamRot();
 
@@ -113,30 +110,45 @@ void processMouseMovement(sf::Event e){
 }
 //Function for processing the keyboard inputs on press.
 void processKeyboardDown(sf::Event e){
+	unsigned char curState = State.getState();
 	switch (e.key.code){
-		case sf::Keyboard::Escape:	
+		case sf::Keyboard::Escape:
 			State.setState(Exiting);
 			break;
-		case sf::Keyboard::W:	
-			State.setMoving(Forward, true);
+		case sf::Keyboard::W:
+			if(curState == Running)
+				State.setMoving(Forward, true);
 			break;
-		case sf::Keyboard::S:	
-			State.setMoving(Backward, true);
+		case sf::Keyboard::S:
+			if(curState == Running)
+				State.setMoving(Backward, true);
 			break;
-		case sf::Keyboard::A:	
-			State.setMoving(MLeft, true);
+		case sf::Keyboard::A:
+			if(curState == Running)
+				State.setMoving(MLeft, true);
 			break;
-		case sf::Keyboard::D:	
-			State.setMoving(MRight, true);
+		case sf::Keyboard::D:
+			if(curState == Running)
+				State.setMoving(MRight, true);
 			break;
-		case sf::Keyboard::E:	
-			State.setMoving(Down, true);
-			break;
-		case sf::Keyboard::Space:	
-			State.setMoving(Up, true);
+		case sf::Keyboard::Space:
+			if(curState == Running)
+				State.setMoving(Up, true);
 			break;
 		case sf::Keyboard::R:
-			(State.getState() != Menu)? State.setState(Menu):State.setState(Loading);
+			if(State.getMoving(InvDown) == false){
+				if(State.getMoving(OpenInv) == false){
+					for(int i=0; i<NUMBER_OF_FLAGS; i++){
+						State.setMoving(i,false);
+					}
+					State.setMoving(OpenInv, true);
+					State.setState(Menu);
+				}else{
+					State.setMoving(OpenInv, false);
+					State.setState(Running);
+				}
+				State.setMoving(InvDown, true);
+			}
 			break;
 		default:
 			break;
@@ -157,12 +169,11 @@ void processKeyboardUp(sf::Event e){
 		case sf::Keyboard::D:	
 			State.setMoving(MRight, false);
 			break;
-		case sf::Keyboard::E:	
-			State.setMoving(Down, false);
-			break;
 		case sf::Keyboard::Space:	
 			State.setMoving(Up, false);
 			break;
+		case sf::Keyboard::R:
+			State.setMoving(InvDown, false);
 		default:
 			break;
 	}
@@ -170,8 +181,8 @@ void processKeyboardUp(sf::Event e){
 
 
 void processMovement(){
-	std::cout << std::endl;
-	std::cout << "Beginning of Everything" << std::endl;
+//std::cout << std::endl;
+//std::cout << "Beginning of Everything" << std::endl;
 	float deltaTime = State.getdTime();
 	Player * self = State.getPlayer(0);
 	//std::cout << "Start Movement Process." << std::endl;
@@ -205,8 +216,8 @@ void processMovement(){
 		vel += glm::normalize(cross)*MOVESPEED*deltaTime;
 	}
 	if(movement[Up] == true && jump == false){
-		std::cout << "Jumping" << std::endl;
-		vel.y += (-GRAVITY)*10*deltaTime;
+	//std::cout << "Jumping" << std::endl;
+		vel.y += (-GRAVITY)*0.5f;
 		jump = true;
 	}
 
@@ -248,7 +259,7 @@ void processMovement(){
 	camAt += vel;
 	self->setVelocity(vel);
 	//std::cout << "Vel After: \n\tX: "<< vel.x <<  "\n\tY: "<< vel.y <<  "\n\tZ: "<< vel.z << std::endl;
-	std::cout << "Position of Char: \n\tX: "<< camAt.x <<  "\n\tY: "<< camAt.y <<  "\n\tZ: "<< camAt.z << std::endl;
+	//std::cout << "Position of Char: \n\tX: "<< camAt.x <<  "\n\tY: "<< camAt.y <<  "\n\tZ: "<< camAt.z << std::endl;
 	self->setJumping(jump);
 	self->setPos(camAt);
 	IOBJ * tempOBJ = Renderer.getIObject(PlayerPos.first);
@@ -259,6 +270,7 @@ void processMovement(){
 
 
 void windowResized(sf::Event e){
-	sf::Vector2u windowSize = mainWindow.getSize();
+	Options.setProjVars(1, (float)e.size.width/(float)e.size.height);
+	State.setProjChange(true);
 	glViewport(0,0,e.size.width, e.size.height);
 }

@@ -22,9 +22,10 @@ std::vector<std::string> BlockNames;
 
 GameState::GameState(){
 	curState = Loading;
+	projChange = false;
 	camPos[0] = 0.0f;
 	camPos[1] = 0.0f;
-	moving = std::vector<bool>(6, false);
+	moving = std::vector<bool>(NUMBER_OF_FLAGS, false);
 	Player Self;
 	Self.setPos(glm::vec3(8.5f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.5f));
 	Self.setID(Players.size());
@@ -39,6 +40,14 @@ void GameState::setState(unsigned char cs){
 
 unsigned char GameState::getState(){
 	return curState;
+}
+
+void GameState::setProjChange(bool pc){
+	projChange = pc;
+}
+
+bool GameState::getProjChange(){
+	return projChange;
 }
 
 void GameState::setCamPos(float x, float y){
@@ -141,7 +150,8 @@ GameOptions::GameOptions(){
 	if(exists(p)){
 		if(is_directory(p)){
 			for(directory_entry& d : directory_iterator(p)){
-				if(is_directory(d)){
+				if(is_directory(d) && d.path().generic_string().compare(0,d.path().string().size(),"./Assets/Shaders") != 0){
+					std::cerr << "Path: " << d.path().generic_string() << std::endl;
 					for(directory_entry& d2 : directory_iterator(d)){
 						if(is_regular_file(d2)){
 							if(d2.path().string().compare(d2.path().string().size()-4,4,".png") == 0 || d2.path().string().compare(d2.path().string().size()-4,4,".BMP") == 0 ){
@@ -166,10 +176,10 @@ GameOptions::GameOptions(){
 	}else{
 		std::cerr <<"Path does not exist."<< std::endl;
 	}
-	projVar[0] = 1.04f;
+	projVar[0] = PI/2.25;
 	projVar[1] = 1.0f;
 	projVar[2] = 0.01f;
-	projVar[3] = 2000.0f;
+	projVar[3] = 200.0f;
 
 	camRot[0] = 5.0f;
 	camRot[1] = 2.0f;
@@ -186,7 +196,7 @@ GameOptions::~GameOptions(){
 void GameOptions::Initialize(){
 	IOBJ * tempOBJ;
 	std::cout << "loading "<< modelPaths.size() <<" Models: " << std::endl;
-	std::cout << "Block Names:\n"; 
+	std::cout << "Model Names:\n"; 
 	for(int i=0; i<modelPaths.size(); i++){
 		std::cout << "\t->" << BlockNames[i] << std::endl;
 		tempOBJ = new IOBJ();
@@ -220,9 +230,10 @@ void GameOptions::Initialize(){
 
 	std::cout << "Finished Loading Models" << std::endl << "Loading Textures: " << std::endl;
 	for(int i=0; i<texturePaths.size(); i++){
-		std::cout << texturePaths[i] << " Loaded" << std::endl;
+		std::cout << "\t->" <<  texturePaths[i] << " Loaded" << std::endl;
 		Renderer.addToTextureList(texturePaths[i].c_str());
 	} 
+	std::cout << std::endl;
 	std::cout << "Finished Loading Textures" <<  std::endl;
 }
 
@@ -231,6 +242,10 @@ void GameOptions::setProjVars(float * vars){
 	projVar[1] = vars[1];
 	projVar[2] = vars[2];
 	projVar[3] = vars[3];
+}
+
+void GameOptions::setProjVars(int index, float vars){
+	projVar[index] = vars;
 }
 
 float * GameOptions::getProjVars(){
@@ -285,9 +300,9 @@ GameRenderer::~GameRenderer(){
 }
 
 void GameRenderer::Initialize(){
-	std::cout << "Starting to Load Shaders" << std::endl;
-	shaderProgram = createShadersProgram("./src/Source/VertexShader.glsl", "./src/Source/FragmentShader.glsl");
-	std::cout << "Finnished Loading Shaders" << std::endl;
+//std::cout << "Starting to Load Shaders" << std::endl;
+	shaderProgram = createShadersProgram("./Assets/Shaders/VertexShader.glsl", "./Assets/Shaders/FragmentShader.glsl");
+//std::cout << "Finnished Loading Shaders" << std::endl;
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
 	camVec[1] = glm::vec3(8.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.0f);
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
@@ -389,7 +404,7 @@ void InitOpenGL(){
 	Options.Initialize();
 
 	std::cerr << "End Init" << std::endl;
-
+	State.setState(Running);
 }
 
 
@@ -408,7 +423,7 @@ void tickUpdate(){
 	//std::cout << "PrevChunk: x->" << prevChunk.x << ": Y->" << prevChunk.y << std::endl;
 	//std::cout << "CurChunk: x->" << curChunk.x << ": Y->" << curChunk.y << std::endl;
 
-
+	//std::cout << "Before Chunk" << std::endl;
 	Chunk * c;
 	if(World.size() == 0){
 		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
@@ -445,7 +460,6 @@ void tickUpdate(){
 		}	
 		//std::cout << std::endl;
 	}
-	//std::cout << "Before Pick." << std::endl;
 	glm::vec3 camPos = Renderer.getCamVec(0);
 	glm::vec3 lookingDirection = selfPos-camPos;
 	lookingDirection = glm::normalize(lookingDirection)*FOCUSDIST;
@@ -460,9 +474,6 @@ void tickUpdate(){
 	bp->setPos(selfPos);
 	bp->setTMatrix(matt*glm::transpose(matr)*mats);
 
-	printMatrix(bp->getTMatrix());
-	std::cout << "Final Vec: \n\tX: "<< lookingDirection.x <<  "\n\tY: "<< lookingDirection.y <<  "\n\tZ: "<< lookingDirection.z << std::endl;
-	std::cout << "Test Vec: \n\tX: "<< (glm::transpose(matr)*glm::vec4(0.0f,1.0f,0.0f,0.0f)).x*FOCUSDIST <<  "\n\tY: "<< (glm::transpose(matr)*glm::vec4(0.0f,1.0f,0.0f,0.0f)).y*FOCUSDIST <<  "\n\tZ: "<< (glm::transpose(matr)*glm::vec4(0.0f,1.0f,0.0f,0.0f)).z*FOCUSDIST << std::endl;
 	std::pair<Block *, int> pickedBlock = pickBlock(sight);
 	//std::cout << "After Pick." << std::endl;
 	self->setSelected(pickedBlock.first);
@@ -478,6 +489,5 @@ void tickUpdate(){
 		glm::mat4 trans = glm::translate(pickedBlock.first->getTMatrix(), DirectionalVectors[pickedBlock.second]);
 		self->addSelect(trans, Green, Highlight);
 	}
-
 }
 

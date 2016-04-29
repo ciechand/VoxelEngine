@@ -87,7 +87,8 @@ void InstancedObject::Initialize(){
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indices.size() * sizeof(GLuint), indices.data());
 
-	glm::mat4 p = glm::perspective(Options.getProjVars()[0],Options.getProjVars()[1],Options.getProjVars()[2],Options.getProjVars()[3]);
+	float * projV = Options.getProjVars();
+	glm::mat4 p = glm::perspective(projV[0],projV[1],projV[2],projV[3]);
 	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
 
 	addBlocks();
@@ -102,6 +103,11 @@ void InstancedObject::drawOBJ(){
 }
 
 void InstancedObject::Update(){
+	if(State.getProjChange() == true){
+		float * projV = Options.getProjVars();
+		glm::mat4 p = glm::perspective(projV[0],projV[1],projV[2],projV[3]);
+		glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
+	}
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
 	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
@@ -276,7 +282,7 @@ void display(){
 	}	
 
 	sf::Vector2u windowSize = mainWindow.getSize();
-	if(State.getState() != Menu){
+	if(State.getState() == Running){
 		mainWindow.setMouseCursorVisible(false);
 		sf::Mouse::setPosition(sf::Vector2i(windowSize.x/2, windowSize.y/2), mainWindow);
 	}else{
