@@ -20,16 +20,12 @@ void processMouseClicks(sf::Event e){
 			for(int i=0; i<World.size(); i++){
 				if(World[i]->getPos() == chunk){
 						//std::cerr << "Address of world being removed: " << World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x] << std::endl;
-						if(selec->getOwner() == 0 || selec->getOwner() == -1){
-							glm::vec3 blockPos = selec->getPos();
-					 	//std::cout << "Removing Block At: " << std::endl;
-						//std::cout << "\tX: " << blockPos.x <<"\n\tY: " << blockPos.y << "\n\t Z: " << blockPos.z << std::endl;  
-						//std::cout << "ID -> " << selec->getID() << std::endl;
-						tempOBJ->removeBlock(selec->getID());
-					}	
-					World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x] = std::make_pair(0,0);
-					break;
-				}
+						if((selec->getOwner() == 0 || selec->getOwner() == -1) && selec->getPos().y >0.0f){
+							tempOBJ->removeBlock(selec->getID());
+							World[i]->grid[(relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x] = std::make_pair(0,0);
+							break;
+						}	
+				}	
 			}
 			self->clearSelected();
 			self->removeSelect(Selector);
@@ -44,20 +40,23 @@ void processMouseClicks(sf::Event e){
 			glm::vec3 blockPos = selec->getPos();
 			int side = self->getSelectedSide();
 			glm::vec3 newPos =  blockPos + DirectionalVectors[side];
-			if(newPos.y >= CHUNKHEIGHT*BLOCKSCALE || newPos.y < 0.0f || glm::length(newPos - self->getPos()) <= BLOCKSCALE)
+
+			if(newPos.y >= (CHUNKHEIGHT-1)*BLOCKSCALE || newPos.y < 0.0f || glm::length(newPos - self->getPos()) <= BLOCKSCALE)
 				return;
 			glm::vec2 chunk = glm::vec2(floor(newPos.x/(BLOCKSCALE*CHUNKDIMS)),floor(newPos.z/(BLOCKSCALE*CHUNKDIMS)));
 			glm::vec3 relpos = glm::vec3(((newPos.x)/BLOCKSCALE)-(chunk.x*CHUNKDIMS),newPos.y/BLOCKSCALE, ((newPos.z)/BLOCKSCALE)-(chunk.y*CHUNKDIMS));
+			
 			for(int i=0; i<World.size(); i++){
 				if(World[i]->getPos() == chunk){
 					int curBlock = (relpos.y*CHUNKDIMS*CHUNKDIMS)+(relpos.z*CHUNKDIMS)+relpos.x;
 					Block * blockp = tempOBJ->getBlocks(World[i]->grid[curBlock].second);
 					if(blockp != nullptr)
 						break;
+
 					tempOBJ->addBlocks();
 					World[i]->grid[curBlock].second = tempOBJ->getBlocksSize()-1;
 					blockp = tempOBJ->getBlocks(World[i]->grid[curBlock].second);
-					blockp->setTID(1);
+					blockp->setTOff(1);
 					blockp->setColor(None);
 					blockp->setPos(newPos);
 					blockp->setID(tempOBJ->getBlocksSize()-1);
@@ -85,7 +84,7 @@ void processMouseMovement(sf::Event e){
 		sf::Vector2u windowSize = mainWindow.getSize();
 		glm::vec3 camRot = Options.getCamRot();
 
-		float rotationPer[2] = {(((e.mouseMove.x-((int)windowSize.x/2))/((float)windowSize.x/2.0f))*LOOKSPEED), (((e.mouseMove.y-((int)windowSize.y/2))/((float)windowSize.y/2.0f))*LOOKSPEED)}; 
+		std::vector<float> rotationPer = {(((e.mouseMove.x-((int)windowSize.x/2))/((float)windowSize.x/2.0f))*LOOKSPEED), (((e.mouseMove.y-((int)windowSize.y/2))/((float)windowSize.y/2.0f))*LOOKSPEED)}; 
 
 		camRot[0] += rotationPer[0];
 		camRot[1] += rotationPer[1];
@@ -143,13 +142,33 @@ void processKeyboardDown(sf::Event e){
 					}
 					State.setMoving(OpenInv, true);
 					State.setState(Menu);
+					std::vector<Window> & winds = Renderer.getWindows();
+					for(Window & w:winds){
+						if(w.getWType() == PInv)
+							w.setHidden(false);
+
+					}
 				}else{
 					State.setMoving(OpenInv, false);
 					State.setState(Running);
+					std::vector<Window> & winds = Renderer.getWindows();
+					for(Window & w:winds){
+						if(w.getWType() == PInv)
+							w.setHidden(true);
+					}
 				}
 				State.setMoving(InvDown, true);
 			}
 			break;
+		case sf::Keyboard::Y:
+			{
+			std::vector<Window> ws = Renderer.getWindows();
+			for(int i=0; i<ws.size(); i++){
+				Window * w = Renderer.getWindows(i);
+				w->setHidden(false);
+			}
+			break;
+			}
 		default:
 			break;
 	}
@@ -260,12 +279,23 @@ void processMovement(){
 	self->setVelocity(vel);
 	//std::cout << "Vel After: \n\tX: "<< vel.x <<  "\n\tY: "<< vel.y <<  "\n\tZ: "<< vel.z << std::endl;
 	//std::cout << "Position of Char: \n\tX: "<< camAt.x <<  "\n\tY: "<< camAt.y <<  "\n\tZ: "<< camAt.z << std::endl;
+
 	self->setJumping(jump);
 	self->setPos(camAt);
 	IOBJ * tempOBJ = Renderer.getIObject(PlayerPos.first);
 	Block * bp = tempOBJ->getBlocks(PlayerPos.second);
 	bp->setPos(camAt);
+
+	camRot[0] = camRot[0]*PI*2;
+	camRot[1] = (camRot[1]*PI)+PI/2;
+	
+	glm::vec3 rotations = glm::vec3(-sin(camRot[0])*cos(camRot[1])*CAMERADIST, -sin(camRot[1])*CAMERADIST, cos(camRot[0])*cos(camRot[1])*CAMERADIST);
+	Renderer.setViewMatrix(glm::lookAt(camAt+rotations, camAt, camUp));
+
+	Renderer.setCamVec(0, camAt+rotations);
+
 	Renderer.setCamVec(1, camAt);
+
 }
 
 

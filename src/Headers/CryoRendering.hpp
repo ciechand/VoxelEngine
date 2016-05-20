@@ -13,11 +13,14 @@ private:
 	std::vector<GLuint> indices;
 	std::vector<Block> blockList;
 	GLenum drawType;
+	unsigned int textureSheet;
+	unsigned int modelID;
+	bool instanced;
 public:
 	InstancedObject();
 	~InstancedObject();
 
-	void Initialize();
+	void Initialize(bool inst = false);
 	void drawOBJ();
 	void Update();
 
@@ -62,6 +65,12 @@ public:
 
 	GLenum getDrawType();
 	void setDrawType(GLenum t);
+
+	void setTexSheet(std::string t);
+	unsigned int getTexSheet();
+
+	void setMID(unsigned int id);
+	unsigned int getMID();
 }IOBJ;
 
 void display();

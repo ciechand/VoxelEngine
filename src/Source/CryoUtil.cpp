@@ -267,6 +267,7 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 	//std::cout << "Sides :" << std::endl;	
 	int signs[2] = {1,-1};
 	float minTime = 1.0f;
+	int minAxis;
 	glm::vec3 minAxisTime(1.0f,1.0f,1.0f);
 
 
@@ -279,9 +280,13 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 		//std::cout << "BlockPos: \n\tX: "<< viableBlockList[i]->getPos().x <<  "\n\tY: "<< viableBlockList[i]->getPos().y <<  "\n\tZ: "<< viableBlockList[i]->getPos().z << std::endl;
 		//std::cout << "ColTime " << i << ": " << colTimes[i] << std::endl;
 		//std::cout << "side: " << side << std::endl;
-		if(colTimes[i].minCol < minAxisTime[axis] && glm::dot(glm::normalize(DirectionalVectors[cr.side]),glm::normalize(moveDir)) <= PI/8)
+
+		//THIS IS WRONG AND NEEDS TO BE FIXED FOR JUMPING!
+		if(colTimes[i].minCol < minAxisTime[axis] && glm::dot(glm::normalize(DirectionalVectors[cr.side]),glm::normalize(moveDir)) <= PI/8){
 			minAxisTime[axis] = colTimes[i].minCol;
+		}
 	}
+
 
 	return minAxisTime;
 }
@@ -779,14 +784,28 @@ int clamp(int min, int max, int f){
 	return f;
 }
 
-int blockNamesFind(std::string s){
+int modelNamesFind(std::string s){
 	int found = -1;
 	for(int i=0; i<BlockNames.size(); i++){
 		if(s.compare(BlockNames[i])==0)
 			found = i;
 	}
+	if(found == -1)
+		std::cerr << "Model Name Not Found!" << std::endl;
 	return found;
 }
+
+int textureNamesFind(std::string s){
+	int found = -1;
+	for(int i=0; i<TextureNames.size(); i++){
+		if(s.compare(TextureNames[i])==0)
+			found = i;
+	}
+	if(found == -1)
+		std::cerr << "Texture Name Not Found!" << std::endl;
+	return found;
+}
+
 
 glm::mat4 alignVec(glm::vec3 a, glm::vec3 b){
 	if(a == b || a == -b)

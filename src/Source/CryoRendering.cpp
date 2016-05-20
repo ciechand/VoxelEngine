@@ -1,7 +1,10 @@
 #include "../Headers/CryoBase.hpp"
 
 InstancedObject::InstancedObject(){
-	drawType = 0;
+	drawType = GL_TRIANGLES;
+	textureSheet = textureNamesFind("Blocks");
+	modelID = modelNamesFind("Cube");
+	instanced = false;
 }
 
 
@@ -12,8 +15,23 @@ InstancedObject::~InstancedObject(){
 }
 
 
-void InstancedObject::Initialize(){
-	GLuint location = 0;
+void InstancedObject::Initialize(bool inst){
+	size_t size = 0;
+	size_t stride = 0;
+	size_t startAddr = 0;
+	instanced = inst;
+	if(instanced == true){
+		stride = sizeof(Block);
+		size = stride;
+		Block * B = new Block();
+		startAddr = ((size_t)B->getStartingAddr()-((size_t)B));
+	  	delete B;
+	}else if(instanced == false){
+		size = sizeof(baseObj);
+		stride = 0;
+		startAddr = 0;
+	}
+
 	glGenVertexArrays(1, &vertexArrayObject);
 	glBindVertexArray(vertexArrayObject);
 
@@ -43,23 +61,28 @@ void InstancedObject::Initialize(){
 	glVertexAttribPointer(texCoordinatePos, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	//model matrices
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
-	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), State.Selectors.data());
-
 	GLuint modelMatrixPos = glGetAttribLocation(Renderer.getShaderProgram(), "modelMatrix");
 
+
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
+	if(instanced){
+		glBufferData(GL_ARRAY_BUFFER, (blockList.size()*size)+(size*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*size), blockList.data());
+		glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*size), (size*State.Selectors.size()), State.Selectors.data());
+	}else{
+		glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+	}
+	
  	GLsizei vec4Size = sizeof(glm::vec4);
 
     glEnableVertexAttribArray(modelMatrixPos); 
-    glVertexAttribPointer(modelMatrixPos, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(0));
+    glVertexAttribPointer(modelMatrixPos, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+0));
     glEnableVertexAttribArray(modelMatrixPos+1); 
-    glVertexAttribPointer(modelMatrixPos+1, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET((vec4Size)));
+    glVertexAttribPointer(modelMatrixPos+1, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+(vec4Size)));
     glEnableVertexAttribArray(modelMatrixPos+2); 
-    glVertexAttribPointer(modelMatrixPos+2, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET((vec4Size*2)));
+    glVertexAttribPointer(modelMatrixPos+2, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+(vec4Size*2)));
     glEnableVertexAttribArray(modelMatrixPos+3); 
-    glVertexAttribPointer(modelMatrixPos+3, 4, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET((vec4Size*3)));
+    glVertexAttribPointer(modelMatrixPos+3, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+(vec4Size*3)));
     glVertexAttribDivisor(modelMatrixPos, 1);
     glVertexAttribDivisor(modelMatrixPos+1, 1);
     glVertexAttribDivisor(modelMatrixPos+2, 1);
@@ -67,52 +90,54 @@ void InstancedObject::Initialize(){
 
     GLuint texPosPos = glGetAttribLocation(Renderer.getShaderProgram(), "texPosIn");
     glEnableVertexAttribArray(texPosPos); 
-    glVertexAttribPointer(texPosPos, 2, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+(sizeof(GLint))));
+    glVertexAttribPointer(texPosPos, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+sizeof(glm::mat4)));
     glVertexAttribDivisor(texPosPos, 1);
 
     GLuint ColorPos = glGetAttribLocation(Renderer.getShaderProgram(), "iColor");
     glEnableVertexAttribArray(ColorPos); 
-    glVertexAttribPointer(ColorPos, 3, GL_FLOAT, GL_FALSE, sizeof(Block), BUFFER_OFFSET(sizeof(glm::mat4)+sizeof(GLint)+sizeof(glm::vec2)));
+    glVertexAttribPointer(ColorPos, 3, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+sizeof(glm::mat4)+sizeof(glm::vec2)));
     glVertexAttribDivisor(ColorPos, 1);
+    
+    GLuint texSizePos = glGetAttribLocation(Renderer.getShaderProgram(), "texSizeIn");
+    glEnableVertexAttribArray(texSizePos); 
+    glVertexAttribPointer(texSizePos, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+sizeof(glm::mat4)+sizeof(glm::vec2)+sizeof(glm::vec3)));
+    glVertexAttribDivisor(texSizePos, 1);
 
-	GLuint TexSizePos = glGetUniformLocation(Renderer.getShaderProgram(), "TexSize");
-	glUniform1i(TexSizePos, (int)NUMTEX);
+  
+	GLuint TotalTexSizePos = glGetUniformLocation(Renderer.getShaderProgram(), "TotalTexSize");
+	glUniform1i(TotalTexSizePos, (int)NUMTEX);
 
 	GLuint samplePos = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
 	glUniform1i(samplePos, 0);
-
 
 	glGenBuffers(1, &elementBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indices.size() * sizeof(GLuint), indices.data());
 
-	float * projV = Options.getProjVars();
-	glm::mat4 p = glm::perspective(projV[0],projV[1],projV[2],projV[3]);
-	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
-
 	addBlocks();
 }
 
 void InstancedObject::drawOBJ(){
+	if(!instanced)
+		return;
 	if(blockList.size() != 0){
 		glBindVertexArray(vertexArrayObject);
 		Update();
-		glDrawElementsInstanced(drawType, indices.size()*sizeof(GLuint), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size()+State.Selectors.size());
+		glDrawElementsInstanced(drawType, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size()+State.Selectors.size());
 	}
 }
 
 void InstancedObject::Update(){
-	if(State.getProjChange() == true){
-		float * projV = Options.getProjVars();
-		glm::mat4 p = glm::perspective(projV[0],projV[1],projV[2],projV[3]);
-		glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "proj"), 1, GL_FALSE, &p[0][0]);
-	}
+	GLuint samplePos = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
+	glUniform1i(samplePos, textureSheet);
+
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
 	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
 	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), State.Selectors.data());
  }
+
 
 void InstancedObject::setVertexArrayObject(GLuint VAO){
 	vertexArrayObject = VAO;
@@ -226,6 +251,7 @@ void InstancedObject::removeBlock(int blockPos){
 	//std::cerr << "Address of block Removed: " << &(blockList[blockpos]) << std::endl;
 	//std::cout << "Block Removed at ID: " << blockPos << ";\n\tWith Position: "<< pos.x << ": " << pos.y << ": " << pos.z << ";" << std::endl;
 	//std::cout << "End Block ID: " << (blockList.end()-1)->getID() << std::endl;
+
 	if((blockList.end()-1) != (blockList.begin()+blockPos)){
 		std::iter_swap(blockList.begin()+blockPos, blockList.end()-1);
 		(blockList.begin()+blockPos)->setID((blockList.end()-1)->getID());
@@ -254,7 +280,7 @@ std::vector<Block>& InstancedObject::getBlocks(){
 }
 
 Block * InstancedObject::getBlocks(int index){
-	if(index >= blockList.size() || index == 0)
+	if(index >= blockList.size() || index <= 0)
 		return nullptr;
 	return &(blockList[index]);	
 }
@@ -271,15 +297,37 @@ void InstancedObject::setDrawType(GLenum t){
 	drawType = t;
 }
 
+void InstancedObject::setTexSheet(std::string t){
+	textureSheet = textureNamesFind(t);
+}
+
+unsigned int InstancedObject::getTexSheet(){
+	return textureSheet;
+}
+
+void InstancedObject::setMID(unsigned int id){
+	modelID = id;
+}
+
+unsigned int InstancedObject::getMID(){
+	return modelID;
+}
+
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glUniformMatrix4fv(glGetUniformLocation(Renderer.getShaderProgram(), "viewMatrix"), 1, GL_FALSE, &Renderer.getViewMatrix()[0][0]);
-
+	Renderer.setOBJUniforms();
 	std::vector<IOBJ *> Objects = Renderer.getIObjectList();
 	for(int i=0; i<Objects.size(); i++){
 		Objects[i]->drawOBJ();
 	}	
+
+	Renderer.setGuiUniforms();
+	std::vector<Window> windows = Renderer.getWindows();
+	for(int i=0; i<windows.size(); i++){
+		if(windows[i].getHidden() != true)
+			windows[i].Draw();
+	}
 
 	sf::Vector2u windowSize = mainWindow.getSize();
 	if(State.getState() == Running){

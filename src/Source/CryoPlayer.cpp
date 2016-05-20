@@ -14,36 +14,15 @@ Player::Player(){
 Player::~Player(){
 }
 
-void Player::addSelect(glm::mat4 position){
+void Player::addSelect(Block b, Colors16 c, SelectTypes type){
 	int size = State.Selectors.size();
-	State.Selectors.emplace_back();
-	State.Selectors[size].setType(Selector);
-	State.Selectors[size].setTID(1);
-	State.Selectors[size].setColor(Red);
-	State.Selectors[size].setOwner(ID);
-	State.Selectors[size].setTMatrix(glm::scale(position, glm::vec3(1.01f,1.01f,1.01f)));
-}
-
-void Player::addSelect(glm::mat4 position, Colors16 c){
-	int size = State.Selectors.size();
-	State.Selectors.emplace_back();
-	State.Selectors[size].setType(Selector);
-	State.Selectors[size].setTID(1);
-	State.Selectors[size].setColor(c);
-	State.Selectors[size].setOwner(ID);
-	State.Selectors[size].setTMatrix(glm::scale(position, glm::vec3(1.01f,1.01f,1.01f)));
-}
-
-void Player::addSelect(glm::mat4 position, Colors16 c, SelectTypes type){
-	int size = State.Selectors.size();
-	State.Selectors.emplace_back();
+	State.Selectors.push_back(b);
 	State.Selectors[size].setType(type);
-	State.Selectors[size].setTID(1);
+	State.Selectors[size].setTOff(1);
 	State.Selectors[size].setColor(c);
 	State.Selectors[size].setOwner(ID);
-	State.Selectors[size].setTMatrix(glm::scale(position, glm::vec3(1.01f,1.01f,1.01f)));
+	State.Selectors[size].setTMatrix(glm::scale(State.Selectors[size].getTMatrix(Scale), glm::vec3(1.01f,1.01f,1.01f)), Scale);
 }
-
 
 void Player::removeSelect(){
 	for(int i=0; i<State.Selectors.size(); i++){

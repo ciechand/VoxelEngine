@@ -17,7 +17,138 @@ const glm::vec3 DirectionalVectors[6] = {glm::vec3(1.0f*BLOCKSCALE,0.0f,0.0f),
 									  glm::vec3(0.0f,0.0f,-1.0f*BLOCKSCALE)};
 
 
+std::vector<std::string> AssetPaths = {"./Assets/Models/Blocks/", "./Assets/Models/Misc/", "./Assets/Textures/"};
 std::vector<std::string> BlockNames;
+std::vector<std::string> TextureNames;
+
+baseObj::baseObj(){
+	TransformMatrix = glm::mat4(1.0f);
+	textureOffset = glm::vec2(0,0);
+	color = BlockColors[0];
+	textureSize = glm::vec2(1.0f,1.0f);
+
+	modelIdentifier = -1;
+	position = glm::vec3();
+	ID = -1;
+}
+
+baseObj::~baseObj(){
+
+}
+
+glm::mat4 * baseObj::getStartingAddr(){
+	return &TransformMatrix;
+}
+
+void baseObj::setColor(int c){
+	color = BlockColors[c];
+}	
+
+void baseObj::setColor(glm::vec3 c){
+	color = c;
+}	
+
+glm::vec3 baseObj::getColor() const{
+	return color;
+}
+
+int baseObj::getColorNumber() const{
+	for(int i=0; i<16; i++){
+		if(BlockColors[i] == color)
+			return i;
+	}
+}
+
+void baseObj::setPos(glm::vec3 point){
+	position = point;
+	setTMatrix(glm::translate(glm::mat4(),point),Translate);
+}
+
+glm::vec3 baseObj::getPos() const{
+	return position;
+}
+
+
+void baseObj::setTMatrix(glm::mat4 matrix,int index){
+	Matrices[index] = matrix;
+	TransformMatrix = Matrices[Translate]*Matrices[Scale]*Matrices[Rotate];
+}
+
+glm::mat4 baseObj::getTMatrix(int index) const{
+	return Matrices[index];
+}
+
+glm::mat4 baseObj::getTMatrix() const{
+	return Matrices[Translate]*Matrices[Scale]*Matrices[Rotate];
+}
+
+void baseObj::setMID(GLint id){
+	modelIdentifier = id;
+}
+
+GLint baseObj::getMID() const{
+	return modelIdentifier;
+}
+
+void baseObj::setTOff(int offset){
+	textureOffset = glm::vec2(glm::mod(offset,NUMTEX), floor((float)offset/(float)NUMTEX));
+}
+
+void baseObj::setTOff(glm::vec2 offset){
+	textureOffset = offset;
+}
+
+glm::vec2 baseObj::getTOff() const{
+	return textureOffset;
+}
+
+void baseObj::setTSize(glm::vec2 size){
+	textureSize = size;
+}
+
+glm::vec2 baseObj::getTSize() const{
+	return textureSize;
+}
+
+void baseObj::setID(int id){
+	ID = id;
+}
+
+int baseObj::getID() const{
+	return ID;
+}
+
+baseItem::baseItem():baseObj(){
+	StackInfo = std::make_pair(1, 0);
+}
+
+baseItem::baseItem(unsigned int maxStack):baseObj(){
+	StackInfo = std::make_pair(maxStack, 0);
+}
+
+baseItem::~baseItem(){
+
+}
+
+void baseItem::Interact(){
+	std::cout << "Interacting with Item" << std::endl;
+}
+
+std::pair<unsigned int, unsigned int> baseItem::getStackInfo(){
+	return StackInfo;
+}
+
+void baseItem::setStackInfo(unsigned int ms){
+	StackInfo.first = ms;
+}
+
+void baseItem::addItem(int count){
+	int res = StackInfo.second + count;
+	if(res <= 0)
+		StackInfo.first = 0;
+	StackInfo.second = res;
+}
+
 
 
 GameState::GameState(){
@@ -27,18 +158,18 @@ GameState::GameState(){
 	camPos[1] = 0.0f;
 	moving = std::vector<bool>(NUMBER_OF_FLAGS, false);
 	Player Self;
-	Self.setPos(glm::vec3(8.5f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.5f));
+	Self.setPos(glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f));
 	Self.setID(Players.size());
 	Players.push_back(Self);
 	masterClock.restart();
 	timeElapsed = masterClock.getElapsedTime();
 }
 
-void GameState::setState(unsigned char cs){
+void GameState::setState(unsigned int cs){
 	curState = cs;
 }
 
-unsigned char GameState::getState(){
+unsigned int GameState::getState(){
 	return curState;
 }
 
@@ -103,82 +234,60 @@ void GameState::setdTime(float t){
 	deltaTime = t;
 }
 
-baseObj::baseObj(){
-	TransformMatrix = glm::mat4(1.0f);
-	modelIdentifier = 0;
-	textureIdentifier = glm::vec2(0,0);
+
+baseItem * GameState::getHItem(){
+	return heldItem;
 }
 
-void baseObj::setTMatrix(glm::mat4 matrix){
-	TransformMatrix = matrix;
+void GameState::setHItem(baseItem * i){
+	heldItem = i;
 }
 
-glm::mat4 baseObj::getTMatrix() const{
-	return TransformMatrix;
+Window * GameState::getSWindow(){
+	return selectedWindow;
 }
 
-
-void baseObj::setMID(GLint id){
-	modelIdentifier = id;
-}
-
-GLint baseObj::getMID() const{
-	return modelIdentifier;
-}
-
-void baseObj::setTID(int id){
-	textureIdentifier = glm::vec2(glm::mod(id,NUMTEX), floor((float)id/(float)NUMTEX));
-}
-
-void baseObj::setTID(glm::vec2 id){
-	textureIdentifier = id;
-}
-
-
-glm::vec2 baseObj::getTID() const{
-	return textureIdentifier;
+void GameState::setSWindow(Window * w){
+	selectedWindow = w;
 }
 
 GameOptions::GameOptions(){
 
 	using namespace boost::filesystem;
-	boost::filesystem::path p ("./Assets/");
 
 	texturePaths.clear();
 	modelPaths.clear();
 	
-	if(exists(p)){
-		if(is_directory(p)){
-			for(directory_entry& d : directory_iterator(p)){
-				if(is_directory(d) && d.path().generic_string().compare(0,d.path().string().size(),"./Assets/Shaders") != 0){
-					std::cerr << "Path: " << d.path().generic_string() << std::endl;
-					for(directory_entry& d2 : directory_iterator(d)){
-						if(is_regular_file(d2)){
-							if(d2.path().string().compare(d2.path().string().size()-4,4,".png") == 0 || d2.path().string().compare(d2.path().string().size()-4,4,".BMP") == 0 ){
-								texturePaths.push_back(d2.path().string());
-							}else if(d2.path().string().compare(d2.path().string().size()-4,4,".obj") == 0 ){
-								modelPaths.push_back(d2.path().string());
+	for(std::string &s : AssetPaths){
+		path p (s);
+		if(is_directory(p) && exists(p)){
+			std::cerr << "Path: " << p.generic_string() << std::endl;
+			for(directory_entry& d2 : directory_iterator(p)){
+				if(is_regular_file(d2)){
+					if(d2.path().string().compare(d2.path().string().size()-4,4,".png") == 0){
+						texturePaths.push_back(d2.path().generic_string());
 
-								int pathSize = d2.path().parent_path().string().size();
-								BlockNames.push_back(d2.path().string().substr(pathSize+1,d2.path().string().size()-4-(pathSize+1))); 
-							}else{
-								std::cerr << "NOT ONE OF THE TWO VALID TYPES!!!" << std::endl;
-							}
-						}else{
-							std::cerr << "this is not a regular file." << std::endl;
-						}
+						int pathSize = d2.path().parent_path().string().size();
+						TextureNames.push_back(d2.path().string().substr(pathSize+1,d2.path().string().size()-4-(pathSize+1))); 
+					}else if(d2.path().string().compare(d2.path().string().size()-4,4,".obj") == 0 ){
+						modelPaths.push_back(d2.path().string());
+
+						int pathSize = d2.path().parent_path().string().size();
+						BlockNames.push_back(d2.path().string().substr(pathSize+1,d2.path().string().size()-4-(pathSize+1))); 
+					}else{
+						std::cerr << "NOT ONE OF THE TWO VALID TYPES!!!" << std::endl;
 					}
+				}else{
+					std::cerr << "this is not a regular file." << std::endl;
 				}
 			}
 		}else{
 			std::cerr << "Path provided is not a directory." << std::endl;
 		}
-	}else{
-		std::cerr <<"Path does not exist."<< std::endl;
 	}
 	projVar[0] = PI/2.25;
-	projVar[1] = 1.0f;
-	projVar[2] = 0.01f;
+	projVar[1] = 1024.0f/768.0f;
+	projVar[2] = 0.0001f;
 	projVar[3] = 200.0f;
 
 	camRot[0] = 5.0f;
@@ -201,40 +310,50 @@ void GameOptions::Initialize(){
 		std::cout << "\t->" << BlockNames[i] << std::endl;
 		tempOBJ = new IOBJ();
 		readOBJFile(tempOBJ, modelPaths[i].c_str());
-		tempOBJ->Initialize();
-		//Need to add a blank block at 0 so that the uint which is an index at 0 is never pointing to a block.
+		if(modelPaths[i].substr(0,modelPaths[i].find_last_of('\\',modelPaths[i].size())).compare(0,modelPaths[i].find_last_of('\\',modelPaths[i].size()),"./Assets/Models/Blocks") == 0)
+			tempOBJ->Initialize(true);
+		else
+			tempOBJ->Initialize();
+		tempOBJ->setMID(i);
 		Renderer.addToIObjectList(tempOBJ);
 	}
+	std::cout << "Finished Loading Models" <<  std::endl;
 	std::cout << std::endl;
+	std::cout << "Loading Textures: " << std::endl;
+	for(int i=0; i<texturePaths.size(); i++){
+		std::cout << "\tT"<<i<<"->" <<  texturePaths[i] << " Loaded" << std::endl;
+		Renderer.addToTextureList(texturePaths[i].c_str());
+	} 
+	glActiveTexture(GL_TEXTURE0);
+	std::cout << "Finished Loading Textures" <<  std::endl;
+	std::cout << std::endl;
+	std::cout << "Loading Basic Objects" << std::endl;
 
-	int sphereIndex = blockNamesFind("Sphere");
+	int sphereIndex = modelNamesFind("Sphere");
 	tempOBJ = Renderer.getIObject(sphereIndex);
 	tempOBJ->addBlocks();
 	PlayerPos = std::make_pair(sphereIndex,tempOBJ->getBlocksSize()-1);
 	Block * bp = tempOBJ->getBlocks(PlayerPos.second);
 	bp->setMID(sphereIndex);
-	bp->setTID(2);
-	bp->setPos(glm::vec3(8.5f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.5f));
+	bp->setTOff(2);
+	bp->setPos(glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f));
 	bp->setID(tempOBJ->getBlocksSize()-1);
 
-	int lineIndex = blockNamesFind("Line");
+	int lineIndex = modelNamesFind("Line");
 	tempOBJ = Renderer.getIObject(lineIndex);
 	tempOBJ->addBlocks();
 	ViewLinePos = std::make_pair(lineIndex,tempOBJ->getBlocksSize()-1);
 	bp = tempOBJ->getBlocks(ViewLinePos.second);
 	bp->setMID(lineIndex);
-	bp->setTID(2);
-	bp->setPos(glm::vec3(8.5f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.5f));
+	bp->setTOff(2);
+	bp->setPos(glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f));
 	bp->setID(tempOBJ->getBlocksSize()-1);
 	bp->setColor(Pink);
 
-	std::cout << "Finished Loading Models" << std::endl << "Loading Textures: " << std::endl;
-	for(int i=0; i<texturePaths.size(); i++){
-		std::cout << "\t->" <<  texturePaths[i] << " Loaded" << std::endl;
-		Renderer.addToTextureList(texturePaths[i].c_str());
-	} 
-	std::cout << std::endl;
-	std::cout << "Finished Loading Textures" <<  std::endl;
+	Renderer.addWindow(glm::vec2(3.0f,3.0f), glm::vec2(100.0f, 100.0f), glm::vec2(600.0f, 900.0f), true);
+	Window * curW = Renderer.getWindows(0);
+	curW->setWType(PInv);
+	std::cout << "Finnished Loading Basic Objects" << std::endl;
 }
 
 void GameOptions::setProjVars(float * vars){
@@ -304,9 +423,26 @@ void GameRenderer::Initialize(){
 	shaderProgram = createShadersProgram("./Assets/Shaders/VertexShader.glsl", "./Assets/Shaders/FragmentShader.glsl");
 //std::cout << "Finnished Loading Shaders" << std::endl;
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
-	camVec[1] = glm::vec3(8.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),8.0f);
+	camVec[1] = glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f);
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
 }
+
+void GameRenderer::setGuiUniforms(){
+	GLuint samplePos = glGetUniformLocation(shaderProgram, "textureSample");
+	glUniform1i(samplePos, textureNamesFind("Gui"));
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "proj"), 1, GL_FALSE, &(glm::mat4())[0][0]);
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "viewMatrix"), 1, GL_FALSE, &(glm::mat4())[0][0]);
+}
+
+void GameRenderer::setOBJUniforms(){
+	float * projV = Options.getProjVars();
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "proj"), 1, GL_FALSE, &(glm::perspective(projV[0],projV[1],projV[2],projV[3]))[0][0]);
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "viewMatrix"), 1, GL_FALSE, &(ViewMatrix)[0][0]);
+}
+
 
 void GameRenderer::setShaderProgram(const char * vertexPath, const char * fragmentPath){
 	shaderProgram = createShadersProgram(vertexPath, fragmentPath);
@@ -361,7 +497,7 @@ std::vector<IOBJ *>& GameRenderer::getIObjectList(){
 }
 
 IOBJ * GameRenderer::getIObject(int index){
-	if(index >= InstancedObjectsList.size())
+	if(index >= InstancedObjectsList.size() || index < 0)
 			return nullptr;
 	return InstancedObjectsList[index];
 } 
@@ -374,6 +510,7 @@ int GameRenderer::getIObjectSize(){
 void GameRenderer::addToTextureList(const char * textureFile){
 	GLuint tempTex;
 	glGenTextures(1, &tempTex);
+	glActiveTexture(GL_TEXTURE0+TextureList.size());
 	glBindTexture(GL_TEXTURE_2D, tempTex);
 	loadBMP(textureFile, &tempTex);
 	TextureList.push_back(tempTex);
@@ -389,6 +526,32 @@ std::vector<GLuint> GameRenderer::getTextureList(){
 
 GLuint GameRenderer::getTextureList(int index){
 	return TextureList[index];
+}
+
+void GameRenderer::addWindow(){
+	Windows.emplace_back();
+}
+
+void GameRenderer::addWindow(Window w){
+	Windows.push_back(w);
+}
+
+void GameRenderer::addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide){
+	Windows.emplace_back(tsize, pos, wsize, hide);
+}
+
+void GameRenderer::setWindow(int index, Window w){
+	Windows[index] = w;
+}
+
+Window * GameRenderer::getWindows(int index){
+	if(index < 0 || index >= Windows.size())
+		return nullptr;
+	return &(Windows[index]);
+}
+
+std::vector<Window> & GameRenderer::getWindows(){
+	return Windows;
 }
 
 void InitOpenGL(){
@@ -459,35 +622,101 @@ void tickUpdate(){
 
 		}	
 		//std::cout << std::endl;
-	}
-	glm::vec3 camPos = Renderer.getCamVec(0);
-	glm::vec3 lookingDirection = selfPos-camPos;
-	lookingDirection = glm::normalize(lookingDirection)*FOCUSDIST;
+	} 
 
-	Ray sight(selfPos,lookingDirection,0.0f,FOCUSDIST);
+	unsigned int curState = State.getState();
+	if(curState == Running){
+		glm::vec3 camPos = Renderer.getCamVec(0);
+		glm::vec3 lookingDirection = selfPos-camPos;
+		lookingDirection = glm::normalize(lookingDirection)*FOCUSDIST;
 
-	IOBJ * tempOBJ = Renderer.getIObject(ViewLinePos.first);
-	Block * bp = tempOBJ->getBlocks(ViewLinePos.second);
-	glm::mat4 mats = glm::scale(glm::mat4(), glm::vec3(FOCUSDIST));
-	glm::mat4 matt = glm::translate(glm::mat4(), selfPos);
-	glm::mat4 matr = alignVec(glm::vec3(0.0f,1.0f,0.0f),lookingDirection);
-	bp->setPos(selfPos);
-	bp->setTMatrix(matt*glm::transpose(matr)*mats);
+		Ray sight(selfPos,lookingDirection,0.0f,FOCUSDIST);
 
-	std::pair<Block *, int> pickedBlock = pickBlock(sight);
-	//std::cout << "After Pick." << std::endl;
-	self->setSelected(pickedBlock.first);
-	self->setSelectedSide(pickedBlock.second);
-	self->removeSelect();
-	if(pickedBlock.first != nullptr){
-		//std::cout << b->getID() << std::endl << std::flush;
-		self->addSelect(pickedBlock.first->getTMatrix(), Red, Selector);
-	}
+		IOBJ * tempOBJ = Renderer.getIObject(ViewLinePos.first);
+		Block * bp = tempOBJ->getBlocks(ViewLinePos.second);
+		glm::mat4 mats = glm::scale(glm::mat4(), glm::vec3(FOCUSDIST));
+		glm::mat4 matt = glm::translate(glm::mat4(), selfPos);
+		glm::mat4 matr = alignVec(glm::vec3(0.0f,1.0f,0.0f),lookingDirection);
+		bp->setPos(selfPos);
+		bp->setTMatrix(matt,Translate);
+		bp->setTMatrix(glm::transpose(matr),Rotate);
+		bp->setTMatrix(mats,Scale);
 
-	//std::cerr << side << std::endl;
-	if(pickedBlock.second != -1 && pickedBlock.first != nullptr){
-		glm::mat4 trans = glm::translate(pickedBlock.first->getTMatrix(), DirectionalVectors[pickedBlock.second]);
-		self->addSelect(trans, Green, Highlight);
+		std::pair<Block *, int> pickedBlock = pickBlock(sight);
+
+		//std::cout << "After Pick." << std::endl;
+		self->setSelected(pickedBlock.first);
+		self->setSelectedSide(pickedBlock.second);
+		self->removeSelect();
+		if(pickedBlock.first != nullptr){
+			//std::cout << b->getID() << std::endl << std::flush;
+			self->addSelect(*(pickedBlock.first), Red, Selector);
+		}
+
+		//std::cerr << side << std::endl;
+		if(pickedBlock.second != -1 && pickedBlock.first != nullptr){
+			Block tempB = *pickedBlock.first;
+			tempB.setTMatrix(glm::translate(tempB.getTMatrix(Translate), DirectionalVectors[pickedBlock.second]), Translate);
+			self->addSelect(tempB, Green, Highlight);
+		}
+	}else if (curState == Menu){
+		sf::Vector2u mwsize = mainWindow.getSize();
+		sf::Vector2i mpos = sf::Mouse::getPosition(mainWindow);
+		mpos.x *=2;
+		mpos.y *=2;
+		//std::cout << "Mouse Pos: \n\tX:" << mpos.x << "\n\tY:" << mpos.y << std::endl;
+		std::vector<Window> & winds = Renderer.getWindows();
+
+		Window * overWindow = nullptr;
+		int depth = -1;
+
+		for(Window & w:winds){
+			if(w.getHidden() == false){
+				glm::vec3 wpos = w.getPos();
+				glm::vec2 wsize = w.getSize();
+				int curDepth = w.getDepth();
+				//std::cout << "Window Pos: \n\tX:" << wpos.x << "\n\tY:" << wpos.y << std::endl;
+				//std::cout << "Window Size: \n\tX:" << wsize.x << "\n\tY:" << wsize.y << std::endl;
+				//std::cout << "Depth: " << depth << std::endl;
+				//std::cout << "CurDepth: " << curDepth << std::endl;
+				if(mpos.x >= wpos.x && mpos.x <= wpos.x+wsize.x && mpos.y >= wpos.y && mpos.y <= wpos.y+wsize.y && curDepth >= depth){
+					overWindow = &w;
+					depth = curDepth;
+
+					std::vector<Pane> & panes = w.getPane();
+					for(Pane&p:panes){
+						glm::vec3 ppos = p.getPos();
+						glm::vec2 psize = p.getSize();
+						curDepth = p.getDepth();
+						//std::cout << "\tDepth: " << curDepth << std::endl;
+						if(mpos.x >= ppos.x && mpos.x <= ppos.x+psize.x && mpos.y >= ppos.y && mpos.y <= ppos.y+psize.y && curDepth >= depth){
+							p.setColor(Red);
+						}else{
+							p.setColor(None);
+						}
+					}
+
+					std::vector<Slot> & slots = w.getSlot();
+					for(Slot&s:slots){
+						glm::vec3 spos = s.getPos();
+						glm::vec2 ssize = s.getSize();
+						curDepth = s.getDepth();
+						//std::cout << "\tDepth: " << curDepth << std::endl;
+						if(mpos.x >= spos.x && mpos.x <= spos.x+ssize.x && mpos.y >= spos.y && mpos.y <= spos.y+ssize.y && curDepth >= depth){
+							s.setColor(Red);
+						}else{
+							s.setColor(None);
+						}
+					}
+				}else{
+					std::vector<Pane> & panes = w.getPane();
+					for(Pane&p:panes){p.setColor(None);}
+					std::vector<Slot> & slots = w.getSlot();
+					for(Slot&s:slots){s.setColor(None);}
+				}
+			}
+		}
+		State.setSWindow(overWindow);
 	}
 }
 

@@ -18,9 +18,7 @@ typedef class Player{
 		Player();
 		~Player();
 
-		void addSelect(glm::mat4 position);
-		void addSelect(glm::mat4 position, Colors16 c);
-		void addSelect(glm::mat4 position, Colors16 c, SelectTypes type);
+		void addSelect(Block b, Colors16 c, SelectTypes type);
 		void removeSelect();
 		void removeSelect(SelectTypes type);
 

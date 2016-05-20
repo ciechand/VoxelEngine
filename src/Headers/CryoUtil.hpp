@@ -75,7 +75,8 @@ float clamp(float min, float max, float f);
 double clamp(double min, double max, double f);
 int clamp(int min, int max, int f);
 
-int blockNamesFind(std::string s);
+int modelNamesFind(std::string s);
+int textureNamesFind(std::string s);
 glm::mat4 alignVec(glm::vec3 a, glm::vec3 b);
 
 

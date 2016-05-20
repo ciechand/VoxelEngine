@@ -1,56 +1,17 @@
 #include "../Headers/CryoBase.hpp"
 
-Block::Block():OBJ(){
-	color = BlockColors[0];
-	position = glm::vec3();
+Block::Block():Item(){
 	Type = 0;
 	Owner = -1;
-	ID = -1;
-	bounds.setLimbs(glm::vec3(BLOCKSCALE/2,BLOCKSCALE/2,BLOCKSCALE/2));
-}
-
-Block::Block(GLint id, GLint mat, int c):OBJ(){
-	modelIdentifier = id;
-	setTID(mat);
-	color = BlockColors[c];
-	position = glm::vec3();
-	Type = 0;
-	Owner = -1;
-	ID = -1;
 	bounds.setLimbs(glm::vec3(BLOCKSCALE/2,BLOCKSCALE/2,BLOCKSCALE/2));
 }
 
 Block::~Block(){
 }
 
-void Block::setColor(int c){
-	color = BlockColors[c];
-}	
-
-void Block::setColor(glm::vec3 c){
-	color = c;
-}	
-
-glm::vec3 Block::getColor() const{
-	return color;
-}
-
-int Block::getColorNumber() const{
-	for(int i=0; i<16; i++){
-		if(BlockColors[i] == color)
-			return i;
-	}
-}
-
-void Block::setPos(glm::vec3 point){
-	glm::vec3 dPos = point-position;
-	position = point;
-	TransformMatrix = glm::translate(TransformMatrix,dPos);
-	setBounds(position);
-}
-
-glm::vec3 Block::getPos() const{
-	return position;
+void Block::setPos(glm::vec3 pos){
+	baseObj::setPos(pos);
+	setBounds(pos);
 }
 
 void Block::setType(int t){
@@ -67,14 +28,6 @@ void Block::setOwner(int o){
 
 int Block::getOwner() const{
 	return Owner;
-}
-
-void Block::setID(int id){
-	ID = id;
-}
-
-int Block::getID() const{
-	return ID;
 }
 
 void Block::setBounds(BBox & b){
@@ -172,7 +125,7 @@ void Chunk::Init(){
 	std::uniform_int_distribution<int> udistCol(0,15);
 	std::uniform_int_distribution<int> udistTex(1,2);
 	int rc = udistCol(randomEng);
-	int cubeIndex = blockNamesFind("Cube");
+	int cubeIndex = modelNamesFind("Cube");
 	IOBJ * tempOBJ = Renderer.getIObject(cubeIndex);
 	for(int j=0; j<CHUNKDIMS; j++){
 		for(int k=0;k<CHUNKDIMS; k++){
@@ -185,14 +138,14 @@ void Chunk::Init(){
 				if(blockp == nullptr)
 					std::cout <<  "Block is null." << std::endl;
 				blockp->setID(grid[curBlock].second);
-				blockp->setTID(2);
+				blockp->setTOff(2);
 				blockp->setMID(cubeIndex);
 				//rc = udistCol(randomEng);
 				blockp->setColor(Green);
 				blockp->setPos(glm::vec3((k+(position.x*CHUNKDIMS))*BLOCKSCALE,i*BLOCKSCALE,(j+(position.y*CHUNKDIMS))*BLOCKSCALE));
 				//std::cout << (k+(position.x*CHUNKDIMS))*BLOCKSCALE << ":" << i*BLOCKSCALE << ":" << (j+(position.y*CHUNKDIMS))*BLOCKSCALE << std::endl;
 
-				//std::cerr << "Texture of block: " << grid[curBlock]->getTID() << std::endl;
+				//std::cerr << "Texture of block: " << grid[curBlock]->getTOff()() << std::endl;
 				//std::cout << "Color of Block: " << grid[curBlock]->getColor().x << ":" << grid[curBlock]->getColor().y <<":" << grid[curBlock]->getColor().z <<std::endl;
 				//printMatrix(T);
 			}
@@ -298,7 +251,7 @@ void Chunk::square(float x, float y, float size, float offset){
 bool blockCmp(Block *a, Block *b){
 	if(a->getMID() != b->getMID())
 		return false;
-	if(a->getTID() != b->getTID())
+	if(a->getTOff() != b->getTOff())
 		return false;
 	if(a->getColor() != b->getColor())
 		return false;

@@ -61,9 +61,9 @@ int main (int argc, char ** argv){
 			}
 		}
 		tickUpdate();
-	//std::cout << "Movement Processing" << std::endl;
+		//std::cout << "Movement Processing" << std::endl;
 		processMovement();
-	//std::cout << "Display" << std::endl;
+		//std::cout << "Display" << std::endl;
 		display();
 	}
 	for(int i=0; i<World.size(); i++){

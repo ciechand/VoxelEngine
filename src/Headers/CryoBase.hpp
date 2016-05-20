@@ -52,6 +52,8 @@
 #define TVEL 100.0f
 #define PLAYERHEIGHT BLOCKSCALE*1.5f
 #define PLAYERWIDTH BLOCKSCALE*0.9f
+#define DEFAULTSLOTSIZE 80.0f
+#define SLOTSEPSIZE DEFAULTSLOTSIZE/10
 
 //MACROS
 #define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
@@ -65,6 +67,10 @@ typedef class Block Block;
 typedef class Chunk Chunk;
 typedef class InstancedObject IOBJ;
 typedef class Player Player;
+typedef class BaseWindow Window;
+typedef class WindowPane Pane;
+typedef class WindowSlot Slot; 
+
 
 //Enumeration of the states the game can be in.
 // [0] = Paused
@@ -116,23 +122,101 @@ enum BlockTypes{Placeable};
 //Enum for typesof Selector
 enum SelectTypes{Selector, Highlight};
 
+//enum for different Pane Types. OUtlined Below:
+//Inventory Pane
+//Equipment Pane
+//Exit Pane
+enum PaneType{InventoryP, EquipP, ExitP};
+
+//Enum for Window Types
+//Player Inventory
+//Storage inventory
+//..
+enum WindowTypes{PInv, SInv};
+
+//Class for base object render info, many other object types such as Item and Block and window will inherit from this class.
+typedef class baseObj{
+	protected:
+		//These variables need to be in this specific order becuase this is the order that they are passed to the shader.
+		glm::mat4 TransformMatrix;
+		glm::vec2 textureOffset;
+		glm::vec3 color;
+		glm::vec2 textureSize;
+		
+		//The Variables below are not passed to shaders
+		GLint modelIdentifier;
+		glm::vec3 position;
+		glm::mat4 Matrices[3];
+		int ID;
+	public:
+		baseObj();
+		~baseObj();
+
+		glm::mat4 * getStartingAddr();
+
+		void setColor(int c);	
+		void setColor(glm::vec3 c);
+		glm::vec3 getColor() const;
+		int getColorNumber() const;
+
+		void setPos(glm::vec3 point);
+		glm::vec3 getPos() const;
+
+		void setTMatrix(glm::mat4 matrix, int index);
+		glm::mat4 getTMatrix(int index) const;
+		glm::mat4 getTMatrix() const;
+
+		void setMID(GLint id);
+		GLint getMID() const;
+
+		void setTOff(GLint offset);
+		void setTOff(glm::vec2 offset);
+		glm::vec2 getTOff() const;
+
+		void setTSize(glm::vec2 size);
+		glm::vec2 getTSize() const;
+
+		void setID(int id);
+		int getID() const;
+}OBJ;
+
+//base Item class for anything that will be able to be stored in an inventory slot. 
+//inherits from BaseObj so every item has the info for a renderer. 
+typedef class baseItem:public baseObj{
+	protected:
+		std::pair<unsigned int, unsigned int> StackInfo;
+	public:
+		baseItem();
+		baseItem(unsigned int maxStack);
+		~baseItem();
+
+		virtual void Interact();
+
+		std::pair<unsigned int, unsigned int> getStackInfo();
+		void setStackInfo(unsigned int ms);
+		void addItem(int count);
+}Item;
+
+
 //Class for holding the main state of the game.
 typedef class GameState{
 private:
-	unsigned char curState;
+	unsigned int curState;
 	bool projChange;
 	std::vector<bool> moving;
 	float camPos[2];
 	std::vector<Player> Players;
 	sf::Time timeElapsed;
 	float deltaTime;
+	baseItem * heldItem = nullptr;
+	Window * selectedWindow = nullptr;
 public:
 	std::vector<Block> Selectors;
 	GameState();
-	GameState(unsigned char cs);
+	GameState(unsigned int cs);
 	
-	void setState(unsigned char cs);
-	unsigned char getState();
+	void setState(unsigned int cs);
+	unsigned int getState();
 
 	void setProjChange(bool pc);
 	bool getProjChange();
@@ -154,27 +238,14 @@ public:
 
 	float getdTime();
 	void setdTime(float t);
+
+	baseItem * getHItem();
+	void setHItem(baseItem * i);
+
+	Window * getSWindow();
+	void setSWindow(Window * w);
 }GState;
 
-//Class for base object, many other object types such as Item and Block will inherit from this class.
-typedef class baseObj{
-protected:
-	glm::mat4 TransformMatrix;
-	GLint modelIdentifier;
-	glm::vec2 textureIdentifier;
-public:
-	baseObj();
-
-	void setTMatrix(glm::mat4 matrix);
-	glm::mat4 getTMatrix() const;
-
-	void setMID(GLint id);
-	GLint getMID() const;
-
-	void setTID(GLint id);
-	void setTID(glm::vec2 id);
-	glm::vec2 getTID() const;
-}OBJ;
 
 //Main class for the GameOptions.
 typedef class GameOptions{
@@ -215,12 +286,16 @@ private:
 	glm::mat4 ProjectionMatrix;
 	std::vector<GLuint> TextureList;
 	std::vector<IOBJ*> InstancedObjectsList;
+	std::vector<Window> Windows;
 public:
 	GameRenderer();
 
 	~GameRenderer();
 	
 	void Initialize();
+
+	void setGuiUniforms();
+	void setOBJUniforms();
 
 	void setShaderProgram(const char * vertexPath, const char * fragmentPath);
 	GLuint getShaderProgram();
@@ -246,6 +321,13 @@ public:
 	void clearTextureList();
 	std::vector<GLuint> getTextureList();
 	GLuint getTextureList(int index);
+
+	void addWindow();
+	void addWindow(Window w);
+	void addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide);
+	void setWindow(int index, Window w);
+	Window * getWindows(int index);
+	std::vector<Window> & getWindows();
 }GRend;
 
 typedef struct vertexInfo{
@@ -275,6 +357,7 @@ extern std::default_random_engine randomEng;
 extern const glm::vec3 BlockColors[16];
 extern const glm::vec3 DirectionalVectors[6];
 extern std::vector<std::string> BlockNames;
+extern std::vector<std::string> TextureNames;
 
 
 #endif //Base
@@ -284,3 +367,4 @@ extern std::vector<std::string> BlockNames;
 #include "CryoUtil.hpp"
 #include "CryoPlayer.hpp"
 #include "CryoInput.hpp"
+#include "CryoWindowing.hpp"

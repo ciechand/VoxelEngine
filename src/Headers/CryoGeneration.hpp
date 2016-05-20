@@ -3,35 +3,22 @@
 #ifndef gen
 #define gen
 
-typedef class Block:public OBJ{
+typedef class Block:public Item{
 private:
-	glm::vec3 color;
-	glm::vec3 position;
 	int Type; 
 	int Owner;
-	int ID;
 	BBox bounds;
 public:
 	Block();
-	Block(GLint id, GLint tex, int c); 
 	~Block();
 
-	void setColor(int c);	
-	void setColor(glm::vec3 c);
-	glm::vec3 getColor() const;
-	int getColorNumber() const;
-
-	void setPos(glm::vec3 point);
-	glm::vec3 getPos() const;
+	void setPos(glm::vec3 pos);
 
 	void setType(int t);
 	int getType() const;
 
 	void setOwner(int o);
 	int getOwner() const;
-
-	void setID(int id);
-	int getID() const;
 
 	void setBounds(BBox& b);
 	void setBounds(glm::vec3 a);
