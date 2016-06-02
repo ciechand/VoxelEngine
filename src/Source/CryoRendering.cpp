@@ -5,39 +5,29 @@ InstancedObject::InstancedObject(){
 	textureSheet = textureNamesFind("Blocks");
 	modelID = modelNamesFind("Cube");
 	instanced = false;
+	changed = true;
 }
-
 
 InstancedObject::~InstancedObject(){
 	glDeleteVertexArrays(1, &vertexArrayObject);
-	glDeleteBuffers(3, &vertexBufferObjects[0]);
-	glDeleteBuffers(1, &elementBuffer);
+	glDeleteBuffers(4, &vertexBufferObjects[0]);
 }
 
 
-void InstancedObject::Initialize(bool inst){
-	size_t size = 0;
-	size_t stride = 0;
-	size_t startAddr = 0;
+void InstancedObject::Init(bool inst){
 	instanced = inst;
-	if(instanced == true){
-		stride = sizeof(Block);
-		size = stride;
-		Block * B = new Block();
-		startAddr = ((size_t)B->getStartingAddr()-((size_t)B));
-	  	delete B;
-	}else if(instanced == false){
-		size = sizeof(baseObj);
-		stride = 0;
-		startAddr = 0;
-	}
+
+	size_t stride = sizeof(Block);
+	Block * B = new Block();
+	size_t startAddr = ((size_t)B->getStartingAddr()-((size_t)B));
+  	delete B;
 
 	glGenVertexArrays(1, &vertexArrayObject);
 	glBindVertexArray(vertexArrayObject);
 
 	//setup for the vertex and normal arrays.
-	glGenBuffers(3, &vertexBufferObjects[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[0]);
+	glGenBuffers(4, &vertexBufferObjects[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[VBuffer]);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec4) + vertexNormals.size()*sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
 	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
@@ -51,7 +41,7 @@ void InstancedObject::Initialize(bool inst){
 	glVertexAttribPointer(vNormPos, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
 
 	//Start with binding and setup of textures.
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[1]);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[TBuffer]);
 
 	glBufferData(GL_ARRAY_BUFFER, textureCoords.size() * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size() * sizeof(glm::vec2), textureCoords.data());
@@ -63,17 +53,11 @@ void InstancedObject::Initialize(bool inst){
 	//model matrices
 	GLuint modelMatrixPos = glGetAttribLocation(Renderer.getShaderProgram(), "modelMatrix");
 
+	//Bind the buffer for drawing Objects
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[ArrayBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(baseObj), nullptr, GL_DYNAMIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	if(instanced){
-		glBufferData(GL_ARRAY_BUFFER, (blockList.size()*size)+(size*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*size), blockList.data());
-		glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*size), (size*State.Selectors.size()), State.Selectors.data());
-	}else{
-		glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
-	}
-	
- 	GLsizei vec4Size = sizeof(glm::vec4);
+	GLsizei vec4Size = sizeof(glm::vec4);
 
     glEnableVertexAttribArray(modelMatrixPos); 
     glVertexAttribPointer(modelMatrixPos, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+0));
@@ -103,15 +87,14 @@ void InstancedObject::Initialize(bool inst){
     glVertexAttribPointer(texSizePos, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+sizeof(glm::mat4)+sizeof(glm::vec2)+sizeof(glm::vec3)));
     glVertexAttribDivisor(texSizePos, 1);
 
-  
+
 	GLuint TotalTexSizePos = glGetUniformLocation(Renderer.getShaderProgram(), "TotalTexSize");
 	glUniform1i(TotalTexSizePos, (int)NUMTEX);
 
 	GLuint samplePos = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
 	glUniform1i(samplePos, 0);
 
-	glGenBuffers(1, &elementBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexBufferObjects[ElementBuffer]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indices.size() * sizeof(GLuint), indices.data());
 
@@ -119,9 +102,7 @@ void InstancedObject::Initialize(bool inst){
 }
 
 void InstancedObject::drawOBJ(){
-	if(!instanced)
-		return;
-	if(blockList.size() != 0){
+	if(blockList.size() > 1){
 		glBindVertexArray(vertexArrayObject);
 		Update();
 		glDrawElementsInstanced(drawType, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size()+State.Selectors.size());
@@ -132,11 +113,15 @@ void InstancedObject::Update(){
 	GLuint samplePos = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
 	glUniform1i(samplePos, textureSheet);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[2]);
-	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
-	glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), State.Selectors.data());
- }
+
+	//if(changed == true){
+		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[ArrayBuffer]);
+		glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
+		glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), State.Selectors.data());
+		changed = false;
+	//}
+}
 
 
 void InstancedObject::setVertexArrayObject(GLuint VAO){
@@ -145,14 +130,6 @@ void InstancedObject::setVertexArrayObject(GLuint VAO){
 
 GLuint InstancedObject::getVertexArrayObject(){
 	return vertexArrayObject;
-}
-
-void InstancedObject::setElementBuffer(GLuint EB){
-	elementBuffer = EB;
-}
-
-GLuint InstancedObject::getElementBuffer(){
-	return elementBuffer;
 }
 
 void InstancedObject::setVertexBufferObject(int index, GLuint VBO){
@@ -238,10 +215,12 @@ std::vector<GLuint> InstancedObject::getIndices(){
 
 void InstancedObject::addBlocks(){
 	blockList.emplace_back();
+	changed = true;
 }
 
 void InstancedObject::setBlockList(std::vector<Block>& B){
 	blockList = B;
+	changed = true;
 }	
 
 void InstancedObject::removeBlock(int blockPos){
@@ -267,12 +246,13 @@ void InstancedObject::removeBlock(int blockPos){
 		}
 	}
 	blockList.erase(blockList.end()-1);
-
+	changed = true;
 	//std::cerr << "\tStart: " << blockPos << "\n\tEnd: " << blockList.size() << std::endl;
 }
 
 void InstancedObject::clearBlocks(){
 	blockList.clear();
+	changed = true;
 }
 
 std::vector<Block>& InstancedObject::getBlocks(){
@@ -325,6 +305,8 @@ void display(){
 	Renderer.setGuiUniforms();
 	std::vector<Window> windows = Renderer.getWindows();
 	for(int i=0; i<windows.size(); i++){
+		//std::string hid = (windows[i].getHidden())?"Hidden":"Showing";
+		//std::cout << "Window is: " << hid << std::endl; 
 		if(windows[i].getHidden() != true)
 			windows[i].Draw();
 	}

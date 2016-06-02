@@ -11,9 +11,10 @@ typedef class BaseWindow:public OBJ{
 		std::vector<Slot> Slots;
 		Window * parent;
 		unsigned int windowType = SInv;
+		unsigned int rotation = 0;
 	public:	
 		BaseWindow();
-		BaseWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, Window * p = nullptr);
+		BaseWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType, Window * p = nullptr);
 		~BaseWindow();
 
 		bool getHidden();
@@ -26,6 +27,7 @@ typedef class BaseWindow:public OBJ{
 		void setDepth(unsigned int d);
 
 		void setPos(glm::vec3 pos);
+		glm::vec3 getTruePos();
 
 		void setColor(unsigned int c);
 		void setColor(glm::vec3 c);
@@ -43,7 +45,11 @@ typedef class BaseWindow:public OBJ{
 		unsigned int getWType();
 		void setWType(unsigned int t);
 
+		unsigned int getRotation();
+		void setRotation(unsigned int r);
+
 		void Draw();
+		virtual void Interact();
 }Window;
 
 typedef class WindowPane:public Window{
@@ -56,6 +62,9 @@ typedef class WindowPane:public Window{
 
 		unsigned int getType();
 		void setType(unsigned int t);
+
+		void Interact();
+
 }Pane;
 
 typedef class WindowSlot:public Pane{
@@ -68,6 +77,7 @@ typedef class WindowSlot:public Pane{
 		baseItem * getObj();
 		void setObj(baseItem * b);
 
+		void Draw();
 }Slot;
 
 glm::vec2 arrayBounds(int x, int y, float maxx, float maxy);

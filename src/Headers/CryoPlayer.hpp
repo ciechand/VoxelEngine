@@ -14,6 +14,8 @@ typedef class Player{
 		int selectedSide;
 		bool jumping;
 		BBox bounds;
+		std::vector<baseItem*> Inventory;
+		Window * inventoryWindow;
 	public:
 		Player();
 		~Player();
@@ -56,6 +58,10 @@ typedef class Player{
 		void setBounds(BBox & b);
 		void setBounds(glm::vec3 a);
 		BBox & getBounds();
+
+		baseItem * getItem(unsigned int index);
+		void setItem(unsigned int index, baseItem * items);
+		void addItem(baseItem * item);
 }Player;
 
 #endif //player

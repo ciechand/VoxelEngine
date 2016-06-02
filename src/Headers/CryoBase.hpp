@@ -54,6 +54,7 @@
 #define PLAYERWIDTH BLOCKSCALE*0.9f
 #define DEFAULTSLOTSIZE 80.0f
 #define SLOTSEPSIZE DEFAULTSLOTSIZE/10
+#define DEFAULTPLAYERSLOTS 30
 
 //MACROS
 #define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
@@ -97,6 +98,21 @@ enum TransformMatrixAtributes{Translate, Scale, Rotate};
 
 enum VertexAttributes{Positions, Normals, Textures, ModelMatrices, TexturePos};
 
+//Enumeration for Vertex Array Objects. There will only be two, one for singly draw things and one for the lists. so that the size doesnt need to be adjusted constantly.
+// [0] = List Draw
+// [1] = single Draw
+
+enum VertexArrayObjects{ListBuffer, SingleBuffer};
+
+
+//Enumeration for Vertex Buffer Objects
+// [0] = vertex + vertexNormals
+// [1] = Texture
+// [2] = Block List
+// [3] = Single Block
+
+enum VertexBufferObjects{VBuffer, TBuffer, ArrayBuffer, ElementBuffer};
+
 //Enum for faces of cube for texture mapping.
 // [0] = Left = +x
 // [1] = Right = -x
@@ -114,7 +130,10 @@ enum Materials{Air, Stone};
 enum Colors16{None, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine, Cyan, Lime, Green, Yellow, Brown, Golden, Orange};
 
 //Enum for the directions of movement
-enum KeyFlags{Forward, Backward, MLeft, MRight, Up, Down, OpenInv, InvDown, NUMBER_OF_FLAGS};
+enum Movement{Forward, Backward, MLeft, MRight, Up, Down, NUMBER_OF_MOVEMENT};
+
+//Enum defining which flags are which in GameState.
+enum StateFlags{OpenInv, InvDown, NUMBER_OF_FLAGS};
 
 //Enum for typesof Blocks
 enum BlockTypes{Placeable};
@@ -132,7 +151,7 @@ enum PaneType{InventoryP, EquipP, ExitP};
 //Player Inventory
 //Storage inventory
 //..
-enum WindowTypes{PInv, SInv};
+enum WindowTypes{FalseWindow, PInv, SInv};
 
 //Class for base object render info, many other object types such as Item and Block and window will inherit from this class.
 typedef class baseObj{
@@ -142,6 +161,7 @@ typedef class baseObj{
 		glm::vec2 textureOffset;
 		glm::vec3 color;
 		glm::vec2 textureSize;
+		unsigned int textureID;
 		
 		//The Variables below are not passed to shaders
 		GLint modelIdentifier;
@@ -159,7 +179,7 @@ typedef class baseObj{
 		glm::vec3 getColor() const;
 		int getColorNumber() const;
 
-		void setPos(glm::vec3 point);
+		void setPos(glm::vec3 point, bool alignToWindow = false);
 		glm::vec3 getPos() const;
 
 		void setTMatrix(glm::mat4 matrix, int index);
@@ -178,6 +198,8 @@ typedef class baseObj{
 
 		void setID(int id);
 		int getID() const;
+
+		virtual void Draw();
 }OBJ;
 
 //base Item class for anything that will be able to be stored in an inventory slot. 
@@ -195,6 +217,8 @@ typedef class baseItem:public baseObj{
 		std::pair<unsigned int, unsigned int> getStackInfo();
 		void setStackInfo(unsigned int ms);
 		void addItem(int count);
+
+		void Draw();
 }Item;
 
 
@@ -203,6 +227,7 @@ typedef class GameState{
 private:
 	unsigned int curState;
 	bool projChange;
+	std::vector<bool> Flags;
 	std::vector<bool> moving;
 	float camPos[2];
 	std::vector<Player> Players;
@@ -210,10 +235,13 @@ private:
 	float deltaTime;
 	baseItem * heldItem = nullptr;
 	Window * selectedWindow = nullptr;
+	Pane * selectedPane = nullptr;
 public:
 	std::vector<Block> Selectors;
 	GameState();
 	GameState(unsigned int cs);
+
+	void Init();
 	
 	void setState(unsigned int cs);
 	unsigned int getState();
@@ -223,6 +251,10 @@ public:
 
 	void setCamPos(float x, float y);
 	float * getCamPos();
+
+	void setFlags(int index, bool tag);
+	bool getFlags(int index);
+	std::vector<bool> getFlags();
 
 	void setMoving(int index, bool tag);
 	bool getMoving(int index);
@@ -244,6 +276,9 @@ public:
 
 	Window * getSWindow();
 	void setSWindow(Window * w);
+
+	Pane * getSPane();
+	void setSPane(Pane * p);
 }GState;
 
 
@@ -259,7 +294,7 @@ public:
 	GameOptions(const char * optionsFileName);
 	~GameOptions();
 
-	void Initialize();
+	void Init();
 
 	void setProjVars(float * vars);
 	void setProjVars(int index, float vars);
@@ -292,7 +327,7 @@ public:
 
 	~GameRenderer();
 	
-	void Initialize();
+	void Init();
 
 	void setGuiUniforms();
 	void setOBJUniforms();
@@ -324,7 +359,7 @@ public:
 
 	void addWindow();
 	void addWindow(Window w);
-	void addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide);
+	void addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType);
 	void setWindow(int index, Window w);
 	Window * getWindows(int index);
 	std::vector<Window> & getWindows();
@@ -349,7 +384,6 @@ extern GState State;
 extern std::vector<Chunk*> World;
 extern sf::Clock masterClock;
 extern std::pair<glm::uint,glm::uint> PlayerPos;
-extern std::pair<glm::uint,glm::uint> ViewLinePos;
 
 extern sf::Window mainWindow;
 extern std::default_random_engine randomEng;

@@ -23,11 +23,12 @@ std::vector<std::string> TextureNames;
 
 baseObj::baseObj(){
 	TransformMatrix = glm::mat4(1.0f);
-	textureOffset = glm::vec2(0,0);
+	textureOffset = glm::vec2(2,0);
 	color = BlockColors[0];
 	textureSize = glm::vec2(1.0f,1.0f);
 
-	modelIdentifier = -1;
+	textureID = textureNamesFind("Blocks");
+	modelIdentifier = 0;
 	position = glm::vec3();
 	ID = -1;
 }
@@ -59,9 +60,13 @@ int baseObj::getColorNumber() const{
 	}
 }
 
-void baseObj::setPos(glm::vec3 point){
+void baseObj::setPos(glm::vec3 point, bool alignToWindow){
+	if(alignToWindow == false){
+		setTMatrix(glm::translate(glm::mat4(),point),Translate);
+	}else if(alignToWindow == true){
+		
+	}
 	position = point;
-	setTMatrix(glm::translate(glm::mat4(),point),Translate);
 }
 
 glm::vec3 baseObj::getPos() const{
@@ -118,6 +123,23 @@ int baseObj::getID() const{
 	return ID;
 }
 
+
+void baseObj::Draw(){
+	GLuint samplePos = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
+	glUniform1i(samplePos, textureID);
+
+	IOBJ * tempOBJ = Renderer.getIObject(modelIdentifier);
+
+	glBindVertexArray(tempOBJ->getVertexArrayObject());
+	glBindBuffer(GL_ARRAY_BUFFER, tempOBJ->getVertexBufferObject(ArrayBuffer));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(baseObj), this, GL_DYNAMIC_DRAW);
+
+	std::vector<GLuint> ind = tempOBJ->getIndices();
+
+	glDrawElements(GL_TRIANGLES, ind.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+}
+
+
 baseItem::baseItem():baseObj(){
 	StackInfo = std::make_pair(1, 0);
 }
@@ -147,20 +169,28 @@ void baseItem::addItem(int count){
 	if(res <= 0)
 		StackInfo.first = 0;
 	StackInfo.second = res;
+	//Need to implement if the stack is full adding another item to the invetory.
 }
 
-
+void baseItem::Draw(){
+	baseObj::Draw();
+}
 
 GameState::GameState(){
 	curState = Loading;
 	projChange = false;
 	camPos[0] = 0.0f;
 	camPos[1] = 0.0f;
-	moving = std::vector<bool>(NUMBER_OF_FLAGS, false);
+	Flags = std::vector<bool>(NUMBER_OF_FLAGS, false);
+	moving = std::vector<bool>(NUMBER_OF_MOVEMENT, false);
+}
+
+void GameState::Init(){
 	Player Self;
 	Self.setPos(glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f));
 	Self.setID(Players.size());
 	Players.push_back(Self);
+
 	masterClock.restart();
 	timeElapsed = masterClock.getElapsedTime();
 }
@@ -188,6 +218,18 @@ void GameState::setCamPos(float x, float y){
 
 float * GameState::getCamPos(){
 	return camPos;
+}
+
+void GameState::setFlags(int index, bool tag){
+	Flags[index] = tag;
+}
+
+bool GameState::getFlags(int index){
+	return Flags[index];
+}
+
+std::vector<bool> GameState::getFlags(){
+	return Flags;
 }
 
 void GameState::setMoving(int index, bool tag){
@@ -251,6 +293,14 @@ void GameState::setSWindow(Window * w){
 	selectedWindow = w;
 }
 
+Pane * GameState::getSPane(){
+	return selectedPane;
+}
+
+void GameState::setSPane(Pane * p){
+	selectedPane = p;
+}
+
 GameOptions::GameOptions(){
 
 	using namespace boost::filesystem;
@@ -302,7 +352,7 @@ GameOptions::GameOptions(const char * optionsFileName){
 GameOptions::~GameOptions(){
 }
 
-void GameOptions::Initialize(){
+void GameOptions::Init(){
 	IOBJ * tempOBJ;
 	std::cout << "loading "<< modelPaths.size() <<" Models: " << std::endl;
 	std::cout << "Model Names:\n"; 
@@ -310,10 +360,7 @@ void GameOptions::Initialize(){
 		std::cout << "\t->" << BlockNames[i] << std::endl;
 		tempOBJ = new IOBJ();
 		readOBJFile(tempOBJ, modelPaths[i].c_str());
-		if(modelPaths[i].substr(0,modelPaths[i].find_last_of('\\',modelPaths[i].size())).compare(0,modelPaths[i].find_last_of('\\',modelPaths[i].size()),"./Assets/Models/Blocks") == 0)
-			tempOBJ->Initialize(true);
-		else
-			tempOBJ->Initialize();
+		tempOBJ->Init(true);
 		tempOBJ->setMID(i);
 		Renderer.addToIObjectList(tempOBJ);
 	}
@@ -339,20 +386,7 @@ void GameOptions::Initialize(){
 	bp->setPos(glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f));
 	bp->setID(tempOBJ->getBlocksSize()-1);
 
-	int lineIndex = modelNamesFind("Line");
-	tempOBJ = Renderer.getIObject(lineIndex);
-	tempOBJ->addBlocks();
-	ViewLinePos = std::make_pair(lineIndex,tempOBJ->getBlocksSize()-1);
-	bp = tempOBJ->getBlocks(ViewLinePos.second);
-	bp->setMID(lineIndex);
-	bp->setTOff(2);
-	bp->setPos(glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f));
-	bp->setID(tempOBJ->getBlocksSize()-1);
-	bp->setColor(Pink);
 
-	Renderer.addWindow(glm::vec2(3.0f,3.0f), glm::vec2(100.0f, 100.0f), glm::vec2(600.0f, 900.0f), true);
-	Window * curW = Renderer.getWindows(0);
-	curW->setWType(PInv);
 	std::cout << "Finnished Loading Basic Objects" << std::endl;
 }
 
@@ -407,6 +441,7 @@ GameRenderer::GameRenderer(){
 	ViewMatrix = glm::mat4();
 	ProjectionMatrix = glm::mat4();
 	shaderProgram = 0;
+
 }
 
 GameRenderer::~GameRenderer(){
@@ -418,7 +453,7 @@ GameRenderer::~GameRenderer(){
 	}
 }
 
-void GameRenderer::Initialize(){
+void GameRenderer::Init(){
 //std::cout << "Starting to Load Shaders" << std::endl;
 	shaderProgram = createShadersProgram("./Assets/Shaders/VertexShader.glsl", "./Assets/Shaders/FragmentShader.glsl");
 //std::cout << "Finnished Loading Shaders" << std::endl;
@@ -428,9 +463,6 @@ void GameRenderer::Initialize(){
 }
 
 void GameRenderer::setGuiUniforms(){
-	GLuint samplePos = glGetUniformLocation(shaderProgram, "textureSample");
-	glUniform1i(samplePos, textureNamesFind("Gui"));
-
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "proj"), 1, GL_FALSE, &(glm::mat4())[0][0]);
 
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "viewMatrix"), 1, GL_FALSE, &(glm::mat4())[0][0]);
@@ -536,8 +568,8 @@ void GameRenderer::addWindow(Window w){
 	Windows.push_back(w);
 }
 
-void GameRenderer::addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide){
-	Windows.emplace_back(tsize, pos, wsize, hide);
+void GameRenderer::addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType){
+	Windows.emplace_back(tsize, pos, wsize, hide, wType);
 }
 
 void GameRenderer::setWindow(int index, Window w){
@@ -563,8 +595,10 @@ void InitOpenGL(){
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(1.0f,1.0f,1.0f,1.0f);
 
-	Renderer.Initialize();
-	Options.Initialize();
+	State.Init();
+	Renderer.Init();
+	Options.Init();
+
 
 	std::cerr << "End Init" << std::endl;
 	State.setState(Running);
@@ -632,7 +666,7 @@ void tickUpdate(){
 
 		Ray sight(selfPos,lookingDirection,0.0f,FOCUSDIST);
 
-		IOBJ * tempOBJ = Renderer.getIObject(ViewLinePos.first);
+/*		IOBJ * tempOBJ = Renderer.getIObject(ViewLinePos.first);
 		Block * bp = tempOBJ->getBlocks(ViewLinePos.second);
 		glm::mat4 mats = glm::scale(glm::mat4(), glm::vec3(FOCUSDIST));
 		glm::mat4 matt = glm::translate(glm::mat4(), selfPos);
@@ -640,7 +674,7 @@ void tickUpdate(){
 		bp->setPos(selfPos);
 		bp->setTMatrix(matt,Translate);
 		bp->setTMatrix(glm::transpose(matr),Rotate);
-		bp->setTMatrix(mats,Scale);
+		bp->setTMatrix(mats,Scale);*/
 
 		std::pair<Block *, int> pickedBlock = pickBlock(sight);
 
@@ -668,6 +702,7 @@ void tickUpdate(){
 		std::vector<Window> & winds = Renderer.getWindows();
 
 		Window * overWindow = nullptr;
+		Pane * overPane = nullptr;
 		int depth = -1;
 
 		for(Window & w:winds){
@@ -691,6 +726,7 @@ void tickUpdate(){
 						//std::cout << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= ppos.x && mpos.x <= ppos.x+psize.x && mpos.y >= ppos.y && mpos.y <= ppos.y+psize.y && curDepth >= depth){
 							p.setColor(Red);
+							overPane = &p;
 						}else{
 							p.setColor(None);
 						}
@@ -704,6 +740,7 @@ void tickUpdate(){
 						//std::cout << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= spos.x && mpos.x <= spos.x+ssize.x && mpos.y >= spos.y && mpos.y <= spos.y+ssize.y && curDepth >= depth){
 							s.setColor(Red);
+							overPane = &s;
 						}else{
 							s.setColor(None);
 						}
@@ -717,6 +754,7 @@ void tickUpdate(){
 			}
 		}
 		State.setSWindow(overWindow);
+		State.setSPane(overPane);
 	}
 }
 

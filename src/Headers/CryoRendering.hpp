@@ -5,8 +5,7 @@
 typedef class InstancedObject{
 private:
 	GLuint vertexArrayObject;
-	GLuint elementBuffer;
-	GLuint vertexBufferObjects[5];
+	GLuint vertexBufferObjects[4];
 	std::vector<glm::vec4> vertices;
 	std::vector<glm::vec4> vertexNormals;
 	std::vector<glm::vec2> textureCoords;
@@ -16,19 +15,17 @@ private:
 	unsigned int textureSheet;
 	unsigned int modelID;
 	bool instanced;
+	bool changed;
 public:
 	InstancedObject();
 	~InstancedObject();
 
-	void Initialize(bool inst = false);
+	void Init(bool inst = false);
 	void drawOBJ();
 	void Update();
 
 	void setVertexArrayObject(GLuint VAO);
 	GLuint getVertexArrayObject();
-
-	void setElementBuffer(GLuint EB);
-	GLuint getElementBuffer();
 
 	void setVertexBufferObject(int index, GLuint VBO);
 	GLuint getVertexBufferObject(int index);

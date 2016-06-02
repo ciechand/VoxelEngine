@@ -29,6 +29,10 @@ void processMouseClicks(sf::Event e){
 			}
 			self->clearSelected();
 			self->removeSelect(Selector);
+		}else if(curState == Menu){
+			Pane * curSPane = State.getSPane();
+			if(curSPane != nullptr)
+				curSPane->Interact();
 		}
 	}else if(e.mouseButton.button == sf::Mouse::Right){
 		if(curState == Running){
@@ -135,12 +139,12 @@ void processKeyboardDown(sf::Event e){
 				State.setMoving(Up, true);
 			break;
 		case sf::Keyboard::R:
-			if(State.getMoving(InvDown) == false){
-				if(State.getMoving(OpenInv) == false){
-					for(int i=0; i<NUMBER_OF_FLAGS; i++){
+			if(State.getFlags(InvDown) == false){
+				if(State.getFlags(OpenInv) == false){
+					for(int i=0; i<NUMBER_OF_MOVEMENT; i++){
 						State.setMoving(i,false);
 					}
-					State.setMoving(OpenInv, true);
+					State.setFlags(OpenInv, true);
 					State.setState(Menu);
 					std::vector<Window> & winds = Renderer.getWindows();
 					for(Window & w:winds){
@@ -149,7 +153,7 @@ void processKeyboardDown(sf::Event e){
 
 					}
 				}else{
-					State.setMoving(OpenInv, false);
+					State.setFlags(OpenInv, false);
 					State.setState(Running);
 					std::vector<Window> & winds = Renderer.getWindows();
 					for(Window & w:winds){
@@ -157,18 +161,9 @@ void processKeyboardDown(sf::Event e){
 							w.setHidden(true);
 					}
 				}
-				State.setMoving(InvDown, true);
+				State.setFlags(InvDown, true);
 			}
 			break;
-		case sf::Keyboard::Y:
-			{
-			std::vector<Window> ws = Renderer.getWindows();
-			for(int i=0; i<ws.size(); i++){
-				Window * w = Renderer.getWindows(i);
-				w->setHidden(false);
-			}
-			break;
-			}
 		default:
 			break;
 	}
@@ -192,7 +187,7 @@ void processKeyboardUp(sf::Event e){
 			State.setMoving(Up, false);
 			break;
 		case sf::Keyboard::R:
-			State.setMoving(InvDown, false);
+			State.setFlags(InvDown, false);
 		default:
 			break;
 	}

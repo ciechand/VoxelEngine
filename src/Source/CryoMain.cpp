@@ -4,7 +4,6 @@ sf::Window mainWindow;
 std::default_random_engine randomEng(time(0));
 
 std::pair<glm::uint, glm::uint> PlayerPos;
-std::pair<glm::uint, glm::uint> ViewLinePos;
 GRend Renderer;
 OPT Options;
 GState State;

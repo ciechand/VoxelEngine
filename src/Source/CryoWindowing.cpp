@@ -6,15 +6,20 @@ Window::BaseWindow():OBJ(){
 	hidden = true;
 	depth = 0;
 	textureSize = glm::vec2(3.0f,3.0f);
-	setPos(glm::vec3(0.0f,0.0f,-0.01f));
+
+	textureID = textureNamesFind("Gui");
+	setPos(glm::vec3(0.0f,0.0f,-0.9f));
 	setSize(glm::vec2(100.0f,100.0f));
+
 }
 
-Window::BaseWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, Window * p):OBJ(){
+Window::BaseWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType,  Window * p):OBJ(){
 	modelIdentifier = modelNamesFind("Plane");
 	hidden = hide;
 	textureSize = tsize;
 	parent = p;
+	windowType = wType;
+	textureID = textureNamesFind("Gui");
 
 	if(parent != nullptr)
 		depth = parent->getDepth()+1;
@@ -22,20 +27,22 @@ Window::BaseWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, W
 		depth = 0;
 
 	setSize(wsize);
-	setPos(glm::vec3(pos,-0.01));
+	setPos(glm::vec3(pos,-0.9f));
 
 
 	if(tsize.x != 1.0f || tsize.y != 1.0f){
 		for(int i=0; i<wsize.x/(TEXDIMS*10); i++){
 			for(int j=0; j<wsize.y/(TEXDIMS*10); j++){
-				windowDraw.emplace_back(glm::vec2(1.0f,1.0f), glm::vec2(100.0f+(i*((TEXDIMS*10))), 100.0f+(j*((TEXDIMS*10)))), glm::vec2((TEXDIMS*10), (TEXDIMS*10)), false);
+				windowDraw.emplace_back(glm::vec2(1.0f,1.0f), glm::vec2(pos.x+(i*((TEXDIMS*10))), pos.y+(j*((TEXDIMS*10)))), glm::vec2((TEXDIMS*10), (TEXDIMS*10)), false, FalseWindow);
 				glm::vec2 preOff = arrayBounds(i,j,(wsize.x/(TEXDIMS*10)),(wsize.y/(TEXDIMS*10)));
 				glm::vec2 Offset = glm::vec2(floor(preOff.x*(tsize.x-1)),(tsize.y-1.0f-floor(preOff.y*(tsize.y-1))));
 				windowDraw[windowDraw.size()-1].setTOff(Offset);
 			}
 		}
-		addSlots(50,glm::vec2(0.0f,(size.y)/2));
-		addPane(glm::vec2(size.x-(SLOTSEPSIZE*4), (SLOTSEPSIZE*4)), ExitP);
+		if(windowType == PInv){
+			addSlots(DEFAULTPLAYERSLOTS,glm::vec2(0.0f,(size.y)/2));
+			addPane(glm::vec2(size.x-(SLOTSEPSIZE*4), (SLOTSEPSIZE*4)), ExitP);
+		}
 	}
 }
 
@@ -73,8 +80,14 @@ void Window::setDepth(unsigned int d){
 
 void Window::setPos(glm::vec3 pos){
 	sf::Vector2u wsize = mainWindow.getSize();
-	baseObj::setPos(glm::vec3((((pos.x/wsize.x)+(size.x/(2*wsize.x))))-1.0f,1.0f-(((pos.y/wsize.y)+(size.y/(2*wsize.y)))),pos.z-(depth*0.0001)));
+	baseObj::setPos(glm::vec3((((pos.x/wsize.x)+(size.x/(2*wsize.x))))-1.0f,1.0f-(((pos.y/wsize.y)+(size.y/(2*wsize.y)))),pos.z-(depth*0.001f)));
+	//std::cout << "Position of Window: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
 	position = pos;
+}
+
+glm::vec3 Window::getTruePos(){
+	sf::Vector2u wsize = mainWindow.getSize();
+	return glm::vec3((((position.x/wsize.x)+(size.x/(2*wsize.x))))-1.0f,1.0f-(((position.y/wsize.y)+(size.y/(2*wsize.y)))),position.z-(depth*0.001f));
 }
 
 void Window::setColor(unsigned int c){
@@ -164,18 +177,17 @@ void Window::setWType(unsigned int t){
 	windowType = t;
 }
 
+unsigned int Window::getRotation(){
+	return rotation;
+}
+
+void Window::setRotation(unsigned int r){
+	rotation = r;
+}
+
 void Window::Draw(){
 	if(windowDraw.size() == 0){
-		IOBJ * tempOBJ = Renderer.getIObject(modelIdentifier);
-
-		glBindVertexArray(tempOBJ->getVertexArrayObject());
-
-		glBindBuffer(GL_ARRAY_BUFFER, tempOBJ->getVertexBufferObject(2));
-		glBufferData(GL_ARRAY_BUFFER, sizeof(baseObj), this, GL_DYNAMIC_DRAW);
-
-		std::vector<GLuint> ind = tempOBJ->getIndices();
-
-		glDrawElements(GL_TRIANGLES, ind.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+		baseObj::Draw();
 	}else{
 		for(Window &w:windowDraw){
 			w.Draw();
@@ -189,13 +201,20 @@ void Window::Draw(){
 		if(p.getHidden() == false)
 			p.Draw();
 	}
+	rotation++;
+	if(rotation>40)
+		rotation = 0;
+}
+
+void Window::Interact(){
+
 }
 
 WindowPane::WindowPane():Window(){
 
 }
 
-WindowPane::WindowPane(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, Window * p):Window(tsize,  pos,  wsize, hide, p){
+WindowPane::WindowPane(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, Window * p):Window(tsize,  pos,  wsize, hide, SInv, p){
 	paneType = InventoryP;
 }
 
@@ -211,12 +230,27 @@ void WindowPane::setType(unsigned int t){
 	paneType = t;
 }
 
+void WindowPane::Interact(){
+	if(paneType == ExitP){
+			parent->setHidden(true);
+		bool anyVisible = false;
+		for(Window &w:Renderer.getWindows()){
+			if(w.getHidden() == false)
+				anyVisible = true;
+		}
+		if(anyVisible == false)
+			State.setState(Running);
+		State.setFlags(OpenInv, false);
+	}
+}
+
 WindowSlot::WindowSlot(glm::vec2 pos, Window* p):Pane(glm::vec2(1.0f,1.0f),  pos,  glm::vec2(DEFAULTSLOTSIZE, DEFAULTSLOTSIZE), false, p){
 	setTOff(glm::vec2(0.0f,3.0f));
 }
 
 WindowSlot::~WindowSlot(){
-
+	/*if(containedObj != nullptr)
+		delete containedObj;*/
 }
 
 baseItem *  WindowSlot::getObj(){
@@ -225,6 +259,14 @@ baseItem *  WindowSlot::getObj(){
 
 void  WindowSlot::setObj(baseItem * b){
 	containedObj = b;
+}
+
+void WindowSlot::Draw(){
+	Window::Draw();
+	if(containedObj != nullptr){
+		containedObj->setTMatrix(glm::rotate(containedObj->getTMatrix(Rotate), PI/20 ,glm::vec3(0.0f,1.0f,0.0f)), Rotate);
+		containedObj->Draw();
+	}
 }
 
 glm::vec2 arrayBounds(int x, int y, float maxx, float maxy){
