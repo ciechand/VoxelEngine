@@ -14,14 +14,14 @@ typedef class BaseWindow:public OBJ{
 		unsigned int rotation = 0;
 	public:	
 		BaseWindow();
-		BaseWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType, Window * p = nullptr);
+		BaseWindow(glm::vec2 tsize, glm::vec2 tpos, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType, Window * p = nullptr);
 		~BaseWindow();
 
 		bool getHidden();
 		void setHidden(bool flag);
 
 		glm::vec2 getSize();
-		void setSize(glm::vec2 s);
+		void setSize(glm::vec2 s, bool boundToTexSize = false);
 
 		unsigned int getDepth();
 		void setDepth(unsigned int d);
@@ -33,13 +33,13 @@ typedef class BaseWindow:public OBJ{
 		void setColor(glm::vec3 c);
 
 		void addPane(glm::vec2 pos, unsigned int pt);
-		Pane& getPane(int index);
+		Pane& getPane(unsigned int index);
 		std::vector<Pane> & getPane();
 
 		void addSlots(unsigned int count, glm::vec2 spos);
 		void addSlot();
 		void addSlot(glm::vec2 pos);
-		Slot& getSlot(int index);
+		Slot& getSlot(unsigned int index);
 		std::vector<Slot> & getSlot();
 
 		unsigned int getWType();
@@ -57,13 +57,13 @@ typedef class WindowPane:public Window{
 		unsigned int paneType;
 	public:
 		WindowPane();
-		WindowPane(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, Window * p = nullptr);
+		WindowPane(glm::vec2 tsize, glm::vec2 tpos, glm::vec2 pos, glm::vec2 wsize, bool hide, Window * p = nullptr);
 		~WindowPane();
 
 		unsigned int getType();
 		void setType(unsigned int t);
 
-		void Interact();
+		virtual void Interact();
 
 }Pane;
 
@@ -78,6 +78,7 @@ typedef class WindowSlot:public Pane{
 		void setObj(baseItem * b);
 
 		void Draw();
+		void Interact();
 }Slot;
 
 glm::vec2 arrayBounds(int x, int y, float maxx, float maxy);

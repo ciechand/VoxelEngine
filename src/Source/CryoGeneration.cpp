@@ -1,7 +1,6 @@
 #include "../Headers/CryoBase.hpp"
 
 Block::Block():Item(){
-	Type = 0;
 	Owner = -1;
 	bounds.setLimbs(glm::vec3(BLOCKSCALE/2,BLOCKSCALE/2,BLOCKSCALE/2));
 }
@@ -12,14 +11,6 @@ Block::~Block(){
 void Block::setPos(glm::vec3 pos){
 	baseObj::setPos(pos);
 	setBounds(pos);
-}
-
-void Block::setType(int t){
-	Type = t;
-}
-
-int Block::getType() const{
-	return Type;
 }
 
 void Block::setOwner(int o){
@@ -256,8 +247,6 @@ bool blockCmp(Block *a, Block *b){
 	if(a->getColor() != b->getColor())
 		return false;
 	if(a->getPos() != b->getPos())
-		return false;
-	if(a->getType() != b->getType())
 		return false;
 	if(a->getOwner() != b->getOwner())
 		return false;

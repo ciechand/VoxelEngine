@@ -61,11 +61,7 @@ int baseObj::getColorNumber() const{
 }
 
 void baseObj::setPos(glm::vec3 point, bool alignToWindow){
-	if(alignToWindow == false){
-		setTMatrix(glm::translate(glm::mat4(),point),Translate);
-	}else if(alignToWindow == true){
-		
-	}
+	setTMatrix(glm::translate(glm::mat4(),point),Translate);
 	position = point;
 }
 
@@ -124,6 +120,10 @@ int baseObj::getID() const{
 }
 
 
+void baseObj::Interact(){
+
+}
+
 void baseObj::Draw(){
 	GLuint samplePos = glGetUniformLocation(Renderer.getShaderProgram(), "textureSample");
 	glUniform1i(samplePos, textureID);
@@ -142,6 +142,7 @@ void baseObj::Draw(){
 
 baseItem::baseItem():baseObj(){
 	StackInfo = std::make_pair(1, 0);
+	itemType = Placeable;
 }
 
 baseItem::baseItem(unsigned int maxStack):baseObj(){
@@ -149,6 +150,14 @@ baseItem::baseItem(unsigned int maxStack):baseObj(){
 }
 
 baseItem::~baseItem(){
+
+}
+
+void baseItem::setPos(glm::vec3 pos){
+	sf::Vector2u wsize = mainWindow.getSize();
+	baseObj::setPos(glm::vec3(pos.x+(DEFAULTSLOTSIZE/2),wsize.y-(pos.y+(DEFAULTSLOTSIZE/2)),pos.z));
+	position = pos;
+	//std::cout << "Position of Item: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
 
 }
 
@@ -172,8 +181,17 @@ void baseItem::addItem(int count){
 	//Need to implement if the stack is full adding another item to the invetory.
 }
 
+unsigned int baseItem::getItemType(){
+	return itemType;
+}
+
+void baseItem::setItemType(unsigned int type){
+	itemType = type;
+}
+
 void baseItem::Draw(){
 	baseObj::Draw();
+
 }
 
 GameState::GameState(){
@@ -299,6 +317,14 @@ Pane * GameState::getSPane(){
 
 void GameState::setSPane(Pane * p){
 	selectedPane = p;
+}
+
+unsigned int GameState::getPrevSlotColor(){
+	return prevSlotColor;
+}
+
+void GameState::setPrevSlotColor(unsigned int c){
+	prevSlotColor = c;
 }
 
 GameOptions::GameOptions(){
@@ -460,10 +486,16 @@ void GameRenderer::Init(){
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
 	camVec[1] = glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f);
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
+
+	sf::Vector2u mwsize = mainWindow.getSize();
+
 }
 
 void GameRenderer::setGuiUniforms(){
-	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "proj"), 1, GL_FALSE, &(glm::mat4())[0][0]);
+	sf::Vector2u mwsize = mainWindow.getSize();
+	float * projV = Options.getProjVars();
+	//glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "proj"), 1, GL_FALSE, &(glm::ortho(-1.0f,1.0f,-1.0f,1.0f, projV[2], projV[3]))[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "proj"), 1, GL_FALSE, &(glm::ortho(0.0f,(float)mwsize.x,0.0f,(float)mwsize.y, projV[2], projV[3]))[0][0]);
 
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "viewMatrix"), 1, GL_FALSE, &(glm::mat4())[0][0]);
 }
@@ -568,8 +600,8 @@ void GameRenderer::addWindow(Window w){
 	Windows.push_back(w);
 }
 
-void GameRenderer::addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType){
-	Windows.emplace_back(tsize, pos, wsize, hide, wType);
+void GameRenderer::addWindow(glm::vec2 tsize, glm::vec2 tpos, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType){
+	Windows.emplace_back(tsize, tpos, pos, wsize, hide, wType);
 }
 
 void GameRenderer::setWindow(int index, Window w){
@@ -584,6 +616,32 @@ Window * GameRenderer::getWindows(int index){
 
 std::vector<Window> & GameRenderer::getWindows(){
 	return Windows;
+}
+
+void GameRenderer::addSWindow(){
+	StaticWindows.emplace_back();
+}
+
+void GameRenderer::addSWindow(Window w){
+	StaticWindows.push_back(w);
+}
+
+void GameRenderer::addSWindow(glm::vec2 tsize, glm::vec2 tpos, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType){
+	StaticWindows.emplace_back(tsize, tpos, pos, wsize, hide, wType);
+}
+
+void GameRenderer::setSWindow(int index, Window w){
+	StaticWindows[index] = w;
+}
+
+Window * GameRenderer::getSWindows(int index){
+	if(index < 0 || index >= StaticWindows.size())
+		return nullptr;
+	return &(StaticWindows[index]);
+}
+
+std::vector<Window> & GameRenderer::getSWindows(){
+	return StaticWindows;
 }
 
 void InitOpenGL(){
@@ -675,29 +733,79 @@ void tickUpdate(){
 		bp->setTMatrix(matt,Translate);
 		bp->setTMatrix(glm::transpose(matr),Rotate);
 		bp->setTMatrix(mats,Scale);*/
-
 		std::pair<Block *, int> pickedBlock = pickBlock(sight);
 
-		//std::cout << "After Pick." << std::endl;
-		self->setSelected(pickedBlock.first);
-		self->setSelectedSide(pickedBlock.second);
-		self->removeSelect();
-		if(pickedBlock.first != nullptr){
-			//std::cout << b->getID() << std::endl << std::flush;
-			self->addSelect(*(pickedBlock.first), Red, Selector);
+		if(self->getSelected() == nullptr && pickedBlock.first == nullptr){
+			//std::cout << "Both Null" << std::endl;
+			//Nothing here?
+		}else if(self->getSelected() == nullptr && pickedBlock.first != nullptr){
+			//std::cout << "Selected Null" << std::endl;
+			unsigned int selectColor = None;
+			Block tempB = *(pickedBlock.first);
+
+			baseItem * curHotbarItem = self->getItem(self->getHSlot());
+
+			if(curHotbarItem != nullptr && curHotbarItem->getItemType() == Placeable){
+				selectColor = Green;
+				tempB.setPos(tempB.getPos()+DirectionalVectors[pickedBlock.second]);
+			}else if(curHotbarItem != nullptr && curHotbarItem->getItemType() == DestructionTool){
+				selectColor = Red;
+			}
+
+			self->addSelector(&tempB, selectColor);
+
+		}else if(pickedBlock.first == nullptr && self->getSelected() != nullptr){
+			//std::cout << "Picked Null" << std::endl;
+			self->removeSelector(self->getSelected());
+		}else if(self->getSelected()->getPos() != pickedBlock.first->getPos()){
+			//std::cout << "Selector Moved" << std::endl;
+			unsigned int selectColor = None;
+			Block tempB = *(pickedBlock.first);
+
+			baseItem * curHotbarItem = self->getItem(self->getHSlot());
+
+			if(curHotbarItem != nullptr && curHotbarItem->getItemType() == Placeable){
+				selectColor = Green;
+				tempB.setPos(tempB.getPos()+DirectionalVectors[pickedBlock.second]);
+			}else if(curHotbarItem != nullptr && curHotbarItem->getItemType() == DestructionTool){
+				selectColor = Red;
+			}
+
+			self->moveSelector(&tempB);
+
+			//This needs to not be Zero!!!!!!! 
+			Block * selec = self->getSelector(0);
+			if(selec != nullptr)
+				selec->setColor(selectColor);
+		}else if(self->getSelected()->getPos() == pickedBlock.first->getPos()){
+			//std::cout << "Selector Same Place" << std::endl;
+			unsigned int selectColor = None;
+			Block tempB = *(pickedBlock.first);
+
+			baseItem * curHotbarItem = self->getItem(self->getHSlot());
+
+			if(curHotbarItem != nullptr && curHotbarItem->getItemType() == Placeable){
+				selectColor = Green;
+				tempB.setPos(tempB.getPos()+DirectionalVectors[pickedBlock.second]);
+			}else if(curHotbarItem != nullptr && curHotbarItem->getItemType() == DestructionTool){
+				selectColor = Red;
+			}
+
+			self->moveSelector(&tempB);
+
+			//This needs to not be Zero!!!!!!! 
+			Block * selec = self->getSelector(0);
+			if(selec != nullptr)
+				selec->setColor(selectColor);
+		}else{
+			//std::cout << "You  missed a condition" << std::endl;
 		}
 
-		//std::cerr << side << std::endl;
-		if(pickedBlock.second != -1 && pickedBlock.first != nullptr){
-			Block tempB = *pickedBlock.first;
-			tempB.setTMatrix(glm::translate(tempB.getTMatrix(Translate), DirectionalVectors[pickedBlock.second]), Translate);
-			self->addSelect(tempB, Green, Highlight);
-		}
+		self->setSelected(pickedBlock.first);
+		self->setSelectedSide(pickedBlock.second);
+		
 	}else if (curState == Menu){
-		sf::Vector2u mwsize = mainWindow.getSize();
 		sf::Vector2i mpos = sf::Mouse::getPosition(mainWindow);
-		mpos.x *=2;
-		mpos.y *=2;
 		//std::cout << "Mouse Pos: \n\tX:" << mpos.x << "\n\tY:" << mpos.y << std::endl;
 		std::vector<Window> & winds = Renderer.getWindows();
 
@@ -705,6 +813,20 @@ void tickUpdate(){
 		Pane * overPane = nullptr;
 		int depth = -1;
 
+		Pane * curPane = State.getSPane();
+		if(curPane != nullptr){
+			glm::vec3 curPanePos = curPane->getPos();
+			glm::vec2 curPaneSize = curPane->getSize();
+			if(mpos.x >= curPanePos.x && mpos.x <= curPanePos.x+curPaneSize.x && mpos.y >= curPanePos.y && mpos.y <= curPanePos.y+curPaneSize.y){
+				baseItem * b = State.getHItem();
+				if(b != nullptr){
+					b->setPos(glm::vec3(((float)mpos.x-(DEFAULTSLOTSIZE/2)),((float)mpos.y-(DEFAULTSLOTSIZE/2)), -20.0f));
+				}
+				return;
+			}else{
+				curPane->setColor(State.getPrevSlotColor());
+			}
+		}
 		for(Window & w:winds){
 			if(w.getHidden() == false){
 				glm::vec3 wpos = w.getPos();
@@ -725,10 +847,9 @@ void tickUpdate(){
 						curDepth = p.getDepth();
 						//std::cout << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= ppos.x && mpos.x <= ppos.x+psize.x && mpos.y >= ppos.y && mpos.y <= ppos.y+psize.y && curDepth >= depth){
+							State.setPrevSlotColor(p.getColorNumber());
 							p.setColor(Red);
 							overPane = &p;
-						}else{
-							p.setColor(None);
 						}
 					}
 
@@ -739,22 +860,63 @@ void tickUpdate(){
 						curDepth = s.getDepth();
 						//std::cout << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= spos.x && mpos.x <= spos.x+ssize.x && mpos.y >= spos.y && mpos.y <= spos.y+ssize.y && curDepth >= depth){
+							State.setPrevSlotColor(s.getColorNumber());
 							s.setColor(Red);
 							overPane = &s;
-						}else{
-							s.setColor(None);
 						}
 					}
-				}else{
+				}
+			}
+		}
+
+		std::vector<Window> & swinds = Renderer.getSWindows();
+		for(Window & w:swinds){
+			if(w.getHidden() == false){
+				glm::vec3 wpos = w.getPos();
+				glm::vec2 wsize = w.getSize();
+				int curDepth = w.getDepth();
+				//std::cout << "Window Pos: \n\tX:" << wpos.x << "\n\tY:" << wpos.y << std::endl;
+				//std::cout << "Window Size: \n\tX:" << wsize.x << "\n\tY:" << wsize.y << std::endl;
+				//std::cout << "Depth: " << depth << std::endl;
+				//std::cout << "CurDepth: " << curDepth << std::endl;
+				if(mpos.x >= wpos.x && mpos.x <= wpos.x+wsize.x && mpos.y >= wpos.y && mpos.y <= wpos.y+wsize.y && curDepth >= depth){
+					overWindow = &w;
+					depth = curDepth;
+
 					std::vector<Pane> & panes = w.getPane();
-					for(Pane&p:panes){p.setColor(None);}
+					for(Pane&p:panes){
+						glm::vec3 ppos = p.getPos();
+						glm::vec2 psize = p.getSize();
+						curDepth = p.getDepth();
+						//std::cout << "\tDepth: " << curDepth << std::endl;
+						if(mpos.x >= ppos.x && mpos.x <= ppos.x+psize.x && mpos.y >= ppos.y && mpos.y <= ppos.y+psize.y && curDepth >= depth){
+							State.setPrevSlotColor(p.getColorNumber());
+							p.setColor(Red);
+							overPane = &p;
+						}
+					}
 					std::vector<Slot> & slots = w.getSlot();
-					for(Slot&s:slots){s.setColor(None);}
+					for(Slot&s:slots){
+						glm::vec3 spos = s.getPos();
+						glm::vec2 ssize = s.getSize();
+						curDepth = s.getDepth();
+						//std::cout << "\tDepth: " << curDepth << std::endl;
+						if(mpos.x >= spos.x && mpos.x <= spos.x+ssize.x && mpos.y >= spos.y && mpos.y <= spos.y+ssize.y && curDepth >= depth){
+							State.setPrevSlotColor(s.getColorNumber());
+							s.setColor(Red);
+							overPane = &s;
+						}
+					}
 				}
 			}
 		}
 		State.setSWindow(overWindow);
 		State.setSPane(overPane);
+		baseItem * b = State.getHItem();
+		if(b != nullptr){
+			b->setPos(glm::vec3(((float)mpos.x-(DEFAULTSLOTSIZE/2)),((float)mpos.y-(DEFAULTSLOTSIZE/2)), -20.0f));
+		}
+
 	}
 }
 

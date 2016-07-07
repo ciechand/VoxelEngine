@@ -46,13 +46,18 @@ int main (int argc, char ** argv){
 				case sf::Event::MouseMoved:
 					processMouseMovement(event);
 					break;
+				case sf::Event::MouseWheelMoved:
+					processMouseWheelMovement(event);
+					break;
 				case sf::Event::Resized:
 					windowResized(event);
 					break;
 				case sf::Event::LostFocus:
+					//This will need to be changed!
 					State.setState(Menu);
 					break;
 				case sf::Event::GainedFocus:
+					//This too.
 					State.setState(Running);
 					break;
 				default:

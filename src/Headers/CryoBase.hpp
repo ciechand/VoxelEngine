@@ -52,9 +52,11 @@
 #define TVEL 100.0f
 #define PLAYERHEIGHT BLOCKSCALE*1.5f
 #define PLAYERWIDTH BLOCKSCALE*0.9f
-#define DEFAULTSLOTSIZE 80.0f
-#define SLOTSEPSIZE DEFAULTSLOTSIZE/10
-#define DEFAULTPLAYERSLOTS 30
+#define DEFAULTSLOTSIZE 32.0f
+#define SLOTSEPSIZE DEFAULTSLOTSIZE/10.0f
+#define DEFAULTWINDOWPANEL TEXDIMS*3
+#define DEFAULTPLAYERSLOTS 40
+#define DEFAULTHOTBARSLOTS 9
 
 //MACROS
 #define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
@@ -135,23 +137,24 @@ enum Movement{Forward, Backward, MLeft, MRight, Up, Down, NUMBER_OF_MOVEMENT};
 //Enum defining which flags are which in GameState.
 enum StateFlags{OpenInv, InvDown, NUMBER_OF_FLAGS};
 
-//Enum for typesof Blocks
-enum BlockTypes{Placeable};
-
 //Enum for typesof Selector
-enum SelectTypes{Selector, Highlight};
+enum SelectTypes{BaseSelector, Selector, Highlighter};
 
 //enum for different Pane Types. OUtlined Below:
 //Inventory Pane
 //Equipment Pane
 //Exit Pane
-enum PaneType{InventoryP, EquipP, ExitP};
+enum PaneType{InventoryP, EquipP, SlotP, ExitP};
 
 //Enum for Window Types
 //Player Inventory
 //Storage inventory
 //..
-enum WindowTypes{FalseWindow, PInv, SInv};
+enum WindowTypes{FalseWindow, PInv, SInv, Hotbar};
+
+//Enum for Item Types:
+//
+enum ItemTypes{Placeable, DestructionTool};
 
 //Class for base object render info, many other object types such as Item and Block and window will inherit from this class.
 typedef class baseObj{
@@ -199,6 +202,7 @@ typedef class baseObj{
 		void setID(int id);
 		int getID() const;
 
+		virtual void Interact();
 		virtual void Draw();
 }OBJ;
 
@@ -207,17 +211,22 @@ typedef class baseObj{
 typedef class baseItem:public baseObj{
 	protected:
 		std::pair<unsigned int, unsigned int> StackInfo;
+		unsigned int itemType;
 	public:
 		baseItem();
 		baseItem(unsigned int maxStack);
 		~baseItem();
 
-		virtual void Interact();
+		void setPos(glm::vec3 pos);
 
 		std::pair<unsigned int, unsigned int> getStackInfo();
 		void setStackInfo(unsigned int ms);
 		void addItem(int count);
 
+		unsigned int getItemType();
+		void setItemType(unsigned int type);
+
+		void Interact();
 		void Draw();
 }Item;
 
@@ -236,8 +245,8 @@ private:
 	baseItem * heldItem = nullptr;
 	Window * selectedWindow = nullptr;
 	Pane * selectedPane = nullptr;
+	unsigned int prevSlotColor;
 public:
-	std::vector<Block> Selectors;
 	GameState();
 	GameState(unsigned int cs);
 
@@ -279,6 +288,9 @@ public:
 
 	Pane * getSPane();
 	void setSPane(Pane * p);
+
+	unsigned int getPrevSlotColor();
+	void setPrevSlotColor(unsigned int c);
 }GState;
 
 
@@ -322,6 +334,7 @@ private:
 	std::vector<GLuint> TextureList;
 	std::vector<IOBJ*> InstancedObjectsList;
 	std::vector<Window> Windows;
+	std::vector<Window> StaticWindows;
 public:
 	GameRenderer();
 
@@ -359,10 +372,17 @@ public:
 
 	void addWindow();
 	void addWindow(Window w);
-	void addWindow(glm::vec2 tsize, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType);
+	void addWindow(glm::vec2 tsize, glm::vec2 tpos, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType);
 	void setWindow(int index, Window w);
 	Window * getWindows(int index);
 	std::vector<Window> & getWindows();
+
+	void addSWindow();
+	void addSWindow(Window w);
+	void addSWindow(glm::vec2 tsize, glm::vec2 tpos, glm::vec2 pos, glm::vec2 wsize, bool hide, unsigned int wType);
+	void setSWindow(int index, Window w);
+	Window * getSWindows(int index);
+	std::vector<Window> & getSWindows();
 }GRend;
 
 typedef struct vertexInfo{

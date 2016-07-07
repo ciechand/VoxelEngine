@@ -27,12 +27,14 @@ void processMouseClicks(sf::Event e){
 						}	
 				}	
 			}
-			self->clearSelected();
-			self->removeSelect(Selector);
+			//std::cout << "Left Clicked" << std::endl;
+			self->removeSelector(selec);
+			//self->clearSelected();
 		}else if(curState == Menu){
 			Pane * curSPane = State.getSPane();
-			if(curSPane != nullptr)
+			if(curSPane != nullptr){
 				curSPane->Interact();
+			}
 		}
 	}else if(e.mouseButton.button == sf::Mouse::Right){
 		if(curState == Running){
@@ -60,10 +62,10 @@ void processMouseClicks(sf::Event e){
 					tempOBJ->addBlocks();
 					World[i]->grid[curBlock].second = tempOBJ->getBlocksSize()-1;
 					blockp = tempOBJ->getBlocks(World[i]->grid[curBlock].second);
+					blockp->setID(World[i]->grid[curBlock].second);
 					blockp->setTOff(1);
 					blockp->setColor(None);
 					blockp->setPos(newPos);
-					blockp->setID(tempOBJ->getBlocksSize()-1);
 					break;
 				}
 			}
@@ -111,6 +113,18 @@ void processMouseMovement(sf::Event e){
 
 	}
 }
+
+void processMouseWheelMovement(sf::Event e){
+	Player * self = State.getPlayer(0);
+	unsigned char curState = State.getState();
+	int ticks = e.mouseWheel.delta;
+	if(ticks<0){
+		self->incrementHSlot(abs(ticks));
+	}else if(ticks>0){
+		self->decrementHSlot(abs(ticks));
+	}
+}
+
 //Function for processing the keyboard inputs on press.
 void processKeyboardDown(sf::Event e){
 	unsigned char curState = State.getState();
@@ -138,7 +152,7 @@ void processKeyboardDown(sf::Event e){
 			if(curState == Running)
 				State.setMoving(Up, true);
 			break;
-		case sf::Keyboard::R:
+		case sf::Keyboard::E:
 			if(State.getFlags(InvDown) == false){
 				if(State.getFlags(OpenInv) == false){
 					for(int i=0; i<NUMBER_OF_MOVEMENT; i++){
@@ -150,11 +164,20 @@ void processKeyboardDown(sf::Event e){
 					for(Window & w:winds){
 						if(w.getWType() == PInv)
 							w.setHidden(false);
-
 					}
 				}else{
 					State.setFlags(OpenInv, false);
 					State.setState(Running);
+					Window * selw = State.getSWindow();
+					if(selw !=nullptr){
+						selw->setColor(None);
+						State.setSWindow(nullptr);
+					}
+					Pane * p = State.getSPane();
+					if(p !=nullptr){
+						p->setColor(None);
+						State.setSPane(nullptr);
+					}
 					std::vector<Window> & winds = Renderer.getWindows();
 					for(Window & w:winds){
 						if(w.getWType() == PInv)
@@ -186,7 +209,7 @@ void processKeyboardUp(sf::Event e){
 		case sf::Keyboard::Space:	
 			State.setMoving(Up, false);
 			break;
-		case sf::Keyboard::R:
+		case sf::Keyboard::E:
 			State.setFlags(InvDown, false);
 		default:
 			break;

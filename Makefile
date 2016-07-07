@@ -10,7 +10,7 @@ all: compile
 
 compile: $(TARGETO)
 	$(CXX) $(CPPFLAGS) -o $(TARGETEXE) $^ $(INC)
-	@echo "Commpilation Complete"
+	@echo "Compilation Complete"
 
 #-include $(TARGETD)
 

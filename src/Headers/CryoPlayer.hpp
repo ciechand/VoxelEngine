@@ -14,15 +14,13 @@ typedef class Player{
 		int selectedSide;
 		bool jumping;
 		BBox bounds;
-		std::vector<baseItem*> Inventory;
+		unsigned int hotbarSlot;
 		Window * inventoryWindow;
+		Window * HotBar;
+		std::vector<Block*> Selectors;
 	public:
 		Player();
 		~Player();
-
-		void addSelect(Block b, Colors16 c, SelectTypes type);
-		void removeSelect();
-		void removeSelect(SelectTypes type);
 
 		void setPos(glm::vec3 p);
 		glm::vec3 getPos();
@@ -59,9 +57,21 @@ typedef class Player{
 		void setBounds(glm::vec3 a);
 		BBox & getBounds();
 
+		void setHSlot(unsigned int s);
+		void incrementHSlot(unsigned int n = 1);
+		void decrementHSlot(unsigned int n =1);
+		unsigned int getHSlot();
+
 		baseItem * getItem(unsigned int index);
 		void setItem(unsigned int index, baseItem * items);
 		void addItem(baseItem * item);
+
+		Block * getSelector(unsigned int index);
+		std::vector<Block*> getSelector();
+		void setSelector(unsigned int index, Block * b);
+		void moveSelector(Block * b);
+		void addSelector(Block * b, unsigned int color = Pink);
+		void removeSelector(Block * b);
 }Player;
 
 #endif //player

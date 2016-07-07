@@ -8,47 +8,42 @@ Player::Player(){
 	selected = nullptr;
 	selectedSide = -1;
 	jumping = false;
+	hotbarSlot = 0;
+
 	bounds.setLimbs(glm::vec3((PLAYERWIDTH/2),(PLAYERHEIGHT/2),(PLAYERWIDTH/2)));
-	Inventory.assign(DEFAULTPLAYERSLOTS, nullptr);
 
-	Renderer.addWindow(glm::vec2(3.0f,3.0f), glm::vec2(100.0f, 100.0f), glm::vec2(600.0f, 900.0f), true, PInv);
+	//Get Window Size.
+	sf::Vector2u mwsize = mainWindow.getSize();
+	//Initiate Player Inventory Window and Link.
+	Renderer.addWindow(glm::vec2(3.0f,3.0f), glm::vec2(0.0f,0.0f), glm::vec2(100.0f, 100.0f), glm::vec2(300.0f, 450.0f), true, PInv);
 
-	std::vector<Window> & tempI = Renderer.getWindows();
-	inventoryWindow = Renderer.getWindows(tempI.size()-1);
+	inventoryWindow = Renderer.getWindows(Renderer.getWindows().size()-1);
 
+	//Initiate Player Hotbar and Storage.
+	Renderer.addSWindow(glm::vec2(3.0f, 1.0f), glm::vec2(3.0f,0.0f), glm::vec2((mwsize.x/2)-(mwsize.x/6),mwsize.y-48.0f), glm::vec2(mwsize.x/3, 50.0f), false, Hotbar);
+
+	HotBar = Renderer.getSWindows(Renderer.getSWindows().size()-1);
+	Slot & tempSlot = HotBar->getSlot(hotbarSlot);
+	tempSlot.setColor(Green);
+
+	//Add Test Items.
 	baseItem * b = new Block();
 
 	setItem(0,b);
+	b = new Block();
+	b->setItemType(DestructionTool);
+	b->setColor(Pink);
+	setItem(1,b);
+	b = new Block();
+	setItem(2,b);
+	b = new Block();
+	setItem(3,b);
+	b = new Block();
+	setItem(4,b);
 }
 
 Player::~Player(){
 
-}
-
-void Player::addSelect(Block b, Colors16 c, SelectTypes type){
-	int size = State.Selectors.size();
-	State.Selectors.push_back(b);
-	State.Selectors[size].setType(type);
-	State.Selectors[size].setTOff(1);
-	State.Selectors[size].setColor(c);
-	State.Selectors[size].setOwner(ID);
-	State.Selectors[size].setTMatrix(glm::scale(State.Selectors[size].getTMatrix(Scale), glm::vec3(1.01f,1.01f,1.01f)), Scale);
-}
-
-void Player::removeSelect(){
-	for(int i=0; i<State.Selectors.size(); i++){
-		if(State.Selectors[i].getOwner() == ID){
-			State.Selectors.erase(State.Selectors.begin()+i);
-		}
-	}
-}
-
-void Player::removeSelect(SelectTypes type){
-	for(int i=0; i<State.Selectors.size(); i++){
-		if(State.Selectors[i].getOwner() == ID && State.Selectors[i].getType() == type){
-			State.Selectors.erase(State.Selectors.begin()+i);
-		}
-	}
 }
 
 void Player::setPos(glm::vec3 p){
@@ -152,32 +147,182 @@ BBox & Player::getBounds(){
 	return bounds;
 }
 
+void Player::setHSlot(unsigned int s){
+	if(HotBar == nullptr){
+		std::cout <<  "HOTBAR IS NULL IN ATTEMPT TO SET" << std::endl; 
+		return;
+	}
+
+	Slot & tempSlotB = HotBar->getSlot(hotbarSlot);
+	tempSlotB.setColor(None);
+
+	while(s >= DEFAULTHOTBARSLOTS)
+		s-=DEFAULTHOTBARSLOTS;
+	hotbarSlot = s;
+
+	Slot & tempSlotA = HotBar->getSlot(hotbarSlot);
+	tempSlotA.setColor(Green);
+}
+
+void Player::incrementHSlot(unsigned int n){
+	//std::cout << "increment" << std::endl;
+	//std::cout << "Slot Num Before: " << hotbarSlot << std::endl;
+
+	if(HotBar == nullptr){
+		std::cout <<  "HOTBAR IS NULL IN ATTEMPT TO INCREMENT" << std::endl; 
+		return;
+	}
+
+	Slot & tempSlotB = HotBar->getSlot(hotbarSlot);
+	tempSlotB.setColor(None);
+
+	int curSlot = hotbarSlot;
+	curSlot+=n;
+	while(curSlot >= DEFAULTHOTBARSLOTS)
+		curSlot-=DEFAULTHOTBARSLOTS;
+	hotbarSlot = curSlot;
+
+	Slot & tempSlotA = HotBar->getSlot(hotbarSlot);
+	tempSlotA.setColor(Green);
+	//std::cout << "Slot Num After: " << hotbarSlot << "\n" << std::endl;
+}
+
+void Player::decrementHSlot(unsigned int n){
+	if(HotBar == nullptr){
+		std::cout <<  "HOTBAR IS NULL IN ATTEMPT TO DECREMENT" << std::endl; 
+		return;
+	}
+
+	//std::cout << "decrement" << std::endl;
+	//std::cout << "Slot Num Before: " << hotbarSlot << std::endl;
+	Slot & tempSlotB = HotBar->getSlot(hotbarSlot);
+	tempSlotB.setColor(None);
+
+	int curSlot = hotbarSlot;
+	curSlot-=n;
+	while(curSlot < 0)
+		curSlot+=DEFAULTHOTBARSLOTS;
+	hotbarSlot = curSlot;
+
+	Slot & tempSlotA = HotBar->getSlot(hotbarSlot);
+	tempSlotA.setColor(Green);
+	//std::cout << "Slot Num After: " << hotbarSlot << "\n" << std::endl;
+}
+
+unsigned int Player::getHSlot(){
+	return hotbarSlot;
+}
+
 baseItem * Player::getItem(unsigned int index){
-	return Inventory[index];
+	if(index < DEFAULTHOTBARSLOTS){
+		Slot & s = HotBar->getSlot(index);
+		return s.getObj();
+	}else if(index < DEFAULTPLAYERSLOTS+DEFAULTHOTBARSLOTS){
+		Slot & s = inventoryWindow->getSlot(index-DEFAULTHOTBARSLOTS);
+		return s.getObj();
+	}else{
+		std::cout << "Getting an Item from an index outside of bounds" << std::endl;
+	}
 }
 
 void Player::setItem(unsigned int index, baseItem * item){
-	if(inventoryWindow == nullptr){
-		std::cout << "Player " << ID << " Inventory has no window." << std::endl;
-		return;
-	}
-	if(Inventory[index] != nullptr){
-		std::cerr << "Trying to Add Item to Slot that has something already." << std::endl;
-		delete Inventory[index];
-	}
-	Inventory[index] = item;
-	Slot & s = inventoryWindow->getSlot(index);
+	if(index < DEFAULTPLAYERSLOTS){
+		if(inventoryWindow == nullptr){
+			std::cout << "Player " << ID << " Inventory has no window Bound." << std::endl;
+			return;
+		}
 
-	glm::vec3 ItemPos = s.getTruePos();
-	item->setPos(ItemPos-glm::vec3(0.0f,0.0f,0.035f));
-	item->setTMatrix(glm::rotate(glm::mat4(), PI/4 ,glm::vec3(1.0f,1.0f,1.0f)), Rotate);
-	item->setTMatrix(glm::scale(glm::mat4(), glm::vec3(0.02f,0.02f,0.02f)), Scale);
+		Slot & s = inventoryWindow->getSlot(index);
+		if(s.getObj() != nullptr && item != nullptr){
+			std::cerr << "Trying to Add Item to Slot that has something already." << std::endl;
+		}
+		
+		s.setObj(item);
+	}else if(index < DEFAULTPLAYERSLOTS+DEFAULTHOTBARSLOTS){
+		index-=DEFAULTPLAYERSLOTS;
+		if(HotBar == nullptr){
+			std::cout << "Player " << ID << " Inventory has no Hotbar Bound." << std::endl;
+			return;
+		}
 
-	//std::cout << "Position of Item: \n\tX: "<< ItemPos.x <<  "\n\tY: "<< ItemPos.y <<  "\n\tZ: "<< ItemPos.z << std::endl;
-	s.setObj(item);
+		Slot & s = HotBar->getSlot(index);
+		if(s.getObj() != nullptr && item != nullptr){
+			std::cerr << "Trying to Add Item to Slot that has something already." << std::endl;
+		}
+		
+		s.setObj(item);
+	}else{
+		std::cout << "Adding an Item to an index outside of bounds" << std::endl;
+	}
+
 }
 
 void Player::addItem(baseItem * item){
 	//This will need to be actually implemented.
+	//Need to write item equallity first
 }
 
+Block * Player::getSelector(unsigned int index){
+	return Selectors[index];
+}
+
+std::vector<Block*> Player::getSelector(){
+	return Selectors;
+}
+
+void Player::setSelector(unsigned int index, Block * b){
+	Selectors[index] = b;
+}
+
+void Player::moveSelector(Block * b){
+	bool found = false;
+	unsigned int index = 0;
+	if(b == nullptr){
+		std::cout << "b is Null?" << std::endl;
+		return;
+	}
+	for(int i=0; i<Selectors.size(); i++){
+		if(Selectors[i]->getItemType() == BaseSelector){
+			index = i;
+			found = true;
+		}
+	}
+	if(found == true)
+		Selectors[index]->setPos(b->getPos());
+	else
+		std::cout << "Not Found" << std::endl;
+}
+
+void Player::addSelector(Block * b, unsigned int color){
+	IOBJ * tempI = Renderer.getIObject(b->getMID());
+	Block & addedB = tempI->addBlocks(*b);
+	Selectors.push_back(&addedB);
+	addedB.setID(tempI->getBlocksSize()-1);
+	addedB.setItemType(BaseSelector);
+	addedB.setTOff(1);
+	if(color == None)
+		addedB.setColor(b->getColor());
+	else
+		addedB.setColor(color);
+	addedB.setOwner(ID);	
+	addedB.setTMatrix(glm::scale(addedB.getTMatrix(Scale), glm::vec3(1.05f,1.05f,1.05f)), Scale);
+}
+
+void Player::removeSelector(Block * b){
+	//std::cout << "Removing Selector" << std::endl;
+	glm::vec3 blockPos = b->getPos();
+	for(int i=0; i<Selectors.size(); i++){
+		glm::vec3 bvec = Selectors[i]->getPos();	
+		//std::cout << "b Pos: \n\tX: "<< blockPos.x <<  "\n\tY: "<< blockPos.y <<  "\n\tZ: "<< blockPos.z << std::endl;
+		//std::cout << "selecVec: \n\tX: "<< bvec.x <<  "\n\tY: "<< bvec.y <<  "\n\tZ: "<< bvec.z << std::endl;	
+		if(bvec == blockPos && Selectors[i]->getItemType() == BaseSelector){
+			IOBJ * tempI = Renderer.getIObject(Selectors[i]->getMID());
+			if(tempI != nullptr){
+				tempI->removeBlock(Selectors[i]->getID());
+				Selectors.erase(Selectors.begin()+i);
+			}else
+				std::cout << "Why is IOBJ NULL?" << std::endl;
+
+		}
+	}
+}

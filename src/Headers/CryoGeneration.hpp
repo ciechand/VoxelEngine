@@ -5,7 +5,6 @@
 
 typedef class Block:public Item{
 private:
-	int Type; 
 	int Owner;
 	BBox bounds;
 public:
@@ -13,10 +12,7 @@ public:
 	~Block();
 
 	void setPos(glm::vec3 pos);
-
-	void setType(int t);
-	int getType() const;
-
+	
 	void setOwner(int o);
 	int getOwner() const;
 

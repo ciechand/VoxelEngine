@@ -52,7 +52,8 @@ public:
 	void clearIndices();
 	std::vector<GLuint> getIndices();
 
-	void addBlocks();
+	Block & addBlocks();
+	Block & addBlocks(Block & b);
 	void setBlockList(std::vector<Block>& B);
 	void removeBlock(int blockpos);
 	void clearBlocks();

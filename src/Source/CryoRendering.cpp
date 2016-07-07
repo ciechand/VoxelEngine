@@ -105,7 +105,7 @@ void InstancedObject::drawOBJ(){
 	if(blockList.size() > 1){
 		glBindVertexArray(vertexArrayObject);
 		Update();
-		glDrawElementsInstanced(drawType, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size()+State.Selectors.size());
+		glDrawElementsInstanced(drawType, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), blockList.size());
 	}
 }
 
@@ -116,9 +116,8 @@ void InstancedObject::Update(){
 
 	//if(changed == true){
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[ArrayBuffer]);
-		glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block))+(sizeof(Block)*State.Selectors.size()), nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), nullptr, GL_DYNAMIC_DRAW);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
-		glBufferSubData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), (sizeof(Block)*State.Selectors.size()), State.Selectors.data());
 		changed = false;
 	//}
 }
@@ -213,10 +212,18 @@ std::vector<GLuint> InstancedObject::getIndices(){
 	return indices;
 }
 
-void InstancedObject::addBlocks(){
+Block & InstancedObject::addBlocks(){
 	blockList.emplace_back();
 	changed = true;
+	return blockList[blockList.size()-1];
 }
+
+Block & InstancedObject::addBlocks(Block & b){
+	blockList.push_back(b);
+	changed = true;
+	return blockList[blockList.size()-1];
+}
+
 
 void InstancedObject::setBlockList(std::vector<Block>& B){
 	blockList = B;
@@ -228,8 +235,6 @@ void InstancedObject::removeBlock(int blockPos){
 	//std::cerr << "Inside Address of OBJ: " << this << std::endl;
 	//std::cerr << "Address of blockList: " << &blockList << std::endl;
 	//std::cerr << "Address of block Removed: " << &(blockList[blockpos]) << std::endl;
-	//std::cout << "Block Removed at ID: " << blockPos << ";\n\tWith Position: "<< pos.x << ": " << pos.y << ": " << pos.z << ";" << std::endl;
-	//std::cout << "End Block ID: " << (blockList.end()-1)->getID() << std::endl;
 
 	if((blockList.end()-1) != (blockList.begin()+blockPos)){
 		std::iter_swap(blockList.begin()+blockPos, blockList.end()-1);
@@ -245,6 +250,7 @@ void InstancedObject::removeBlock(int blockPos){
 			}
 		}
 	}
+
 	blockList.erase(blockList.end()-1);
 	changed = true;
 	//std::cerr << "\tStart: " << blockPos << "\n\tEnd: " << blockList.size() << std::endl;
@@ -309,6 +315,22 @@ void display(){
 		//std::cout << "Window is: " << hid << std::endl; 
 		if(windows[i].getHidden() != true)
 			windows[i].Draw();
+	}
+
+	std::vector<Window> swindows = Renderer.getSWindows();
+	for(int i=0; i<swindows.size(); i++){
+		//std::string hid = (windows[i].getHidden())?"Hidden":"Showing";
+		//std::cout << "Window is: " << hid << std::endl; 
+		if(swindows[i].getHidden() != true)
+			swindows[i].Draw();
+	}
+
+
+
+	baseItem * b = State.getHItem();
+	if(b!=nullptr){
+		b->setTMatrix(glm::rotate(b->getTMatrix(Rotate), PI/10 ,glm::vec3(0.0f,1.0f,0.0f)), Rotate);
+		b->Draw();
 	}
 
 	sf::Vector2u windowSize = mainWindow.getSize();
