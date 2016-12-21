@@ -16,6 +16,8 @@ private:
 	unsigned int modelID;
 	bool instanced;
 	bool changed;
+
+	size_t listStartingAddress = 0;
 public:
 	InstancedObject();
 	~InstancedObject();

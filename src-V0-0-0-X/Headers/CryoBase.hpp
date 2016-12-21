@@ -35,11 +35,16 @@
 
 
 // GLOBAL CONSTANT DEFINITIONS
+
+#define SCREENWIDTH 1024
+#define SCREENHEIGHT 764
+
 #define PI 3.1415926535f
 #define TIMECOMPENSATE 60.0f
 #define TEXDIMS 16
 #define NUMTEX 100
 #define BLOCKSCALE 2.0f
+#define SELECSCALE BLOCKSCALE+(1/TEXDIMS)
 #define CHUNKDIMS 17
 #define CHUNKHEIGHT 20.0f
 #define LOOKSPEED 1.0f
@@ -154,7 +159,13 @@ enum WindowTypes{FalseWindow, PInv, SInv, Hotbar};
 
 //Enum for Item Types:
 //
-enum ItemTypes{Placeable, DestructionTool};
+enum ItemTypes{NullItemType, Placeable, DestructionTool};
+
+
+//Enum for framebuffers:
+//Object Framebuffer
+//GUI FrameBuffer
+enum FrameBufferNames{OFrameBuffer, GUIFrameBuffer};
 
 //Class for base object render info, many other object types such as Item and Block and window will inherit from this class.
 typedef class baseObj{
@@ -335,6 +346,7 @@ private:
 	std::vector<IOBJ*> InstancedObjectsList;
 	std::vector<Window> Windows;
 	std::vector<Window> StaticWindows;
+	GLuint FrameBuffers;
 public:
 	GameRenderer();
 
@@ -383,6 +395,10 @@ public:
 	void setSWindow(int index, Window w);
 	Window * getSWindows(int index);
 	std::vector<Window> & getSWindows();
+
+	GLuint getFrameBuffer(unsigned int num);
+	void bindFrameBuffer(unsigned int num);
+	void writeFrameBuffer(unsigned int num);
 }GRend;
 
 typedef struct vertexInfo{

@@ -142,7 +142,7 @@ void baseObj::Draw(){
 
 baseItem::baseItem():baseObj(){
 	StackInfo = std::make_pair(1, 0);
-	itemType = Placeable;
+	itemType = NullItemType;
 }
 
 baseItem::baseItem(unsigned int maxStack):baseObj(){
@@ -363,7 +363,7 @@ GameOptions::GameOptions(){
 	}
 	projVar[0] = PI/2.25;
 	projVar[1] = 1024.0f/768.0f;
-	projVar[2] = 0.0001f;
+	projVar[2] = 0.01f;
 	projVar[3] = 200.0f;
 
 	camRot[0] = 5.0f;
@@ -488,6 +488,8 @@ void GameRenderer::Init(){
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
 
 	sf::Vector2u mwsize = mainWindow.getSize();
+
+	glGenFramebuffers(1, &FrameBuffers);
 
 }
 
@@ -644,6 +646,20 @@ std::vector<Window> & GameRenderer::getSWindows(){
 	return StaticWindows;
 }
 
+GLuint GameRenderer::getFrameBuffer(unsigned int num){
+	return FrameBuffers;
+}
+
+void GameRenderer::bindFrameBuffer(unsigned int num){
+ 	glBindFramebuffer(GL_FRAMEBUFFER, FrameBuffers);
+ }	
+
+ void GameRenderer::writeFrameBuffer(unsigned int num){
+ 	sf::Vector2u windowSize = mainWindow.getSize();
+ 	//The first 0 here is the default frame buffer.
+ 	glBlitNamedFramebuffer(FrameBuffers,0,0,0,windowSize.x,windowSize.y,0,0,windowSize.x,windowSize.y,GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT,GL_NEAREST);
+ }
+
 void InitOpenGL(){
 	std::cerr << "Begin Init" << std::endl;
 	glEnable(GL_CULL_FACE);
@@ -746,7 +762,7 @@ void tickUpdate(){
 			baseItem * curHotbarItem = self->getItem(self->getHSlot());
 
 			if(curHotbarItem != nullptr && curHotbarItem->getItemType() == Placeable){
-				selectColor = Green;
+				selectColor = Pink;
 				tempB.setPos(tempB.getPos()+DirectionalVectors[pickedBlock.second]);
 			}else if(curHotbarItem != nullptr && curHotbarItem->getItemType() == DestructionTool){
 				selectColor = Red;
@@ -754,7 +770,7 @@ void tickUpdate(){
 
 			self->addSelector(&tempB, selectColor);
 
-		}else if(pickedBlock.first == nullptr && self->getSelected() != nullptr){
+		}else if(self->getSelected() != nullptr && pickedBlock.first == nullptr){
 			//std::cout << "Picked Null" << std::endl;
 			self->removeSelector(self->getSelected());
 		}else if(self->getSelected()->getPos() != pickedBlock.first->getPos()){
@@ -765,7 +781,7 @@ void tickUpdate(){
 			baseItem * curHotbarItem = self->getItem(self->getHSlot());
 
 			if(curHotbarItem != nullptr && curHotbarItem->getItemType() == Placeable){
-				selectColor = Green;
+				selectColor = Pink;
 				tempB.setPos(tempB.getPos()+DirectionalVectors[pickedBlock.second]);
 			}else if(curHotbarItem != nullptr && curHotbarItem->getItemType() == DestructionTool){
 				selectColor = Red;
@@ -785,7 +801,7 @@ void tickUpdate(){
 			baseItem * curHotbarItem = self->getItem(self->getHSlot());
 
 			if(curHotbarItem != nullptr && curHotbarItem->getItemType() == Placeable){
-				selectColor = Green;
+				selectColor = Pink;
 				tempB.setPos(tempB.getPos()+DirectionalVectors[pickedBlock.second]);
 			}else if(curHotbarItem != nullptr && curHotbarItem->getItemType() == DestructionTool){
 				selectColor = Red;

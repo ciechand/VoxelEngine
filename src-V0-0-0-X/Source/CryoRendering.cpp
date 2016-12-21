@@ -19,7 +19,7 @@ void InstancedObject::Init(bool inst){
 
 	size_t stride = sizeof(Block);
 	Block * B = new Block();
-	size_t startAddr = ((size_t)B->getStartingAddr()-((size_t)B));
+	size_t listStartingAddress = ((size_t)B->getStartingAddr()-((size_t)B));
   	delete B;
 
 	glGenVertexArrays(1, &vertexArrayObject);
@@ -60,13 +60,13 @@ void InstancedObject::Init(bool inst){
 	GLsizei vec4Size = sizeof(glm::vec4);
 
     glEnableVertexAttribArray(modelMatrixPos); 
-    glVertexAttribPointer(modelMatrixPos, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+0));
+    glVertexAttribPointer(modelMatrixPos, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(listStartingAddress+0));
     glEnableVertexAttribArray(modelMatrixPos+1); 
-    glVertexAttribPointer(modelMatrixPos+1, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+(vec4Size)));
+    glVertexAttribPointer(modelMatrixPos+1, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(listStartingAddress+(vec4Size)));
     glEnableVertexAttribArray(modelMatrixPos+2); 
-    glVertexAttribPointer(modelMatrixPos+2, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+(vec4Size*2)));
+    glVertexAttribPointer(modelMatrixPos+2, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(listStartingAddress+(vec4Size*2)));
     glEnableVertexAttribArray(modelMatrixPos+3); 
-    glVertexAttribPointer(modelMatrixPos+3, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+(vec4Size*3)));
+    glVertexAttribPointer(modelMatrixPos+3, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(listStartingAddress+(vec4Size*3)));
     glVertexAttribDivisor(modelMatrixPos, 1);
     glVertexAttribDivisor(modelMatrixPos+1, 1);
     glVertexAttribDivisor(modelMatrixPos+2, 1);
@@ -74,17 +74,17 @@ void InstancedObject::Init(bool inst){
 
     GLuint texPosPos = glGetAttribLocation(Renderer.getShaderProgram(), "texPosIn");
     glEnableVertexAttribArray(texPosPos); 
-    glVertexAttribPointer(texPosPos, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+sizeof(glm::mat4)));
+    glVertexAttribPointer(texPosPos, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(listStartingAddress+sizeof(glm::mat4)));
     glVertexAttribDivisor(texPosPos, 1);
 
     GLuint ColorPos = glGetAttribLocation(Renderer.getShaderProgram(), "iColor");
     glEnableVertexAttribArray(ColorPos); 
-    glVertexAttribPointer(ColorPos, 3, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+sizeof(glm::mat4)+sizeof(glm::vec2)));
+    glVertexAttribPointer(ColorPos, 3, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(listStartingAddress+sizeof(glm::mat4)+sizeof(glm::vec2)));
     glVertexAttribDivisor(ColorPos, 1);
     
     GLuint texSizePos = glGetAttribLocation(Renderer.getShaderProgram(), "texSizeIn");
     glEnableVertexAttribArray(texSizePos); 
-    glVertexAttribPointer(texSizePos, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(startAddr+sizeof(glm::mat4)+sizeof(glm::vec2)+sizeof(glm::vec3)));
+    glVertexAttribPointer(texSizePos, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(listStartingAddress+sizeof(glm::mat4)+sizeof(glm::vec2)+sizeof(glm::vec3)));
     glVertexAttribDivisor(texSizePos, 1);
 
 
@@ -115,10 +115,10 @@ void InstancedObject::Update(){
 
 
 	//if(changed == true){
-		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[ArrayBuffer]);
-		glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), nullptr, GL_DYNAMIC_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
-		changed = false;
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjects[ArrayBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, (blockList.size()*sizeof(Block)), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, (blockList.size()*sizeof(Block)), blockList.data());
+	changed = false;
 	//}
 }
 
@@ -302,11 +302,13 @@ unsigned int InstancedObject::getMID(){
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
 	Renderer.setOBJUniforms();
 	std::vector<IOBJ *> Objects = Renderer.getIObjectList();
 	for(int i=0; i<Objects.size(); i++){
 		Objects[i]->drawOBJ();
 	}	
+
 
 	Renderer.setGuiUniforms();
 	std::vector<Window> windows = Renderer.getWindows();

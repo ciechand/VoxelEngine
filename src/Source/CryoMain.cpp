@@ -1,79 +1,43 @@
-#include "../Headers/CryoBase.hpp"
+#include "../Headers/CryoMain.hpp"
+#include "../Headers/CryoChunk.hpp"
 
-sf::Window mainWindow;
-std::default_random_engine randomEng(time(0));
+sf::Window MainWindow;
+sf::Clock MainClock;
 
-std::pair<glm::uint, glm::uint> PlayerPos;
-GRend Renderer;
-OPT Options;
-GState State;
-std::vector<Chunk*> World;
-sf::Clock masterClock;
+int main(int argc, char ** argv){
+	if(DEBUGMODE)std::cerr << "Starting Program" << std::endl;
+	//Firstly, We need to initiate SFML and create our main window.
+	sf::ContextSettings setting;
+	setting.depthBits = 24;
+	MainWindow.create(sf::VideoMode(SCREENWIDTH,SCREENHEIGHT), "Cryonyx", sf::Style::Default, setting);
 
-int main (int argc, char ** argv){
-	//First things first, int sfml (The main windowing extention that I am using)
-	sf::ContextSettings set;
-	set.depthBits = 24;
-	mainWindow.create(sf::VideoMode(1024,768), "Cryonyx", sf::Style::Default, set);
+	if(DEBUGMODE)std::cerr << "Window Created" << std::endl;
 
-	std::cerr << "Starting Program" << std::endl; 
-
-	//Create and Initiate the global options for the program, all the reading from file is done within the constructor.
-	//Options = *new class GameOptions("./Cryoptions.config");
-
-	//setting up glew
-	glewExperimental = GL_TRUE; //This is so that experimental drivers will be checked as well.
+	glewExperimental = GL_TRUE;
 	glewInit();
 
 	InitOpenGL();
-	std::cerr << "InitComplete" << std::endl;
-	while(State.getState() != Exiting){
-		sf::Event event;
-		while(mainWindow.pollEvent(event)){
-			switch(event.type){
-				case sf::Event::Closed:
-					State.setState(Exiting);
-					break;
-				case sf::Event::KeyPressed:
-					processKeyboardDown(event);
-					break;
-				case sf::Event::KeyReleased:
-					processKeyboardUp(event);
-					break;
-				case sf::Event::MouseButtonPressed:
-					processMouseClicks(event);
-					break;
-				case sf::Event::MouseMoved:
-					processMouseMovement(event);
-					break;
-				case sf::Event::MouseWheelMoved:
-					processMouseWheelMovement(event);
-					break;
-				case sf::Event::Resized:
-					windowResized(event);
-					break;
-				case sf::Event::LostFocus:
-					//This will need to be changed!
-					State.setState(Menu);
-					break;
-				case sf::Event::GainedFocus:
-					//This too.
-					State.setState(Running);
-					break;
-				default:
-					break;
-			}
-		}
-		tickUpdate();
-		//std::cout << "Movement Processing" << std::endl;
-		processMovement();
-		//std::cout << "Display" << std::endl;
-		display();
-	}
-	for(int i=0; i<World.size(); i++){
-		delete World[i];
-	}
 
-	mainWindow.close();
+	BasicRender();
+
+	MainWindow.close();
+	if(DEBUGMODE)std::cerr << "Program Complete" << std::endl;
 	return 0;
-}	
+}
+
+void InitOpenGL(){
+	if(DEBUGMODE)std::cerr << "Initializing OpenGL" << std::endl;
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glEnable(GL_TEXTURE_2D);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glClearColor(77.0f/256.0f,166.0f/255.0f,255.0f/255.0f,1.0f);
+	if(DEBUGMODE)std::cerr << "OpenGL Init Complete" << std::endl;
+}
+
+void BasicRender(){	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	MainWindow.display();
+}

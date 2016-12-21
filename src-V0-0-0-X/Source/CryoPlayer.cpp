@@ -35,10 +35,16 @@ Player::Player(){
 	b->setColor(Pink);
 	setItem(1,b);
 	b = new Block();
+	b->setItemType(Placeable);
+	b->setColor(Green);
 	setItem(2,b);
 	b = new Block();
+	b->setItemType(Placeable);
+	b->setColor(Green);
 	setItem(3,b);
 	b = new Block();
+	b->setItemType(Placeable);
+	b->setColor(Green);
 	setItem(4,b);
 }
 
@@ -305,24 +311,22 @@ void Player::addSelector(Block * b, unsigned int color){
 	else
 		addedB.setColor(color);
 	addedB.setOwner(ID);	
-	addedB.setTMatrix(glm::scale(addedB.getTMatrix(Scale), glm::vec3(1.05f,1.05f,1.05f)), Scale);
+	addedB.setTMatrix(glm::scale(addedB.getTMatrix(Scale), glm::vec3(1.2f,1.2f,1.2f)), Scale);
 }
 
 void Player::removeSelector(Block * b){
-	//std::cout << "Removing Selector" << std::endl;
+	std::cout << "Removing Selector" << std::endl;
 	glm::vec3 blockPos = b->getPos();
 	for(int i=0; i<Selectors.size(); i++){
 		glm::vec3 bvec = Selectors[i]->getPos();	
 		//std::cout << "b Pos: \n\tX: "<< blockPos.x <<  "\n\tY: "<< blockPos.y <<  "\n\tZ: "<< blockPos.z << std::endl;
 		//std::cout << "selecVec: \n\tX: "<< bvec.x <<  "\n\tY: "<< bvec.y <<  "\n\tZ: "<< bvec.z << std::endl;	
-		if(bvec == blockPos && Selectors[i]->getItemType() == BaseSelector){
-			IOBJ * tempI = Renderer.getIObject(Selectors[i]->getMID());
-			if(tempI != nullptr){
-				tempI->removeBlock(Selectors[i]->getID());
-				Selectors.erase(Selectors.begin()+i);
-			}else
-				std::cout << "Why is IOBJ NULL?" << std::endl;
+		IOBJ * tempI = Renderer.getIObject(Selectors[i]->getMID());
+		if(tempI != nullptr){
+			tempI->removeBlock(Selectors[i]->getID());
+			Selectors.erase(Selectors.begin()+i);
+		}else
+			std::cout << "Why is IOBJ NULL?" << std::endl;
 
-		}
 	}
 }

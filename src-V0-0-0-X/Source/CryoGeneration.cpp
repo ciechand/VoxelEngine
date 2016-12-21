@@ -129,16 +129,24 @@ void Chunk::Init(){
 				if(blockp == nullptr)
 					std::cout <<  "Block is null." << std::endl;
 				blockp->setID(grid[curBlock].second);
-				blockp->setTOff(2);
 				blockp->setMID(cubeIndex);
 				//rc = udistCol(randomEng);
-				blockp->setColor(Green);
 				blockp->setPos(glm::vec3((k+(position.x*CHUNKDIMS))*BLOCKSCALE,i*BLOCKSCALE,(j+(position.y*CHUNKDIMS))*BLOCKSCALE));
+				if(i>(CHUNKHEIGHT/3)+1){
+					blockp->setTOff(2);
+					blockp->setColor(Green);
+				}else if(i>(CHUNKHEIGHT/3)){
+					blockp->setTOff(2);
+					blockp->setColor(Yellow);
+				}else if(i<=(CHUNKHEIGHT/3)){
+					blockp->setTOff(3);
+					blockp->setColor(Blue);
+				}
 				//std::cout << (k+(position.x*CHUNKDIMS))*BLOCKSCALE << ":" << i*BLOCKSCALE << ":" << (j+(position.y*CHUNKDIMS))*BLOCKSCALE << std::endl;
 
 				//std::cerr << "Texture of block: " << grid[curBlock]->getTOff()() << std::endl;
 				//std::cout << "Color of Block: " << grid[curBlock]->getColor().x << ":" << grid[curBlock]->getColor().y <<":" << grid[curBlock]->getColor().z <<std::endl;
-				//printMatrix(T);
+				//printMatrix(T);	
 			}
 		}
 	}

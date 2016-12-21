@@ -9,7 +9,7 @@ Window::BaseWindow():OBJ(){
 	windowType = SInv;
 
 	textureID = textureNamesFind("Gui");
-	setPos(glm::vec3(0.0f,0.0f,-20.0f));
+	setPos(glm::vec3(0.0f,0.0f,-25.0f));
 	setSize(glm::vec2(100.0f,100.0f));
 
 }
@@ -32,7 +32,7 @@ Window::BaseWindow(glm::vec2 tsize,  glm::vec2 tpos, glm::vec2 pos, glm::vec2 ws
 
 
 	setSize(wsize, bts);
-	setPos(glm::vec3(pos,-20.0f));
+	setPos(glm::vec3(pos,-25.0f));
 
 	if(tsize.x != 1.0f || tsize.y != 1.0f){
 		for(int i=0; i<=(size.x/(DEFAULTWINDOWPANEL))-1; i++){
@@ -175,14 +175,6 @@ void Window::addSlots(unsigned int count, glm::vec2 spos){
 	for(int j=0; j<ySlots; j++){
 		for(int i=0; i<xSlots; i++){
 			addSlot(glm::vec2(spos.x+(((size.x-spos.x)-xSize)/2)+((DEFAULTSLOTSIZE*i)+(SLOTSEPSIZE*(i))), spos.y+(((size.y-spos.y)-ySize)/2)+(((DEFAULTSLOTSIZE*j)+(SLOTSEPSIZE*(j))))));
-			//std::cout << "Y: " <<  spos.y+(((size.y-spos.y)-ySize)/2)+(((DEFAULTSLOTSIZE*j)+(SLOTSEPSIZE*(j)))) << std::endl;
-			//std::cout << "spos Y: " << spos.y << std::endl;
-			//std::cout << "size Y: " << size.y << std::endl;
-			//std::cout << "yslots: " << ySlots << std::endl;
-			//std::cout << "ysize Y: " << ySize << std::endl;
-			//std::cout << "(size-spos) Y: " << (size.y-spos.y) << std::endl;
-			//std::cout << "(size-spos)-ysize Y: " << (size.y-spos.y)-ySize << std::endl;
-			//std::cout << std::endl;
 		}
 		count -= xSlots;
 		if(count < 0)

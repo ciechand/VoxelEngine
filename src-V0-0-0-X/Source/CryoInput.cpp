@@ -6,7 +6,13 @@ void processMouseClicks(sf::Event e){
 	Player * self = State.getPlayer(0);
 	unsigned char curState = State.getState();
 	if(e.mouseButton.button == sf::Mouse::Left){
-		if(curState == Running){
+
+		baseItem * curHotbarItem = self->getItem(self->getHSlot());
+		unsigned int tempIType = NullItemType;
+		if(curHotbarItem != nullptr) 
+			tempIType = curHotbarItem->getItemType();
+
+		if(curState == Running && tempIType == DestructionTool){
 			Block * selec = self->getSelected();
 			if(selec == nullptr)
 				return;
@@ -28,8 +34,8 @@ void processMouseClicks(sf::Event e){
 				}	
 			}
 			//std::cout << "Left Clicked" << std::endl;
-			self->removeSelector(selec);
-			//self->clearSelected();
+			self->removeSelector(self->getSelected());
+			self->clearSelected();
 		}else if(curState == Menu){
 			Pane * curSPane = State.getSPane();
 			if(curSPane != nullptr){
@@ -37,7 +43,13 @@ void processMouseClicks(sf::Event e){
 			}
 		}
 	}else if(e.mouseButton.button == sf::Mouse::Right){
-		if(curState == Running){
+
+		baseItem * curHotbarItem = self->getItem(self->getHSlot());
+		unsigned int tempIType = NullItemType;
+		if(curHotbarItem != nullptr) 
+			tempIType = curHotbarItem->getItemType();
+		
+		if(curState == Running  && tempIType == Placeable){
 			Block * selec = self->getSelected();
 			//std::cerr << "Block: " << World[0]->grid[10]->getPos().x << " : " << World[0]->grid[10]->getPos().y << std::endl;
 			if(selec == nullptr)

@@ -267,7 +267,6 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 	//std::cout << "Sides :" << std::endl;	
 	int signs[2] = {1,-1};
 	float minTime = 1.0f;
-	int minAxis;
 	glm::vec3 minAxisTime(1.0f,1.0f,1.0f);
 
 
@@ -287,6 +286,7 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 		}
 	}
 
+	//WTF is this shit... Add a part here that takes removes the stickiness of the character.
 
 	return minAxisTime;
 }
@@ -616,11 +616,14 @@ void loadBMP(const char * fileName, GLuint * textureID){
 
 	//Now generate the OpenGL texture object
 	glBindTexture(GL_TEXTURE_2D, *textureID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+	glTexStorage2D(GL_TEXTURE_2D, 3, GL_RGBA8, width, height);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 
 	//clean up memory and close stuff
 	png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
