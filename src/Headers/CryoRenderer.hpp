@@ -13,6 +13,9 @@
 extern const glm::vec3 CubeVerts[8];
 extern const glm::vec3 DirectionalVectors[6];
 
+//MACROS
+#define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
+
 //Enum for defining positions of the different cube vertices.
 enum CubeVertices{TopBackLeft=0, TopBackRight, TopFrontLeft, TopFrontRight, BottomBackLeft, BottomBackRight, BottomFrontLeft, BottomFrontRight};
 
@@ -21,6 +24,9 @@ enum VoxelColor{None=0, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine
 
 //enum for sides of a cube
 enum CubeFace{LeftFace=0, RightFace, TopFace, BottomFace, FrontFace, BackFace};
+
+//Enum for the different vertex buffers labels
+enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LModelMatrices};
 
 //typedef for the voxel class, these voxels will comprise blocks. (should )
 class Voxel{
@@ -38,6 +44,7 @@ class Voxel{
 		bool voxActive;
 		VoxelColor voxColor;
 		char Brightness;
+		bool activeSides[6] = {true,true,true,true,true,true};
 
 
 };
@@ -47,6 +54,9 @@ class Mesh{
 	public:
 		Mesh();
 		~Mesh();
+
+		void IntiateMesh();
+		void updateMesh();
 
 		void GenerateCubeSide(CubeFace face, glm::vec4 offset);
 		void addVertexToMesh(glm::vec4 vert);
@@ -63,6 +73,7 @@ class Mesh{
 		std::vector<glm::vec4> vertexNormals;
 		std::vector<glm::vec2> textureCoords;
 		std::vector<GLuint> indices;
+		std::vector<GLuint> shaderPositions;
 		//Below are all the variables not used in drawing.
 
 };
