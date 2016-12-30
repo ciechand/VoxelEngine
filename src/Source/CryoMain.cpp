@@ -1,11 +1,16 @@
 #include "../Headers/CryoMain.hpp"
 #include "../Headers/CryoChunk.hpp"
+#include "../Headers/CryoRenderer.hpp"
+#include "../Headers/CryoBase.hpp"
+//#include "../Headers/CryoInput.hpp"
 
 sf::Window MainWindow;
 sf::Clock MainClock;
 
 int main(int argc, char ** argv){
 	if(DEBUGMODE)std::cerr << "Starting Program" << std::endl;
+
+
 	//Firstly, We need to initiate SFML and create our main window.
 	sf::ContextSettings setting;
 	setting.depthBits = 24;
@@ -18,8 +23,37 @@ int main(int argc, char ** argv){
 
 	InitOpenGL();
 
-	BasicRender();
+	if(DEBUGMODE)std::cerr << "Loading Vertex Shader Path" << std::endl;
+	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/VertexShader.glsl"));
+	
+	if(DEBUGMODE)std::cerr << "Loading Fragment Shader Path" << std::endl;
+	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/FragmentShader.glsl"));
+	
+	if(DEBUGMODE)std::cerr << "Loading Shader Program" << std::endl;
+	ShaderController.createShaderProgram();
+	
+	if(DEBUGMODE)std::cerr << "Done Loading Shader Program" << std::endl;
 
+	Voxel v;
+	Mesh *m = new Mesh(v);
+	while(MainController.getCurrentGameState() != GameExiting){
+		sf::Event event;
+		while(MainWindow.pollEvent(event)){
+			switch(event.type){
+				case sf::Event::Closed:
+					MainController.setCurrentGameState(GameExiting);
+					break;
+				case sf::Event::KeyPressed:
+					//processKeyPress(event);
+					break;
+				default:
+					break;
+			}
+		}
+		m->drawMesh();
+		BasicRender();
+	}
+	delete m;
 	MainWindow.close();
 	if(DEBUGMODE)std::cerr << "Program Complete" << std::endl;
 	return 0;
@@ -27,7 +61,7 @@ int main(int argc, char ** argv){
 
 void InitOpenGL(){
 	if(DEBUGMODE)std::cerr << "Initializing OpenGL" << std::endl;
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);

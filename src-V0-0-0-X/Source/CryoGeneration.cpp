@@ -91,19 +91,19 @@ void Chunk::Init(){
 		for(int bp=0; bp<CHUNKDIMS;bp++){
 			if(borderingChunks[3]!=nullptr){
 				heightMap[bp][0] = clamp(1,(int)CHUNKHEIGHT-1,(int)(borderingChunks[3]->getHeightMap(glm::vec2(bp,CHUNKDIMS-1))+rdist(randomEng)));
-				///std::cout << "A Chunk exists to the Top" << std::endl;
+				///std::cerr << "A Chunk exists to the Top" << std::endl;
 			}
 			if(borderingChunks[1]!=nullptr){
 				heightMap[0][bp] = clamp(1,(int)CHUNKHEIGHT-1,(int)(borderingChunks[1]->getHeightMap(glm::vec2(CHUNKDIMS-1,bp))+rdist(randomEng)));
-				///std::cout << "A Chunk exists to the Left" << std::endl;
+				///std::cerr << "A Chunk exists to the Left" << std::endl;
 			}
 			if(borderingChunks[2]!=nullptr){
 				heightMap[CHUNKDIMS-1][bp] = clamp(1,(int)CHUNKHEIGHT-1,(int)(borderingChunks[2]->getHeightMap(glm::vec2(0,bp))+rdist(randomEng)));
-				///std::cout << "A Chunk exists to the Right" << std::endl;
+				///std::cerr << "A Chunk exists to the Right" << std::endl;
 			}
 			if(borderingChunks[0]!=nullptr){
 				heightMap[bp][CHUNKDIMS-1] = clamp(1,(int)CHUNKHEIGHT-1,(int)(borderingChunks[0]->getHeightMap(glm::vec2(bp,0))+rdist(randomEng)));
-				///std::cout << "A Chunk exists to the Down" << std::endl;
+				///std::cerr << "A Chunk exists to the Down" << std::endl;
 			}
 		}
 	}
@@ -127,7 +127,7 @@ void Chunk::Init(){
 				grid[curBlock].second = tempOBJ->getBlocksSize()-1;
 				Block * blockp = tempOBJ->getBlocks(grid[curBlock].second);
 				if(blockp == nullptr)
-					std::cout <<  "Block is null." << std::endl;
+					std::cerr <<  "Block is null." << std::endl;
 				blockp->setID(grid[curBlock].second);
 				blockp->setMID(cubeIndex);
 				//rc = udistCol(randomEng);
@@ -142,10 +142,10 @@ void Chunk::Init(){
 					blockp->setTOff(3);
 					blockp->setColor(Blue);
 				}
-				//std::cout << (k+(position.x*CHUNKDIMS))*BLOCKSCALE << ":" << i*BLOCKSCALE << ":" << (j+(position.y*CHUNKDIMS))*BLOCKSCALE << std::endl;
+				//std::cerr << (k+(position.x*CHUNKDIMS))*BLOCKSCALE << ":" << i*BLOCKSCALE << ":" << (j+(position.y*CHUNKDIMS))*BLOCKSCALE << std::endl;
 
 				//std::cerr << "Texture of block: " << grid[curBlock]->getTOff()() << std::endl;
-				//std::cout << "Color of Block: " << grid[curBlock]->getColor().x << ":" << grid[curBlock]->getColor().y <<":" << grid[curBlock]->getColor().z <<std::endl;
+				//std::cerr << "Color of Block: " << grid[curBlock]->getColor().x << ":" << grid[curBlock]->getColor().y <<":" << grid[curBlock]->getColor().z <<std::endl;
 				//printMatrix(T);	
 			}
 		}
@@ -182,20 +182,20 @@ void Chunk::divide(float size){
 	float x, y, half = size/2.0f;
 	float Roughness = 0.1;
 	float scale = size*Roughness;
-	//std::cout << size << std::endl;
-	//std::cout << "Scale : " << scale << "\nLargest Offset Possible: " << (float)(scale*CHUNKHEIGHT*0.5f) << std::endl;
+	//std::cerr << size << std::endl;
+	//std::cerr << "Scale : " << scale << "\nLargest Offset Possible: " << (float)(scale*CHUNKHEIGHT*0.5f) << std::endl;
 	for(y = half; y < CHUNKDIMS-1; y+=size){
 		for(x = half; x < CHUNKDIMS-1; x+=size){
-			//std::cout << "diamond" << std::endl;
-			//std::cout << "X: " << x << " Y: " << y <<std::endl;
+			//std::cerr << "diamond" << std::endl;
+			//std::cerr << "X: " << x << " Y: " << y <<std::endl;
 			if(heightMap[x][y] == -1)
 				diamond(x,y,half,rdist(randomEng)*scale);
 		}
 	}
 	for(y = 0; y <= CHUNKDIMS-1; y+=half){
 		for(x = fmod((y+half),size); x <= CHUNKDIMS-1; x+=size){
-			//std::cout << "square" << std::endl;
-			//std::cout << "X: " << x << " Y: " << y <<std::endl;
+			//std::cerr << "square" << std::endl;
+			//std::cerr << "X: " << x << " Y: " << y <<std::endl;
 			if(heightMap[x][y] == -1)
 				square(x,y,half,rdist(randomEng)*scale);
 		}
@@ -206,7 +206,7 @@ void Chunk::divide(float size){
 }
 
 void Chunk::diamond(float x, float y, float size, float offset){
-	//std::cout << "Size: "  << size << "\n\tX: " << x << "\n\tY: " << y << "\n\tValue: " << heightMap[(y*CHUNKDIMS)+x] << std::endl;
+	//std::cerr << "Size: "  << size << "\n\tX: " << x << "\n\tY: " << y << "\n\tValue: " << heightMap[(y*CHUNKDIMS)+x] << std::endl;
 	float ave = average(std::vector<int>{heightMap[x-size][y-size],heightMap[x+size][y-size],heightMap[x-size][y+size],heightMap[x+size][y+size]});
 	float val = ave+offset;
 	if(val < 1.0f)

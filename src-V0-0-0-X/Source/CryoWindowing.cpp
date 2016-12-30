@@ -95,8 +95,8 @@ void Window::setSize(glm::vec2 s, bool boundToTexSize){
 		size = s;
 	}
 	setTMatrix(glm::scale(glm::mat4(),glm::vec3(size.x/BLOCKSCALE,size.y/BLOCKSCALE,1.0f)), Scale);
-	//std::cout << "Size: \n\tx:" << s.x << "\n\ty: " << s.y << std::endl;
-	//std::cout << "new Size: \n\tx:" << size.x << "\n\ty: " << size.y << std::endl;
+	//std::cerr << "Size: \n\tx:" << s.x << "\n\ty: " << s.y << std::endl;
+	//std::cerr << "new Size: \n\tx:" << size.x << "\n\ty: " << size.y << std::endl;
 }
 
 unsigned int Window::getDepth(){
@@ -110,7 +110,7 @@ void Window::setDepth(unsigned int d){
 void Window::setPos(glm::vec3 pos){
 	sf::Vector2u wsize = mainWindow.getSize();
 	baseObj::setPos(glm::vec3(pos.x+(size.x/2),wsize.y-(pos.y+(size.y/2)),pos.z+(depth*0.001f)));
-	//std::cout << "Position of Window: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
+	//std::cerr << "Position of Window: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
 	position = pos;
 }
 
@@ -145,7 +145,7 @@ void Window::addPane(glm::vec2 pos, unsigned int pt){
 	Panes[psize].setType(pt);
 	Panes[psize].setID(psize);
 
-	//std::cout << "Position of Pane: \n\tX: "<< (glm::vec2(position)+pos).x <<  "\n\tY: "<< (glm::vec2(position)+pos).y << std::endl;
+	//std::cerr << "Position of Pane: \n\tX: "<< (glm::vec2(position)+pos).x <<  "\n\tY: "<< (glm::vec2(position)+pos).y << std::endl;
 }
 
 Pane& Window::getPane(unsigned int index){
@@ -162,7 +162,7 @@ void Window::addSlots(unsigned int count, glm::vec2 spos){
 
 	if(count > xSlots*ySlots){
 		count = xSlots*ySlots;
-		std::cout << "NOT ENOUGH ROOM FOR THE SLOT COUNT!" <<  std::endl;
+		std::cerr << "NOT ENOUGH ROOM FOR THE SLOT COUNT!" <<  std::endl;
 	}
 	if(count < xSlots){
 		xSlots = count;
@@ -294,7 +294,7 @@ baseItem *  WindowSlot::getObj(){
 }
 
 void  WindowSlot::setObj(baseItem * b){
-	//std::cout << "Position of Slot: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
+	//std::cerr << "Position of Slot: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
 	containedObj = b;
 	if(containedObj != nullptr){
 		containedObj->setPos(position+glm::vec3(0.0f,0.0f,(BLOCKSCALE*8.0f)/2));
@@ -313,11 +313,11 @@ void WindowSlot::Draw(){
 
 void WindowSlot::Interact(){
 	baseItem * tempb = State.getHItem();
-	// std::cout << "Interaction: " << std::endl;
+	// std::cerr << "Interaction: " << std::endl;
 	// if(tempb == nullptr)
-	// 	std::cout << "\tHeld Item is NULL" << std::endl;
+	// 	std::cerr << "\tHeld Item is NULL" << std::endl;
 	// if(containedObj == nullptr)
-	// 	std::cout << "\tContained Item is NULL" << std::endl;
+	// 	std::cerr << "\tContained Item is NULL" << std::endl;
 	State.setHItem(containedObj);
 	setObj(tempb);
 }
@@ -325,10 +325,10 @@ void WindowSlot::Interact(){
 glm::vec2 arrayBounds(int x, int y, float maxx, float maxy){
 	maxx = floor(maxx);
 	maxy = floor(maxy);
-	//std::cout << "X:" << x << std::endl;
-	//std::cout << "y:" << y << std::endl;
-	//std::cout << "MaxX:" << maxx << std::endl;
-	//std::cout << "Maxy:" << maxy << std::endl;
+	//std::cerr << "X:" << x << std::endl;
+	//std::cerr << "y:" << y << std::endl;
+	//std::cerr << "MaxX:" << maxx << std::endl;
+	//std::cerr << "Maxy:" << maxy << std::endl;
 	if(x == 0 && y == 0)
 		return glm::vec2(0.0f,0.0f);
 	else if(x == maxx && y == 0)

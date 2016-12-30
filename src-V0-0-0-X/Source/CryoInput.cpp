@@ -33,7 +33,7 @@ void processMouseClicks(sf::Event e){
 						}	
 				}	
 			}
-			//std::cout << "Left Clicked" << std::endl;
+			//std::cerr << "Left Clicked" << std::endl;
 			self->removeSelector(self->getSelected());
 			self->clearSelected();
 		}else if(curState == Menu){
@@ -115,7 +115,7 @@ void processMouseMovement(sf::Event e){
 
  		glm::vec3 camAt = Renderer.getCamVec(1);
  		glm::vec3 rotations = glm::vec3(-sin(rotationPer[0])*cos(rotationPer[1])*CAMERADIST, -sin(rotationPer[1])*CAMERADIST, cos(rotationPer[0])*cos(rotationPer[1])*CAMERADIST);
- 		//std::cout << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
+ 		//std::cerr << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
  		glm::vec3 camUp = Renderer.getCamVec(2);
  		Renderer.setViewMatrix(glm::lookAt(camAt+rotations, camAt, camUp));
 
@@ -230,11 +230,11 @@ void processKeyboardUp(sf::Event e){
 
 
 void processMovement(){
-//std::cout << std::endl;
-//std::cout << "Beginning of Everything" << std::endl;
+//std::cerr << std::endl;
+//std::cerr << "Beginning of Everything" << std::endl;
 	float deltaTime = State.getdTime();
 	Player * self = State.getPlayer(0);
-	//std::cout << "Start Movement Process." << std::endl;
+	//std::cerr << "Start Movement Process." << std::endl;
 	glm::vec3 camPos = Renderer.getCamVec(0);
 	glm::vec3 camAt = Renderer.getCamVec(1);
 	glm::vec3 camUp = Renderer.getCamVec(2);
@@ -265,7 +265,7 @@ void processMovement(){
 		vel += glm::normalize(cross)*MOVESPEED*deltaTime;
 	}
 	if(movement[Up] == true && jump == false){
-	//std::cout << "Jumping" << std::endl;
+	//std::cerr << "Jumping" << std::endl;
 		vel.y += (-GRAVITY)*0.5f;
 		jump = true;
 	}
@@ -285,7 +285,7 @@ void processMovement(){
 
 	tempMove += vel;
 	//camAt += vel;
-	//std::cout << "Vel Before: \n\tX: "<< vel.x <<  "\n\tY: "<< vel.y <<  "\n\tZ: "<< vel.z << std::endl;
+	//std::cerr << "Vel Before: \n\tX: "<< vel.x <<  "\n\tY: "<< vel.y <<  "\n\tZ: "<< vel.z << std::endl;
 
 	BoundingBox B = self->getBounds();
 	glm::vec3 moveTime(-1.0f);
@@ -294,21 +294,21 @@ void processMovement(){
 	if(tempMove.y-B.getLimbs().y <= ((CHUNKHEIGHT-1)*BLOCKSCALE)+(BLOCKSCALE/2) && tempMove.y+B.getLimbs().y >= -(BLOCKSCALE/2))
 		moveTime = playerCollideTerrain(B, vel, axis);
 
-	//std::cout << "moveTime: \n\tX: "<< moveTime.x <<  "\n\tY: "<< moveTime.y <<  "\n\tZ: "<< moveTime.z << std::endl;
-	//std::cout << moveTime << std::endl;
+	//std::cerr << "moveTime: \n\tX: "<< moveTime.x <<  "\n\tY: "<< moveTime.y <<  "\n\tZ: "<< moveTime.z << std::endl;
+	//std::cerr << moveTime << std::endl;
 
 	//glm::vec3 prevVel = vel;
 	if(moveTime != glm::vec3(-1.0f)){
 		if((moveTime.y >= -(float)std::numeric_limits<float>::min() && moveTime.y <= (float)std::numeric_limits<float>::min()) && vel.y < 0.0f){
-			//std::cout << "jumpReady" << std::endl;
+			//std::cerr << "jumpReady" << std::endl;
 			jump = false;
 		}
 		vel *= moveTime;
 	}
 	camAt += vel;
 	self->setVelocity(vel);
-	//std::cout << "Vel After: \n\tX: "<< vel.x <<  "\n\tY: "<< vel.y <<  "\n\tZ: "<< vel.z << std::endl;
-	//std::cout << "Position of Char: \n\tX: "<< camAt.x <<  "\n\tY: "<< camAt.y <<  "\n\tZ: "<< camAt.z << std::endl;
+	//std::cerr << "Vel After: \n\tX: "<< vel.x <<  "\n\tY: "<< vel.y <<  "\n\tZ: "<< vel.z << std::endl;
+	//std::cerr << "Position of Char: \n\tX: "<< camAt.x <<  "\n\tY: "<< camAt.y <<  "\n\tZ: "<< camAt.z << std::endl;
 
 	self->setJumping(jump);
 	self->setPos(camAt);

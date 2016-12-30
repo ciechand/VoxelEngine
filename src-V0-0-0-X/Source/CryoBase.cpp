@@ -157,12 +157,12 @@ void baseItem::setPos(glm::vec3 pos){
 	sf::Vector2u wsize = mainWindow.getSize();
 	baseObj::setPos(glm::vec3(pos.x+(DEFAULTSLOTSIZE/2),wsize.y-(pos.y+(DEFAULTSLOTSIZE/2)),pos.z));
 	position = pos;
-	//std::cout << "Position of Item: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
+	//std::cerr << "Position of Item: \n\tX: "<< position.x <<  "\n\tY: "<< position.y <<  "\n\tZ: "<< position.z << std::endl;
 
 }
 
 void baseItem::Interact(){
-	std::cout << "Interacting with Item" << std::endl;
+	std::cerr << "Interacting with Item" << std::endl;
 }
 
 std::pair<unsigned int, unsigned int> baseItem::getStackInfo(){
@@ -380,27 +380,27 @@ GameOptions::~GameOptions(){
 
 void GameOptions::Init(){
 	IOBJ * tempOBJ;
-	std::cout << "loading "<< modelPaths.size() <<" Models: " << std::endl;
-	std::cout << "Model Names:\n"; 
+	std::cerr << "loading "<< modelPaths.size() <<" Models: " << std::endl;
+	std::cerr << "Model Names:\n"; 
 	for(int i=0; i<modelPaths.size(); i++){
-		std::cout << "\t->" << BlockNames[i] << std::endl;
+		std::cerr << "\t->" << BlockNames[i] << std::endl;
 		tempOBJ = new IOBJ();
 		readOBJFile(tempOBJ, modelPaths[i].c_str());
 		tempOBJ->Init(true);
 		tempOBJ->setMID(i);
 		Renderer.addToIObjectList(tempOBJ);
 	}
-	std::cout << "Finished Loading Models" <<  std::endl;
-	std::cout << std::endl;
-	std::cout << "Loading Textures: " << std::endl;
+	std::cerr << "Finished Loading Models" <<  std::endl;
+	std::cerr << std::endl;
+	std::cerr << "Loading Textures: " << std::endl;
 	for(int i=0; i<texturePaths.size(); i++){
-		std::cout << "\tT"<<i<<"->" <<  texturePaths[i] << " Loaded" << std::endl;
+		std::cerr << "\tT"<<i<<"->" <<  texturePaths[i] << " Loaded" << std::endl;
 		Renderer.addToTextureList(texturePaths[i].c_str());
 	} 
 	glActiveTexture(GL_TEXTURE0);
-	std::cout << "Finished Loading Textures" <<  std::endl;
-	std::cout << std::endl;
-	std::cout << "Loading Basic Objects" << std::endl;
+	std::cerr << "Finished Loading Textures" <<  std::endl;
+	std::cerr << std::endl;
+	std::cerr << "Loading Basic Objects" << std::endl;
 
 	int sphereIndex = modelNamesFind("Sphere");
 	tempOBJ = Renderer.getIObject(sphereIndex);
@@ -413,7 +413,7 @@ void GameOptions::Init(){
 	bp->setID(tempOBJ->getBlocksSize()-1);
 
 
-	std::cout << "Finnished Loading Basic Objects" << std::endl;
+	std::cerr << "Finnished Loading Basic Objects" << std::endl;
 }
 
 void GameOptions::setProjVars(float * vars){
@@ -480,9 +480,9 @@ GameRenderer::~GameRenderer(){
 }
 
 void GameRenderer::Init(){
-//std::cout << "Starting to Load Shaders" << std::endl;
+//std::cerr << "Starting to Load Shaders" << std::endl;
 	shaderProgram = createShadersProgram("./Assets/Shaders/VertexShader.glsl", "./Assets/Shaders/FragmentShader.glsl");
-//std::cout << "Finnished Loading Shaders" << std::endl;
+//std::cerr << "Finnished Loading Shaders" << std::endl;
 	camVec[0] = glm::vec3(0.0f,0.0f,0.0f);
 	camVec[1] = glm::vec3(0.0f,(CHUNKHEIGHT*BLOCKSCALE)+(BLOCKSCALE*2),0.0f);
 	camVec[2] = glm::vec3(0.0f,1.0f,0.0f);
@@ -683,7 +683,7 @@ void tickUpdate(){
 	sf::Time curTime = masterClock.getElapsedTime();
 	sf::Time lastTime = State.getTime();
 	float deltaTime = curTime.asSeconds() - lastTime.asSeconds();
-	//std::cout << "Cur: " << curTime.asSeconds() << "\n\tLast: " << lastTime.asSeconds() << "\n\tDelta: " << deltaTime << std::endl;
+	//std::cerr << "Cur: " << curTime.asSeconds() << "\n\tLast: " << lastTime.asSeconds() << "\n\tDelta: " << deltaTime << std::endl;
 	State.setTime(curTime);
 	State.setdTime(deltaTime);
 	Player * self = State.getPlayer(0);
@@ -691,10 +691,10 @@ void tickUpdate(){
 	glm::vec3 selfPos = self->getPos();
 	glm::vec2 prevChunk = self->getChunk();
 	glm::vec2 curChunk =  glm::vec2(floor(selfPos.x/(CHUNKDIMS*BLOCKSCALE)), floor(selfPos.z/(CHUNKDIMS*BLOCKSCALE)));
-	//std::cout << "PrevChunk: x->" << prevChunk.x << ": Y->" << prevChunk.y << std::endl;
-	//std::cout << "CurChunk: x->" << curChunk.x << ": Y->" << curChunk.y << std::endl;
+	//std::cerr << "PrevChunk: x->" << prevChunk.x << ": Y->" << prevChunk.y << std::endl;
+	//std::cerr << "CurChunk: x->" << curChunk.x << ": Y->" << curChunk.y << std::endl;
 
-	//std::cout << "Before Chunk" << std::endl;
+	//std::cerr << "Before Chunk" << std::endl;
 	Chunk * c;
 	if(World.size() == 0){
 		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
@@ -706,30 +706,30 @@ void tickUpdate(){
 	if(curChunk!=prevChunk){
 		self->setChunk(curChunk);
 		glm::vec2 chunkDif = curChunk-prevChunk;
-		//std::cout << chunkDif.x <<" : " << chunkDif.y << std::endl;
+		//std::cerr << chunkDif.x <<" : " << chunkDif.y << std::endl;
 		bool found[RENDERRADIUS*RENDERRADIUS] = {false};
 
-		//std::cout << "CurChunk: " << curChunk.x << " : " << curChunk.y << std::endl;
+		//std::cerr << "CurChunk: " << curChunk.x << " : " << curChunk.y << std::endl;
 		for(int i=0; i<World.size(); i++){
 			glm::vec2 Wpos = World[i]->getPos();
-			//std::cout << "Chunk " << i << ": X->" << Wpos.x << " ; Y->" << Wpos.y << std::endl;
+			//std::cerr << "Chunk " << i << ": X->" << Wpos.x << " ; Y->" << Wpos.y << std::endl;
 			for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
 				if(Wpos == curChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2))) found[i] = true;
 			}
 		}
 
-		//std::cout << std::endl;
-		//std::cout << "Found:" <<std::endl;
+		//std::cerr << std::endl;
+		//std::cerr << "Found:" <<std::endl;
 		for(int i=0; i<RENDERRADIUS*RENDERRADIUS; i++){
 			if(found[i] != true){
 				c = new Chunk(curChunk+glm::vec2((i%RENDERRADIUS)-floor(RENDERRADIUS/2),(i/RENDERRADIUS)-floor(RENDERRADIUS/2)));
 				c->Init();
 				World.push_back(c);
 			}
-			//std::cout <<"\t" << found[i] << std::endl;
+			//std::cerr <<"\t" << found[i] << std::endl;
 
 		}	
-		//std::cout << std::endl;
+		//std::cerr << std::endl;
 	} 
 
 	unsigned int curState = State.getState();
@@ -752,10 +752,10 @@ void tickUpdate(){
 		std::pair<Block *, int> pickedBlock = pickBlock(sight);
 
 		if(self->getSelected() == nullptr && pickedBlock.first == nullptr){
-			//std::cout << "Both Null" << std::endl;
+			//std::cerr << "Both Null" << std::endl;
 			//Nothing here?
 		}else if(self->getSelected() == nullptr && pickedBlock.first != nullptr){
-			//std::cout << "Selected Null" << std::endl;
+			//std::cerr << "Selected Null" << std::endl;
 			unsigned int selectColor = None;
 			Block tempB = *(pickedBlock.first);
 
@@ -771,10 +771,10 @@ void tickUpdate(){
 			self->addSelector(&tempB, selectColor);
 
 		}else if(self->getSelected() != nullptr && pickedBlock.first == nullptr){
-			//std::cout << "Picked Null" << std::endl;
+			//std::cerr << "Picked Null" << std::endl;
 			self->removeSelector(self->getSelected());
 		}else if(self->getSelected()->getPos() != pickedBlock.first->getPos()){
-			//std::cout << "Selector Moved" << std::endl;
+			//std::cerr << "Selector Moved" << std::endl;
 			unsigned int selectColor = None;
 			Block tempB = *(pickedBlock.first);
 
@@ -794,7 +794,7 @@ void tickUpdate(){
 			if(selec != nullptr)
 				selec->setColor(selectColor);
 		}else if(self->getSelected()->getPos() == pickedBlock.first->getPos()){
-			//std::cout << "Selector Same Place" << std::endl;
+			//std::cerr << "Selector Same Place" << std::endl;
 			unsigned int selectColor = None;
 			Block tempB = *(pickedBlock.first);
 
@@ -814,7 +814,7 @@ void tickUpdate(){
 			if(selec != nullptr)
 				selec->setColor(selectColor);
 		}else{
-			//std::cout << "You  missed a condition" << std::endl;
+			//std::cerr << "You  missed a condition" << std::endl;
 		}
 
 		self->setSelected(pickedBlock.first);
@@ -822,7 +822,7 @@ void tickUpdate(){
 		
 	}else if (curState == Menu){
 		sf::Vector2i mpos = sf::Mouse::getPosition(mainWindow);
-		//std::cout << "Mouse Pos: \n\tX:" << mpos.x << "\n\tY:" << mpos.y << std::endl;
+		//std::cerr << "Mouse Pos: \n\tX:" << mpos.x << "\n\tY:" << mpos.y << std::endl;
 		std::vector<Window> & winds = Renderer.getWindows();
 
 		Window * overWindow = nullptr;
@@ -848,10 +848,10 @@ void tickUpdate(){
 				glm::vec3 wpos = w.getPos();
 				glm::vec2 wsize = w.getSize();
 				int curDepth = w.getDepth();
-				//std::cout << "Window Pos: \n\tX:" << wpos.x << "\n\tY:" << wpos.y << std::endl;
-				//std::cout << "Window Size: \n\tX:" << wsize.x << "\n\tY:" << wsize.y << std::endl;
-				//std::cout << "Depth: " << depth << std::endl;
-				//std::cout << "CurDepth: " << curDepth << std::endl;
+				//std::cerr << "Window Pos: \n\tX:" << wpos.x << "\n\tY:" << wpos.y << std::endl;
+				//std::cerr << "Window Size: \n\tX:" << wsize.x << "\n\tY:" << wsize.y << std::endl;
+				//std::cerr << "Depth: " << depth << std::endl;
+				//std::cerr << "CurDepth: " << curDepth << std::endl;
 				if(mpos.x >= wpos.x && mpos.x <= wpos.x+wsize.x && mpos.y >= wpos.y && mpos.y <= wpos.y+wsize.y && curDepth >= depth){
 					overWindow = &w;
 					depth = curDepth;
@@ -861,7 +861,7 @@ void tickUpdate(){
 						glm::vec3 ppos = p.getPos();
 						glm::vec2 psize = p.getSize();
 						curDepth = p.getDepth();
-						//std::cout << "\tDepth: " << curDepth << std::endl;
+						//std::cerr << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= ppos.x && mpos.x <= ppos.x+psize.x && mpos.y >= ppos.y && mpos.y <= ppos.y+psize.y && curDepth >= depth){
 							State.setPrevSlotColor(p.getColorNumber());
 							p.setColor(Red);
@@ -874,7 +874,7 @@ void tickUpdate(){
 						glm::vec3 spos = s.getPos();
 						glm::vec2 ssize = s.getSize();
 						curDepth = s.getDepth();
-						//std::cout << "\tDepth: " << curDepth << std::endl;
+						//std::cerr << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= spos.x && mpos.x <= spos.x+ssize.x && mpos.y >= spos.y && mpos.y <= spos.y+ssize.y && curDepth >= depth){
 							State.setPrevSlotColor(s.getColorNumber());
 							s.setColor(Red);
@@ -891,10 +891,10 @@ void tickUpdate(){
 				glm::vec3 wpos = w.getPos();
 				glm::vec2 wsize = w.getSize();
 				int curDepth = w.getDepth();
-				//std::cout << "Window Pos: \n\tX:" << wpos.x << "\n\tY:" << wpos.y << std::endl;
-				//std::cout << "Window Size: \n\tX:" << wsize.x << "\n\tY:" << wsize.y << std::endl;
-				//std::cout << "Depth: " << depth << std::endl;
-				//std::cout << "CurDepth: " << curDepth << std::endl;
+				//std::cerr << "Window Pos: \n\tX:" << wpos.x << "\n\tY:" << wpos.y << std::endl;
+				//std::cerr << "Window Size: \n\tX:" << wsize.x << "\n\tY:" << wsize.y << std::endl;
+				//std::cerr << "Depth: " << depth << std::endl;
+				//std::cerr << "CurDepth: " << curDepth << std::endl;
 				if(mpos.x >= wpos.x && mpos.x <= wpos.x+wsize.x && mpos.y >= wpos.y && mpos.y <= wpos.y+wsize.y && curDepth >= depth){
 					overWindow = &w;
 					depth = curDepth;
@@ -904,7 +904,7 @@ void tickUpdate(){
 						glm::vec3 ppos = p.getPos();
 						glm::vec2 psize = p.getSize();
 						curDepth = p.getDepth();
-						//std::cout << "\tDepth: " << curDepth << std::endl;
+						//std::cerr << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= ppos.x && mpos.x <= ppos.x+psize.x && mpos.y >= ppos.y && mpos.y <= ppos.y+psize.y && curDepth >= depth){
 							State.setPrevSlotColor(p.getColorNumber());
 							p.setColor(Red);
@@ -916,7 +916,7 @@ void tickUpdate(){
 						glm::vec3 spos = s.getPos();
 						glm::vec2 ssize = s.getSize();
 						curDepth = s.getDepth();
-						//std::cout << "\tDepth: " << curDepth << std::endl;
+						//std::cerr << "\tDepth: " << curDepth << std::endl;
 						if(mpos.x >= spos.x && mpos.x <= spos.x+ssize.x && mpos.y >= spos.y && mpos.y <= spos.y+ssize.y && curDepth >= depth){
 							State.setPrevSlotColor(s.getColorNumber());
 							s.setColor(Red);

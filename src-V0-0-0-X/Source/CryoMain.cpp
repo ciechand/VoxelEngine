@@ -27,6 +27,8 @@ int main (int argc, char ** argv){
 
 	InitOpenGL();
 	std::cerr << "InitComplete" << std::endl;
+
+
 	while(State.getState() != Exiting){
 		sf::Event event;
 		while(mainWindow.pollEvent(event)){
@@ -65,9 +67,9 @@ int main (int argc, char ** argv){
 			}
 		}
 		tickUpdate();
-		//std::cout << "Movement Processing" << std::endl;
+		//std::cerr << "Movement Processing" << std::endl;
 		processMovement();
-		//std::cout << "Display" << std::endl;
+		//std::cerr << "Display" << std::endl;
 		display();
 	}
 	for(int i=0; i<World.size(); i++){

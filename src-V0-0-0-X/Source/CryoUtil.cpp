@@ -129,9 +129,9 @@ ColRes Intersection(BBox a, BBox b){
 	glm::vec3 al = a.getLimbs();
 	glm::vec3 bl = b.getLimbs(); 
 	ColRes cr;
-	//std::cout << "BlockPos: \n\tX: "<<b.getPos().x <<  "\n\tY: "<<b.getPos().y <<  "\n\tZ: "<<b.getPos().z << std::endl;
-	//std::cout << "Dif: \n\tX: "<< dif.x <<  "\n\tY: "<< dif.y <<  "\n\tZ: "<< dif.z << std::endl;
-	//std::cout << "difCompare: \n\tX: "<< al.x+bl.x <<  "\n\tY: "<< al.y+bl.y <<  "\n\tZ: "<< al.z+bl.z << std::endl;
+	//std::cerr << "BlockPos: \n\tX: "<<b.getPos().x <<  "\n\tY: "<<b.getPos().y <<  "\n\tZ: "<<b.getPos().z << std::endl;
+	//std::cerr << "Dif: \n\tX: "<< dif.x <<  "\n\tY: "<< dif.y <<  "\n\tZ: "<< dif.z << std::endl;
+	//std::cerr << "difCompare: \n\tX: "<< al.x+bl.x <<  "\n\tY: "<< al.y+bl.y <<  "\n\tZ: "<< al.z+bl.z << std::endl;
 	if(fabs(dif.x)<=al.x+bl.x && fabs(dif.y)<=al.y+bl.y && (fabs(dif.z)<=al.z+bl.z)){
 		cr = ColRes(0, 0.0f, 0.0f);
 		return cr;
@@ -161,8 +161,8 @@ ColRes Intersection(BBox a, BBox b){
 	u0 = fmaxf(u_0.x,fmaxf(u_0.y,u_0.z));
 	u1 = fminf(u_1.x,fminf(u_1.y,u_1.z));
 
-	//std::cout << "MinTime: " << u0 << std::endl;
-	//std::cout << "MaxTime: " << u1 << std::endl;
+	//std::cerr << "MinTime: " << u0 << std::endl;
+	//std::cerr << "MaxTime: " << u1 << std::endl;
 	if(u0 == 0.0f && u1 == 1.0f)
 		return cr;
 	if(u0<=u1){
@@ -176,7 +176,7 @@ ColRes Intersection(BBox a, BBox b){
 
 glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & axis){
 	float deltaTime = State.getdTime();
-	//std::cout << "Starting Collide Check" << std::endl;
+	//std::cerr << "Starting Collide Check" << std::endl;
 	std::vector<Block*> viableBlockList;
 	std::vector<ColRes> colTimes;
 
@@ -199,16 +199,16 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 	glm::vec2 chunkDif = finalChunk-startChunk;
 	std::vector<glm::vec2> CheckedChunks;
 	CheckedChunks.push_back(startChunk);
-	//std::cout << "Pushed Back Start Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+	//std::cerr << "Pushed Back Start Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
 	for(int cx=fminf(startChunk.x,finalChunk.x); cx<=fmaxf(startChunk.x,finalChunk.x); cx++){
 		for(int cy=fminf(startChunk.y,finalChunk.y); cy<=fmax(startChunk.y,finalChunk.y); cy++){
-			//std::cout << "Pushed Back Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+			//std::cerr << "Pushed Back Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
 			if(startChunk != glm::vec2(cx,cy))
 				CheckedChunks.push_back(glm::vec2(cx,cy));
 		}
 	}
 	//This needs to scope out an area in between minCorner and maxCorner, need to control signs Correctly so this doesnt exit automatically. Also, make sure to use the dimentions of the chunk as boundries. (fminf(),fmaxf)
-	//std::cout << "Chunkmath Done, Checking " << CheckedChunks.size() <<" world chunks." << std::endl;
+	//std::cerr << "Chunkmath Done, Checking " << CheckedChunks.size() <<" world chunks." << std::endl;
 	Chunk * tempChunk = nullptr;
 	glm::vec2 chunkPos;
 	ColRes col;
@@ -223,7 +223,7 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 		}
 		if(tempChunk == nullptr) {
 			std::cerr << "tempChunk is nullptr, WTF?!" << std::endl;
-		//std::cout << "tempChunk is nullptr, WTF?!" << std::endl;
+		//std::cerr << "tempChunk is nullptr, WTF?!" << std::endl;
 			return glm::vec3(-1.0f);
 		}
 
@@ -237,13 +237,13 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 		glm::vec2 Boundz = glm::vec2(beginBoundz-Chunkz,endBoundz-Chunkz);
 		Boundx = Boundx/BLOCKSCALE;
 		Boundz = Boundz/BLOCKSCALE;
-		//std::cout << "ChunkBegins: \n\tX: " << Chunkx << " -> " << Chunkx+((CHUNKDIMS-1)*BLOCKSCALE) << "\n\tZ: " << Chunkz << " -> " << Chunkz+((CHUNKDIMS-1)*BLOCKSCALE) <<std::endl;
-		//std::cout << "Starting Block Check in Chunk: \n\tX:" << chunkPos.x << "\n\tZ:" << chunkPos.y << std::endl;
-		//std::cout << "Bounds:" << std::endl;
-		//std::cout << "X Bounds: \n\tMin: " << Boundx.x << "\n\tMax: " << Boundx.y <<std::endl;
-		//std::cout << "Y Bounds: \n\tMin: " << fmaxf(minCorner.y/BLOCKSCALE,0) << "\n\tMax: " << fminf(maxCorner.y/BLOCKSCALE,CHUNKHEIGHT-1) <<std::endl;
-		//std::cout << "Z Bounds: \n\tMin: " << Boundz.x << "\n\tMax: " << Boundz.y <<std::endl;
-		//std::cout << "Blocks:" << std::endl;
+		//std::cerr << "ChunkBegins: \n\tX: " << Chunkx << " -> " << Chunkx+((CHUNKDIMS-1)*BLOCKSCALE) << "\n\tZ: " << Chunkz << " -> " << Chunkz+((CHUNKDIMS-1)*BLOCKSCALE) <<std::endl;
+		//std::cerr << "Starting Block Check in Chunk: \n\tX:" << chunkPos.x << "\n\tZ:" << chunkPos.y << std::endl;
+		//std::cerr << "Bounds:" << std::endl;
+		//std::cerr << "X Bounds: \n\tMin: " << Boundx.x << "\n\tMax: " << Boundx.y <<std::endl;
+		//std::cerr << "Y Bounds: \n\tMin: " << fmaxf(minCorner.y/BLOCKSCALE,0) << "\n\tMax: " << fminf(maxCorner.y/BLOCKSCALE,CHUNKHEIGHT-1) <<std::endl;
+		//std::cerr << "Z Bounds: \n\tMin: " << Boundz.x << "\n\tMax: " << Boundz.y <<std::endl;
+		//std::cerr << "Blocks:" << std::endl;
 		for(int i=floor(fmaxf(minCorner.y/BLOCKSCALE,0)); i<=ceil(fminf(maxCorner.y/BLOCKSCALE,CHUNKHEIGHT-1)); i++){
 			for(int j=floor(Boundz.x); j<=ceil(Boundz.y); j++){
 				for(int k=floor(Boundx.x); k<=ceil(Boundx.y); k++){
@@ -253,7 +253,7 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 					Block * tempB = tempOBJ->getBlocks(tempChunk->grid[curBlock].second);
 					if(tempB!=nullptr)
 						col = Intersection(movedBox, tempB->getBounds());
-					//std::cout << "\tk: " << k << "\n\ti: " << i << "\n\tj: " << j << std::endl;
+					//std::cerr << "\tk: " << k << "\n\ti: " << i << "\n\tj: " << j << std::endl;
 					if(col.side!=-1.0f){
 						viableBlockList.push_back(tempB);
 						colTimes.push_back(col);
@@ -264,7 +264,7 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 	}
 	if(viableBlockList.size() == 0 || colTimes.size() == 0)
 		return glm::vec3(1.0f);
-	//std::cout << "Sides :" << std::endl;	
+	//std::cerr << "Sides :" << std::endl;	
 	int signs[2] = {1,-1};
 	float minTime = 1.0f;
 	glm::vec3 minAxisTime(1.0f,1.0f,1.0f);
@@ -273,12 +273,12 @@ glm::vec3 playerCollideTerrain(BoundingBox playerBox, glm::vec3 moveDir, int & a
 	glm::vec3 ppos = playerBox.getPos();
 	for(int i=0; i<colTimes.size(); i++){
 		Ray r(ppos, viableBlockList[i]->getPos()-ppos, 0.0f, glm::length(viableBlockList[i]->getPos()-ppos));
-		//std::cout << "Before Block Inter:" << std::endl;
+		//std::cerr << "Before Block Inter:" << std::endl;
 		ColRes cr = Intersection(viableBlockList[i]->getBounds(), r);
 		axis = cr.side/2;
-		//std::cout << "BlockPos: \n\tX: "<< viableBlockList[i]->getPos().x <<  "\n\tY: "<< viableBlockList[i]->getPos().y <<  "\n\tZ: "<< viableBlockList[i]->getPos().z << std::endl;
-		//std::cout << "ColTime " << i << ": " << colTimes[i] << std::endl;
-		//std::cout << "side: " << side << std::endl;
+		//std::cerr << "BlockPos: \n\tX: "<< viableBlockList[i]->getPos().x <<  "\n\tY: "<< viableBlockList[i]->getPos().y <<  "\n\tZ: "<< viableBlockList[i]->getPos().z << std::endl;
+		//std::cerr << "ColTime " << i << ": " << colTimes[i] << std::endl;
+		//std::cerr << "side: " << side << std::endl;
 
 		//THIS IS WRONG AND NEEDS TO BE FIXED FOR JUMPING!
 		if(colTimes[i].minCol < minAxisTime[axis] && glm::dot(glm::normalize(DirectionalVectors[cr.side]),glm::normalize(moveDir)) <= PI/8){
@@ -309,16 +309,16 @@ std::pair<Block *, int> pickBlock(Ray sight){
 	glm::vec2 chunkDif = finalChunk-startChunk;
 	std::vector<glm::vec2> CheckedChunks;
 	CheckedChunks.push_back(startChunk);
-	//std::cout << "Pushed Back Start Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+	//std::cerr << "Pushed Back Start Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
 	for(int cx=fminf(startChunk.x,finalChunk.x); cx<=fmaxf(startChunk.x,finalChunk.x); cx++){
 		for(int cy=fminf(startChunk.y,finalChunk.y); cy<=fmaxf(startChunk.y,finalChunk.y); cy++){
-			//std::cout << "Pushed Back Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
+			//std::cerr << "Pushed Back Chunk: " << startChunk.x << ": " << startChunk.y << std::endl;
 			if(startChunk != glm::vec2(cx,cy))
 				CheckedChunks.push_back(glm::vec2(cx,cy));
 		}
 	}
 	//This needs to scope out an area in between origin and destination, need to control signs Correctly so this doesnt exit automatically. Also, make sure to use the dimentions of the chunk as boundries. (fminf(),fmaxf)
-	//std::cout << "Chunkmath Done, Checking " << CheckedChunks.size() <<" world chunks." << std::endl;
+	//std::cerr << "Chunkmath Done, Checking " << CheckedChunks.size() <<" world chunks." << std::endl;
 	Chunk * tempChunk = nullptr;
 	glm::vec2 chunkPos;
 	ColRes inter;
@@ -326,7 +326,7 @@ std::pair<Block *, int> pickBlock(Ray sight){
 	for(int c=0; c<CheckedChunks.size(); c++){
 		for(int i=0; i<World.size(); i++){
 			chunkPos = World[i]->getPos();
-			//std::cout << "Chunk\n\tX: " << chunkPos.x << " \n\tY: " << chunkPos.y << std::endl; 
+			//std::cerr << "Chunk\n\tX: " << chunkPos.x << " \n\tY: " << chunkPos.y << std::endl; 
 			if(chunkPos == CheckedChunks[c]){
 				tempChunk = World[i];
 				break;
@@ -353,7 +353,7 @@ std::pair<Block *, int> pickBlock(Ray sight){
 			for(int j=floor(Boundz.x); j<=ceil(Boundz.y); j++){
 				for(int k=floor(Boundx.x); k<=ceil(Boundx.y); k++){
 					inter = ColRes();
-					//std::cout << "\tk: " << k << "\n\ti: " << i << "\n\tj: " << j << std::endl;
+					//std::cerr << "\tk: " << k << "\n\ti: " << i << "\n\tj: " << j << std::endl;
 					int curBlock = (i*CHUNKDIMS*CHUNKDIMS)+(j*CHUNKDIMS)+k;
 					IOBJ * tempOBJ = Renderer.getIObject(tempChunk->grid[curBlock].first);
 					Block * tempB = tempOBJ->getBlocks(tempChunk->grid[curBlock].second);
@@ -368,7 +368,7 @@ std::pair<Block *, int> pickBlock(Ray sight){
 			}
 		}
 	}
-	//std::cout << "After Intersection." << std::endl;
+	//std::cerr << "After Intersection." << std::endl;
 	if(viableBlockList.size() == 0 || viableSides.size() == 0)
 		return std::make_pair(nullptr,-1);
 
@@ -413,7 +413,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 		perror("Have not set a filename, Please do so before trying to load an obj file again.");
 		return;
 	}
-//std::cout << "Loading in Asset as : " << fileName << std::endl;
+//std::cerr << "Loading in Asset as : " << fileName << std::endl;
 	//opening the OBJ file for reading
 	FILE * objFile = fopen(fileName, "r");
 	if (objFile == nullptr){
@@ -508,7 +508,7 @@ void readOBJFile(IOBJ * Object, const char * fileName){
 	Object->setVertices(verts);
 	Object->setVertexNormals(norms);
 	Object->setTextureCoords(tex);
-//std::cout << "Finnished Loading in Asset of : " << fileName << std::endl;
+//std::cerr << "Finnished Loading in Asset of : " << fileName << std::endl;
 }
 
 void loadBMP(const char * fileName, GLuint * textureID){
@@ -648,7 +648,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     int logLength;
 
     // Compile vertex shader
-   //std::cout << "Compiling vertex shader." << std::endl;
+   //std::cerr << "Compiling vertex shader." << std::endl;
     glShaderSource(vertShader, 1, &vertShaderSrc, nullptr);
     glCompileShader(vertShader);
 
@@ -657,7 +657,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> vertShaderError((logLength > 1) ? logLength : 1);
     glGetShaderInfoLog(vertShader, logLength, nullptr, &vertShaderError[0]);
-    if(logLength > 1) std::cout << "vert Errors: " << &vertShaderError[0] << std::endl;
+    if(logLength > 1) std::cerr << "vert Errors: " << &vertShaderError[0] << std::endl;
 
     // Compile fragment shader
    	std::cerr << "Compiling fragment shader." << std::endl;
@@ -669,7 +669,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> fragShaderError((logLength > 1) ? logLength : 1);
     glGetShaderInfoLog(fragShader, logLength, nullptr, &fragShaderError[0]);
-    if(logLength > 1) std::cout << "Frag Errors: " << &fragShaderError[0] << std::endl;
+    if(logLength > 1) std::cerr << "Frag Errors: " << &fragShaderError[0] << std::endl;
 
    	std::cerr << "Linking program" << std::endl;
     GLuint program = glCreateProgram();
@@ -681,7 +681,7 @@ GLuint createShadersProgram(const char* vsFile, const char* fsFile){
     glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
     std::vector<char> programError( (logLength > 1) ? logLength : 1 );
     glGetProgramInfoLog(program, logLength, nullptr, &programError[0]);
-    if(logLength > 1) std::cout << "Prog Errors: " <<&programError[0] << std::endl;
+    if(logLength > 1) std::cerr << "Prog Errors: " <<&programError[0] << std::endl;
 
     glDeleteShader(vertShader);
     glDeleteShader(fragShader);
@@ -701,28 +701,28 @@ bool compBlockDist(glm::mat4 a, glm::mat4 b){
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void printMatrix(glm::mat4 matrix){
 	using namespace std;
-	cout << "4X4 Matrix: " << endl;
+	cerr << "4X4 Matrix: " << endl;
 	for (int i = 0; i < 4; i++){
 		for (int j = 0; j < 4; j++){
-			cout << matrix[j][i]  << " | ";
+			cerr << matrix[j][i]  << " | ";
 		}
-		cout << endl;
+		cerr << endl;
 	}	
-	cout << endl;
-	cout.flush();
+	cerr << endl;
+	cerr.flush();
 }
 
 void printMatrix(glm::mat3 matrix){
 	using namespace std;
-	cout << "4X4 Matrix: " << endl;
+	cerr << "4X4 Matrix: " << endl;
 	for (int i = 0; i < 3; i++){
 		for (int j = 0; j < 3; j++){
-			cout << matrix[j][i] << " | ";
+			cerr << matrix[j][i] << " | ";
 		}
-		cout << endl;
+		cerr << endl;
 	}	
-	cout << endl;
-	cout.flush();
+	cerr << endl;
+	cerr.flush();
 }
 
 void printShaderInfoLog(GLuint obj)

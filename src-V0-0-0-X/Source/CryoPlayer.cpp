@@ -155,7 +155,7 @@ BBox & Player::getBounds(){
 
 void Player::setHSlot(unsigned int s){
 	if(HotBar == nullptr){
-		std::cout <<  "HOTBAR IS NULL IN ATTEMPT TO SET" << std::endl; 
+		std::cerr <<  "HOTBAR IS NULL IN ATTEMPT TO SET" << std::endl; 
 		return;
 	}
 
@@ -171,11 +171,11 @@ void Player::setHSlot(unsigned int s){
 }
 
 void Player::incrementHSlot(unsigned int n){
-	//std::cout << "increment" << std::endl;
-	//std::cout << "Slot Num Before: " << hotbarSlot << std::endl;
+	//std::cerr << "increment" << std::endl;
+	//std::cerr << "Slot Num Before: " << hotbarSlot << std::endl;
 
 	if(HotBar == nullptr){
-		std::cout <<  "HOTBAR IS NULL IN ATTEMPT TO INCREMENT" << std::endl; 
+		std::cerr <<  "HOTBAR IS NULL IN ATTEMPT TO INCREMENT" << std::endl; 
 		return;
 	}
 
@@ -190,17 +190,17 @@ void Player::incrementHSlot(unsigned int n){
 
 	Slot & tempSlotA = HotBar->getSlot(hotbarSlot);
 	tempSlotA.setColor(Green);
-	//std::cout << "Slot Num After: " << hotbarSlot << "\n" << std::endl;
+	//std::cerr << "Slot Num After: " << hotbarSlot << "\n" << std::endl;
 }
 
 void Player::decrementHSlot(unsigned int n){
 	if(HotBar == nullptr){
-		std::cout <<  "HOTBAR IS NULL IN ATTEMPT TO DECREMENT" << std::endl; 
+		std::cerr <<  "HOTBAR IS NULL IN ATTEMPT TO DECREMENT" << std::endl; 
 		return;
 	}
 
-	//std::cout << "decrement" << std::endl;
-	//std::cout << "Slot Num Before: " << hotbarSlot << std::endl;
+	//std::cerr << "decrement" << std::endl;
+	//std::cerr << "Slot Num Before: " << hotbarSlot << std::endl;
 	Slot & tempSlotB = HotBar->getSlot(hotbarSlot);
 	tempSlotB.setColor(None);
 
@@ -212,7 +212,7 @@ void Player::decrementHSlot(unsigned int n){
 
 	Slot & tempSlotA = HotBar->getSlot(hotbarSlot);
 	tempSlotA.setColor(Green);
-	//std::cout << "Slot Num After: " << hotbarSlot << "\n" << std::endl;
+	//std::cerr << "Slot Num After: " << hotbarSlot << "\n" << std::endl;
 }
 
 unsigned int Player::getHSlot(){
@@ -227,14 +227,14 @@ baseItem * Player::getItem(unsigned int index){
 		Slot & s = inventoryWindow->getSlot(index-DEFAULTHOTBARSLOTS);
 		return s.getObj();
 	}else{
-		std::cout << "Getting an Item from an index outside of bounds" << std::endl;
+		std::cerr << "Getting an Item from an index outside of bounds" << std::endl;
 	}
 }
 
 void Player::setItem(unsigned int index, baseItem * item){
 	if(index < DEFAULTPLAYERSLOTS){
 		if(inventoryWindow == nullptr){
-			std::cout << "Player " << ID << " Inventory has no window Bound." << std::endl;
+			std::cerr << "Player " << ID << " Inventory has no window Bound." << std::endl;
 			return;
 		}
 
@@ -247,7 +247,7 @@ void Player::setItem(unsigned int index, baseItem * item){
 	}else if(index < DEFAULTPLAYERSLOTS+DEFAULTHOTBARSLOTS){
 		index-=DEFAULTPLAYERSLOTS;
 		if(HotBar == nullptr){
-			std::cout << "Player " << ID << " Inventory has no Hotbar Bound." << std::endl;
+			std::cerr << "Player " << ID << " Inventory has no Hotbar Bound." << std::endl;
 			return;
 		}
 
@@ -258,7 +258,7 @@ void Player::setItem(unsigned int index, baseItem * item){
 		
 		s.setObj(item);
 	}else{
-		std::cout << "Adding an Item to an index outside of bounds" << std::endl;
+		std::cerr << "Adding an Item to an index outside of bounds" << std::endl;
 	}
 
 }
@@ -284,7 +284,7 @@ void Player::moveSelector(Block * b){
 	bool found = false;
 	unsigned int index = 0;
 	if(b == nullptr){
-		std::cout << "b is Null?" << std::endl;
+		std::cerr << "b is Null?" << std::endl;
 		return;
 	}
 	for(int i=0; i<Selectors.size(); i++){
@@ -296,7 +296,7 @@ void Player::moveSelector(Block * b){
 	if(found == true)
 		Selectors[index]->setPos(b->getPos());
 	else
-		std::cout << "Not Found" << std::endl;
+		std::cerr << "Not Found" << std::endl;
 }
 
 void Player::addSelector(Block * b, unsigned int color){
@@ -315,18 +315,18 @@ void Player::addSelector(Block * b, unsigned int color){
 }
 
 void Player::removeSelector(Block * b){
-	std::cout << "Removing Selector" << std::endl;
+	std::cerr << "Removing Selector" << std::endl;
 	glm::vec3 blockPos = b->getPos();
 	for(int i=0; i<Selectors.size(); i++){
 		glm::vec3 bvec = Selectors[i]->getPos();	
-		//std::cout << "b Pos: \n\tX: "<< blockPos.x <<  "\n\tY: "<< blockPos.y <<  "\n\tZ: "<< blockPos.z << std::endl;
-		//std::cout << "selecVec: \n\tX: "<< bvec.x <<  "\n\tY: "<< bvec.y <<  "\n\tZ: "<< bvec.z << std::endl;	
+		//std::cerr << "b Pos: \n\tX: "<< blockPos.x <<  "\n\tY: "<< blockPos.y <<  "\n\tZ: "<< blockPos.z << std::endl;
+		//std::cerr << "selecVec: \n\tX: "<< bvec.x <<  "\n\tY: "<< bvec.y <<  "\n\tZ: "<< bvec.z << std::endl;	
 		IOBJ * tempI = Renderer.getIObject(Selectors[i]->getMID());
 		if(tempI != nullptr){
 			tempI->removeBlock(Selectors[i]->getID());
 			Selectors.erase(Selectors.begin()+i);
 		}else
-			std::cout << "Why is IOBJ NULL?" << std::endl;
+			std::cerr << "Why is IOBJ NULL?" << std::endl;
 
 	}
 }

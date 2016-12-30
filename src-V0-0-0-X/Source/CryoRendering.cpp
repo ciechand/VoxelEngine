@@ -314,7 +314,7 @@ void display(){
 	std::vector<Window> windows = Renderer.getWindows();
 	for(int i=0; i<windows.size(); i++){
 		//std::string hid = (windows[i].getHidden())?"Hidden":"Showing";
-		//std::cout << "Window is: " << hid << std::endl; 
+		//std::cerr << "Window is: " << hid << std::endl; 
 		if(windows[i].getHidden() != true)
 			windows[i].Draw();
 	}
@@ -322,7 +322,7 @@ void display(){
 	std::vector<Window> swindows = Renderer.getSWindows();
 	for(int i=0; i<swindows.size(); i++){
 		//std::string hid = (windows[i].getHidden())?"Hidden":"Showing";
-		//std::cout << "Window is: " << hid << std::endl; 
+		//std::cerr << "Window is: " << hid << std::endl; 
 		if(swindows[i].getHidden() != true)
 			swindows[i].Draw();
 	}

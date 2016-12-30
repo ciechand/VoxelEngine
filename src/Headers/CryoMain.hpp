@@ -2,10 +2,9 @@
 #define CryoMain
 
 //Includes
-#include <cstdlib>
 #include <iostream>
 #include <vector>
-#include <cstring>
+#include <string>
 #include <random>
 
 #include <GL/glew.h>
@@ -32,6 +31,7 @@
 
 #define CUBESIZE 1.0f
 #define HALFSIZE CUBESIZE/2.0f
+
 //Function Definitions, These are mostly initializations that happen within the main Loop.
 void InitOpenGL();
 void BasicRender();
