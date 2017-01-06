@@ -32,8 +32,11 @@
 #define CUBESIZE 1.0f
 #define HALFSIZE CUBESIZE/2.0f
 
+#define PI 3.14f
+
 //Function Definitions, These are mostly initializations that happen within the main Loop.
 void InitOpenGL();
-void BasicRender();
+void PrepForRender();
+void Render();
 
 #endif //CryoMain

@@ -4,6 +4,8 @@
 
 RenderController ShaderController;
 
+VoxelColor GlobalColor = Red;
+
 //const int BlockColors[16] = {0x000000, 0xff0000, 0x800000, 0xff0084, 0x9c00ff, 0x000080, 0x0000ff, 0x00baff, 0x00ffcc, 0x00ff30, 0x009900, 0x999900, 0xfcff00, 0xa56900, 0xffa200, 0xff8900};
 const glm::vec3 BlockColors[16] = {glm::vec3(255.0f,255.0f,255.0f),glm::vec3(255.0f,0.0f,0.0f),glm::vec3(128.0f,0.0f,0.0f),
 									glm::vec3(255.0f,119.0f,173.0f),glm::vec3(255.0f,0.0f,102.0f), glm::vec3(156.0f,0.0f,255.0f),
@@ -30,6 +32,7 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0)
 //Functions for the Voxel Class
 Voxel::Voxel(){
 	voxColor = Red;
+	position = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 Voxel::~Voxel(){
@@ -121,15 +124,16 @@ Mesh::Mesh(Voxel v){
 
 	GenerateMesh(v);
 	UpdateMesh();
+	PrintMeshVerts();
 }
 
 Mesh::~Mesh(){
-
+	glDeleteVertexArrays(1, &VertexArrayObject);
+	glDeleteBuffers(3, &VertexBuffer[0]);
 }
 
 void Mesh::UpdateMesh(){
 	glBindVertexArray(VertexArrayObject);
-
 	//Initializing the vertex and normals for this particular mesh.
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4) + vertexNormals.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
@@ -147,14 +151,14 @@ void Mesh::UpdateMesh(){
 	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
 
 	//Initializing the texture values for this mesh.
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LTextureBuffer]);
-	glBufferData(GL_ARRAY_BUFFER, textureCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), textureCoords.data());
+	// glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LTextureBuffer]);
+	// glBufferData(GL_ARRAY_BUFFER, textureCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
+	// glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), textureCoords.data());
 
-	shaderPositions.emplace_back();
-	shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(), "TextureCoords");
-	glEnableVertexAttribArray(shaderPositions[2]);
-	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+	// shaderPositions.emplace_back();
+	// shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(), "TextureCoords");
+	// glEnableVertexAttribArray(shaderPositions[2]);
+	// glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	//Initializing the Color values for each vertex of this mesh
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LColorArray]);
@@ -162,7 +166,8 @@ void Mesh::UpdateMesh(){
 	glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size()*sizeof(glm::vec3), colors.data());
 
 	shaderPositions.emplace_back();
-	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(), "vertColor");
+	shaderPositions.emplace_back();
+	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexColor");
 	glEnableVertexAttribArray(shaderPositions[3]);
 	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
@@ -187,14 +192,18 @@ void Mesh::UpdateMesh(){
  //    glVertexAttribDivisor(shaderPositions[3]+1, 1);
  //    glVertexAttribDivisor(shaderPositions[3]+2, 1);
  //    glVertexAttribDivisor(shaderPositions[3]+3, 1);
-
+	 glm::mat4 projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "projectionMatrix"), 1, GL_FALSE, &(projectionMatrix[0][0]));
+	glm::mat4 viewMatrix = glm::lookAt(glm::vec3(10.0f, 5.0f, 5.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
 
 }
 
 void Mesh::GenerateMesh(Voxel v){
 	for(int i=0; i<6; i++){
-		if(v.getActiveSide()[i] == true)
+		if(v.getActiveSide()[i] == true){
 			GenerateCubeSide((CubeFace)i,v.getPosition(), v.getColor());
+		}
 	}	
 	//Here I need to reorganize and instance-tize the vertices i think.
 }
@@ -202,147 +211,148 @@ void Mesh::GenerateMesh(Voxel v){
 void Mesh::GenerateCubeSide(CubeFace face, glm::vec3 offset, VoxelColor c){
 	switch(face){
 		case LeftFace:
+			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
+			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(c);
+				addColorToMesh(GlobalColor);
 			}
 			break;
 		case RightFace:
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[TopBackRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
+			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
+			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
+			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
+			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(c);
+				addColorToMesh(GlobalColor);
 			}
 			break;
 		case TopFace:
+			addVertexToMesh(offset+CubeVerts[TopBackRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
+			addVertexToMesh(offset+CubeVerts[TopBackRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(c);
+				addColorToMesh(GlobalColor);
 			}
 			break;
 		case BottomFace:
+			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
+			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(c);
+				addColorToMesh(GlobalColor);
 			}
 			break;
 		case FrontFace:
+			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
+			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(c);
+				addColorToMesh(GlobalColor);
 			}
 			break;
 		case BackFace:
+			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[TopBackRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
-			addNormalTomesh(DirectionVectors[face]);
-			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
+			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
+			addNormalTomesh(DirectionVectors[face]);
+			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(c);
+				addColorToMesh(GlobalColor);
 			}
 			break;
 		default:
 			std::cerr << "INVALID SIDE GENERATION ATTEMPT." << std::endl;
 			break;
 	}
+	GlobalColor = (VoxelColor)(GlobalColor+1);	
 }
 
 void Mesh::addVertexToMesh(glm::vec3 vert){
@@ -363,9 +373,20 @@ void Mesh::addColorToMesh(VoxelColor c){
 	colors.emplace_back(BlockColors[c]);
 }
 
+void Mesh::PrintMeshVerts(){
+	std::cout << "verts Size:" << vertices.size() << std::endl;
+	std::cout << "Colors Size:" << colors.size() << std::endl;
+	std::cout << "Normals Size:" << vertexNormals.size() << std::endl;
+	std::cout << "Texture coords Size:" << textureCoords.size() << std::endl;
+	for(int i=0; i<vertices.size(); i++){
+		std::cout << "\tVertex " << i << ": \nX: " << vertices[i].x << "\nY: " << vertices[i].y << "\nZ: " << vertices[i].z << std::endl;
+	}	
+}
+
 void Mesh::drawMesh(){
 	glBindVertexArray(VertexArrayObject);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+	glGetError();
 }
 
 RenderController::RenderController(){

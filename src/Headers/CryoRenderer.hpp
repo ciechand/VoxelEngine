@@ -59,7 +59,7 @@ class Voxel{
 
 	private:
 		bool voxActive = true;
-		glm::vec3 position = glm::vec3();
+		glm::vec3 position;
 		std::vector<bool> activeSides = {true,true,true,true,true,true};
 		VoxelColor voxColor;
 		std::vector<unsigned char> brightness = {255,255,255,255,255,255};//here every value needs to be clamped to 0-255
@@ -81,6 +81,8 @@ class Mesh{
 		void addNormalTomesh(glm::vec3 norm);
 		void addTexCoordToMesh(glm::vec2 tex);
 		void addColorToMesh(VoxelColor c);
+
+		void PrintMeshVerts();
 
 		void drawMesh();
 

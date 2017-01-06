@@ -50,8 +50,9 @@ int main(int argc, char ** argv){
 					break;
 			}
 		}
+		PrepForRender();
 		m->drawMesh();
-		BasicRender();
+		Render();
 	}
 	delete m;
 	MainWindow.close();
@@ -61,7 +62,7 @@ int main(int argc, char ** argv){
 
 void InitOpenGL(){
 	if(DEBUGMODE)std::cerr << "Initializing OpenGL" << std::endl;
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);
@@ -70,8 +71,10 @@ void InitOpenGL(){
 	if(DEBUGMODE)std::cerr << "OpenGL Init Complete" << std::endl;
 }
 
-void BasicRender(){	
+void PrepForRender(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
 
+void Render(){	
 	MainWindow.display();
 }
