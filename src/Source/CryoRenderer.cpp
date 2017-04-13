@@ -1,5 +1,6 @@
 #include "../Headers/CryoMain.hpp"
 #include "../Headers/CryoRenderer.hpp"
+#include "../Headers/CryoChunk.hpp"
 #include "../Headers/CryoUtil.hpp"
 
 RenderController ShaderController;
@@ -23,8 +24,8 @@ glm::vec3(-HALFSIZE,-HALFSIZE,HALFSIZE),glm::vec3(HALFSIZE,-HALFSIZE,HALFSIZE)
 };
 
 //Const GlobaL array for the different directional vectors, these can be accessed with the CubeFace Enum.
-const glm::vec3 DirectionVectors[6] = {
-glm::vec3(-1.0,0.0,0.0), glm::vec3(1.0,0.0,0.0),
+const glm::vec3 DirectionVectors[6] = { 
+glm::vec3(1.0,0.0,0.0), glm::vec3(-1.0,0.0,0.0),
 glm::vec3(0.0,1.0,0.0), glm::vec3(0.0,-1.0,0.0),
 glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0)
 };
@@ -33,6 +34,7 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0)
 Voxel::Voxel(){
 	voxColor = Red;
 	position = glm::vec3(0.0f, 0.0f, 0.0f);
+	transformMatrices.assign(4,glm::mat4());
 }
 
 Voxel::~Voxel(){
@@ -54,6 +56,22 @@ glm::vec3 Voxel::getPosition(){
 
 void Voxel::setPosition(glm::vec3 pos){
 	position = pos;
+	transformMatrices[TranslateMatrix] = glm::translate(glm::mat4(), pos);
+	transformMatrices[CombinedMatrix] = transformMatrices[TranslateMatrix]*transformMatrices[ScaleMatrix]*transformMatrices[RotationMatrix];
+}
+
+void Voxel::setScale(unsigned int s){
+	transformMatrices[ScaleMatrix] = glm::translate(glm::mat4(), glm::vec3(s,s,s));
+	transformMatrices[CombinedMatrix] = transformMatrices[TranslateMatrix]*transformMatrices[ScaleMatrix]*transformMatrices[RotationMatrix];
+}
+
+void Voxel::setRotation(float angle, glm::vec3 rot){
+	transformMatrices[RotationMatrix] = glm::rotate(glm::mat4(), angle, rot);
+	transformMatrices[CombinedMatrix] = transformMatrices[TranslateMatrix]*transformMatrices[ScaleMatrix]*transformMatrices[RotationMatrix];
+}
+
+glm::mat4 Voxel::getTMatrix(unsigned int index){
+	return transformMatrices[index];
 }
 
 bool Voxel::getActiveSide(unsigned int n){
@@ -64,8 +82,13 @@ std::vector<bool> Voxel::getActiveSide(){
 	return activeSides;
 }
 
-void Voxel::setActiveSide(unsigned int n, bool s){
-	activeSides[n] = s;
+void Voxel::setActiveSide(unsigned int s, bool a){
+	activeSides[s] = a;
+	for(int i=0;i<activeSides.size();i++){
+		if(activeSides[i] == true)
+			return;
+	}
+	voxActive = false;
 }
 
 void Voxel::setActiveSide(std::vector<bool> s){
@@ -81,19 +104,19 @@ void Voxel::setColor(VoxelColor vc){
 	voxColor = vc;
 }
 
-std::vector<unsigned char> Voxel::getBrightness(){
+std::vector<float> Voxel::getBrightness(){
 	return brightness;
 }
 
-unsigned char Voxel::getBrightness(unsigned int n){
+float Voxel::getBrightness(unsigned int n){
 	return brightness[n];
 }
 
-void Voxel::setBrightness(unsigned int n, unsigned char c){
+void Voxel::setBrightness(unsigned int n, float c){
 	brightness[n] = c;
 }
 
-void Voxel::setBrightness(std::vector<unsigned char> s){
+void Voxel::setBrightness(std::vector<float> s){
 	brightness = s;
 }
 
@@ -103,6 +126,17 @@ int Voxel::getVoxTex(){
 
 void Voxel::setVoxTex(int t){
 	voxTex = t;
+}
+
+
+
+//Start of MESH Class
+Mesh::Mesh(){
+	glGenVertexArrays(1, &VertexArrayObject);
+	glBindVertexArray(VertexArrayObject);
+
+	glGenBuffers(5, &VertexBuffer[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
 }
 
 Mesh::Mesh(Voxel v){
@@ -119,17 +153,17 @@ Mesh::Mesh(Voxel v){
 	glGenVertexArrays(1, &VertexArrayObject);
 	glBindVertexArray(VertexArrayObject);
 
-	glGenBuffers(3, &VertexBuffer[0]);
+	glGenBuffers(5, &VertexBuffer[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
 
 	GenerateMesh(v);
 	UpdateMesh();
-	PrintMeshVerts();
+	//PrintMeshVerts();
 }
 
 Mesh::~Mesh(){
 	glDeleteVertexArrays(1, &VertexArrayObject);
-	glDeleteBuffers(3, &VertexBuffer[0]);
+	glDeleteBuffers(5, &VertexBuffer[0]);
 }
 
 void Mesh::UpdateMesh(){
@@ -140,12 +174,12 @@ void Mesh::UpdateMesh(){
 	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
 	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
 
-	shaderPositions.emplace_back();
+	shaderPositions.emplace_back(GLuint());
 	shaderPositions[0] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexPosition");
 	glEnableVertexAttribArray(shaderPositions[0]);
 	glVertexAttribPointer(shaderPositions[0], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
-	shaderPositions.emplace_back();
+	shaderPositions.emplace_back(GLuint());
 	shaderPositions[1] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexNormal");
 	glEnableVertexAttribArray(shaderPositions[1]);
 	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
@@ -165,8 +199,9 @@ void Mesh::UpdateMesh(){
 	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size()*sizeof(glm::vec3), colors.data());
 
-	shaderPositions.emplace_back();
-	shaderPositions.emplace_back();
+	shaderPositions.emplace_back(GLuint());
+
+	shaderPositions.emplace_back(GLuint());
 	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexColor");
 	glEnableVertexAttribArray(shaderPositions[3]);
 	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
@@ -174,185 +209,194 @@ void Mesh::UpdateMesh(){
 	//Initialize which texture will be utilized for this particular Side.
 	
 	//Initialize the Model matrices / Will I even need this? Or can this be passed in as a uniform for this particular Mesh?
-	// glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LModelMatrices]);
-	// glBufferData(GL_ARRAY_BUFFER, /*Size betwen matrices*/, nullptr, GL_DYNAMIC_DRAW);
-	// glBufferData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), textureCoords.data());
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LModelMatrices]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4), &modelMatrix);
+/*	for(int i=0; i<modelMatrices.size(); i++){
+		print4x4Matrix(modelMatrices[i]);
+	}*/
 
-	// shaderPositions.emplace_back();
-	// shaderPositions[3] = glGetAttribLocation(/*Shader pointer goes here*/, /*Name within shader will go here.*/);
- //    glEnableVertexAttribArray(shaderPositions[3]); 
- //    glVertexAttribPointer(shaderPositions[3], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(listStartingAddress+0));
- //    glEnableVertexAttribArray(shaderPositions[3]+1); 
- //    glVertexAttribPointer(shaderPositions[3]+1, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(listStartingAddress+(vec4Size)));
- //    glEnableVertexAttribArray(shaderPositions[3]+2); 
- //    glVertexAttribPointer(shaderPositions[3]+2, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(listStartingAddress+(vec4Size*2)));
- //    glEnableVertexAttribArray(shaderPositions[3]+3); 
- //    glVertexAttribPointer(shaderPositions[3]+3, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(listStartingAddress+(vec4Size*3)));
- //    glVertexAttribDivisor(shaderPositions[3], 1);
- //    glVertexAttribDivisor(shaderPositions[3]+1, 1);
- //    glVertexAttribDivisor(shaderPositions[3]+2, 1);
- //    glVertexAttribDivisor(shaderPositions[3]+3, 1);
-	 glm::mat4 projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
-	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "projectionMatrix"), 1, GL_FALSE, &(projectionMatrix[0][0]));
-	glm::mat4 viewMatrix = glm::lookAt(glm::vec3(10.0f, 5.0f, 5.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
-	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
+	shaderPositions.emplace_back(GLuint());
+	shaderPositions[4] = glGetAttribLocation(ShaderController.getProgramVariable(), "modelMatrix");
+    glEnableVertexAttribArray(shaderPositions[4]); 
+    glVertexAttribPointer(shaderPositions[4], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+    glEnableVertexAttribArray(shaderPositions[4]+1); 
+    glVertexAttribPointer(shaderPositions[4]+1, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4))));
+    glEnableVertexAttribArray(shaderPositions[4]+2); 
+    glVertexAttribPointer(shaderPositions[4]+2, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4)*2)));
+    glEnableVertexAttribArray(shaderPositions[4]+3); 
+    glVertexAttribPointer(shaderPositions[4]+3, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4)*3)));
+    glVertexAttribDivisor(shaderPositions[4], 1);
+    glVertexAttribDivisor(shaderPositions[4]+1, 1);
+    glVertexAttribDivisor(shaderPositions[4]+2, 1);
+    glVertexAttribDivisor(shaderPositions[4]+3, 1);
+
+    //Passing the brightness into the shader below
+    glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LBrightnessBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, brightness.size()*sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, brightness.size()*sizeof(float), brightness.data());
+
+	shaderPositions.emplace_back(GLuint());
+	shaderPositions[5] = glGetAttribLocation(ShaderController.getProgramVariable(), "brightness");
+	glEnableVertexAttribArray(shaderPositions[5]);
+	glVertexAttribPointer(shaderPositions[5], 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 }
 
 void Mesh::GenerateMesh(Voxel v){
 	for(int i=0; i<6; i++){
 		if(v.getActiveSide()[i] == true){
-			GenerateCubeSide((CubeFace)i,v.getPosition(), v.getColor());
+			GenerateCubeSide((CubeFace)i,v.getBrightness(i), v.getColor(), v.getPosition());
 		}
 	}	
 	//Here I need to reorganize and instance-tize the vertices i think.
 }
 
-void Mesh::GenerateCubeSide(CubeFace face, glm::vec3 offset, VoxelColor c){
+void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offset){
 	switch(face){
-		case LeftFace:
-			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
-			addNormalTomesh(DirectionVectors[face]);
+		case RightFace:
+			addVertexToMesh(CubeVerts[TopFrontLeft]+offset);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
-			addNormalTomesh(DirectionVectors[face]);
+			addVertexToMesh(CubeVerts[TopBackLeft]+offset);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
-			addNormalTomesh(DirectionVectors[face]);
+			addVertexToMesh(CubeVerts[BottomBackLeft]+offset);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
-			addNormalTomesh(DirectionVectors[face]);
+			addVertexToMesh(CubeVerts[BottomBackLeft]+offset);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
-			addNormalTomesh(DirectionVectors[face]);
+			addVertexToMesh(CubeVerts[BottomFrontLeft]+offset);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
-			addNormalTomesh(DirectionVectors[face]);
+			addVertexToMesh(CubeVerts[TopFrontLeft]+offset);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
+			addNormalTomesh(DirectionVectors[face]);
 			for(int i=0; i<6; i++){
-				addColorToMesh(GlobalColor);
+				addBrightnessToMesh(b);
+				addColorToMesh(c);
 			}
 			break;
-		case RightFace:
-			addVertexToMesh(offset+CubeVerts[TopBackRight]);
+		case LeftFace:
+			addVertexToMesh(CubeVerts[TopBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addVertexToMesh(CubeVerts[TopFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
+			addVertexToMesh(CubeVerts[BottomBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
+			addVertexToMesh(CubeVerts[BottomBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addVertexToMesh(CubeVerts[TopFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
+			addVertexToMesh(CubeVerts[BottomFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(GlobalColor);
+				addBrightnessToMesh(b);
+				addColorToMesh(c);
 			}
 			break;
 		case TopFace:
-			addVertexToMesh(offset+CubeVerts[TopBackRight]);
+			addVertexToMesh(CubeVerts[TopBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
+			addVertexToMesh(CubeVerts[TopBackLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
+			addVertexToMesh(CubeVerts[TopFrontLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
+			addVertexToMesh(CubeVerts[TopFrontLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addVertexToMesh(CubeVerts[TopFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackRight]);
+			addVertexToMesh(CubeVerts[TopBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(GlobalColor);
+				addBrightnessToMesh(b);
+				addColorToMesh(c);
 			}
 			break;
 		case BottomFace:
-			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
+			addVertexToMesh(CubeVerts[BottomFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
+			addVertexToMesh(CubeVerts[BottomFrontLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
+			addVertexToMesh(CubeVerts[BottomBackLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
+			addVertexToMesh(CubeVerts[BottomBackLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
+			addVertexToMesh(CubeVerts[BottomBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
+			addVertexToMesh(CubeVerts[BottomFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(GlobalColor);
+				addBrightnessToMesh(b);
+				addColorToMesh(c);
 			}
 			break;
 		case FrontFace:
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addVertexToMesh(CubeVerts[TopFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontLeft]);
+			addVertexToMesh(CubeVerts[TopFrontLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
+			addVertexToMesh(CubeVerts[BottomFrontLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontLeft]);
+			addVertexToMesh(CubeVerts[BottomFrontLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomFrontRight]);
+			addVertexToMesh(CubeVerts[BottomFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopFrontRight]);
+			addVertexToMesh(CubeVerts[TopFrontRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(GlobalColor);
+				addBrightnessToMesh(b);
+				addColorToMesh(c);
 			}
 			break;
 		case BackFace:
-			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
+			addVertexToMesh(CubeVerts[TopBackLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackRight]);
+			addVertexToMesh(CubeVerts[TopBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,1.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
+			addVertexToMesh(CubeVerts[BottomBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackRight]);
+			addVertexToMesh(CubeVerts[BottomBackRight]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[BottomBackLeft]);
+			addVertexToMesh(CubeVerts[BottomBackLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,0.0f));
-			addVertexToMesh(offset+CubeVerts[TopBackLeft]);
+			addVertexToMesh(CubeVerts[TopBackLeft]+offset);
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addColorToMesh(GlobalColor);
+				addBrightnessToMesh(b);
+				addColorToMesh(c);
 			}
 			break;
 		default:
 			std::cerr << "INVALID SIDE GENERATION ATTEMPT." << std::endl;
 			break;
 	}
-	GlobalColor = (VoxelColor)(GlobalColor+1);	
 }
 
 void Mesh::addVertexToMesh(glm::vec3 vert){
@@ -373,24 +417,77 @@ void Mesh::addColorToMesh(VoxelColor c){
 	colors.emplace_back(BlockColors[c]);
 }
 
+void Mesh::addMMToMesh(glm::mat4 mm){
+	modelMatrix = mm;
+}
+
+void Mesh::addBrightnessToMesh(float b){
+	brightness.emplace_back(b);
+}
+
+void Mesh::mergeWithMesh(Mesh * m){
+	std::vector<glm::vec4> tempVerts = m->getVerts();
+	this->vertices.insert(this->vertices.end(), tempVerts.begin(), tempVerts.end());
+	std::vector<glm::vec4> tempVertNorms = m->getVertNormals();
+	this->vertexNormals.insert(this->vertexNormals.end(), tempVertNorms.begin(), tempVertNorms.end());
+	std::vector<glm::vec2> tempTexCoords = m->getTexCoords();
+	this->textureCoords.insert(this->textureCoords.end(), tempTexCoords.begin(), tempTexCoords.end());
+	std::vector<glm::vec3> tempColors = m->getColors();
+	this->colors.insert(this->colors.end(), tempColors.begin(), tempColors.end());
+	glm::mat4 tempMatrix = m->getMatrix();
+	this->modelMatrix = tempMatrix;
+	std::vector<float> tempBright = m->getBrightness();
+	this->brightness.insert(this->brightness.end(), tempBright.begin(), tempBright.end());
+}
+
 void Mesh::PrintMeshVerts(){
-	std::cout << "verts Size:" << vertices.size() << std::endl;
-	std::cout << "Colors Size:" << colors.size() << std::endl;
-	std::cout << "Normals Size:" << vertexNormals.size() << std::endl;
-	std::cout << "Texture coords Size:" << textureCoords.size() << std::endl;
+	std::cerr << "verts Size:" << vertices.size() << std::endl;
+	std::cerr << "Colors Size:" << colors.size() << std::endl;
+	std::cerr << "Normals Size:" << vertexNormals.size() << std::endl;
+	std::cerr << "Texture coords Size:" << textureCoords.size() << std::endl;
 	for(int i=0; i<vertices.size(); i++){
-		std::cout << "\tVertex " << i << ": \nX: " << vertices[i].x << "\nY: " << vertices[i].y << "\nZ: " << vertices[i].z << std::endl;
+		std::cerr << "\tVertex " << i << ": \nX: " << vertices[i].x << "\nY: " << vertices[i].y << "\nZ: " << vertices[i].z << std::endl;
 	}	
 }
 
 void Mesh::drawMesh(){
+	//PrintMeshVerts();
 	glBindVertexArray(VertexArrayObject);
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 	glGetError();
 }
 
-RenderController::RenderController(){
+std::vector<glm::vec4> Mesh::getVerts(){
+	return vertices;
+}
 
+std::vector<glm::vec4> Mesh::getVertNormals(){
+	return vertexNormals;
+}
+
+std::vector<glm::vec2> Mesh::getTexCoords(){
+	return textureCoords;
+}
+
+std::vector<glm::vec3> Mesh::getColors(){
+	return colors;
+}
+
+std::vector<GLuint> Mesh::getIndices(){
+	return indices;
+}
+
+glm::mat4 Mesh::getMatrix(){
+	return modelMatrix;
+}
+
+std::vector<float> Mesh::getBrightness(){
+	return brightness;
+}
+
+RenderController::RenderController(){
+	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
+	viewMatrix = glm::lookAt(glm::vec3(-10.0f, 20.0f, 0.0f), glm::vec3(8.0f,8.0f,8.0f), glm::vec3(0.0f,1.0f,0.0f));
 }
 
 RenderController::~RenderController(){
@@ -476,4 +573,6 @@ void RenderController::createShaderProgram(){
     glDeleteShader(fragShader);
     glUseProgram(program);
     programVariable = program;
+    glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "projectionMatrix"), 1, GL_FALSE, &(projectionMatrix[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
 }

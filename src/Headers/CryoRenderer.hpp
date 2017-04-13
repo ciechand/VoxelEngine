@@ -11,7 +11,7 @@
 #include <GL/glu.h>
 
 extern const glm::vec3 CubeVerts[8];
-extern const glm::vec3 DirectionalVectors[6];
+extern const glm::vec3 DirectionVectors[6];
 extern const glm::vec3 BlockColors[16];
 
 //MACROS
@@ -27,7 +27,10 @@ enum VoxelColor{None=0, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine
 enum CubeFace{LeftFace=0, RightFace, TopFace, BottomFace, FrontFace, BackFace};
 
 //Enum for the different vertex buffers labels
-enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LColorArray};
+enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LColorArray, LModelMatrices, LBrightnessBuffer};
+
+//Enum for the Transformation Matrices
+enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, CombinedMatrix};
 
 //typedef for the voxel class, these voxels will comprise blocks. (should )
 class Voxel{
@@ -38,8 +41,14 @@ class Voxel{
 		bool getActive();
 		void setActive(bool va);
 
-		glm::vec3 getPosition();
-		void setPosition(glm::vec3 pos);
+		virtual glm::vec3 getPosition();
+		virtual void setPosition(glm::vec3 pos);
+
+		void setScale(unsigned int s);
+
+		void setRotation(float angle, glm::vec3 rot);
+
+		glm::mat4 getTMatrix(unsigned int index);
 
 		bool getActiveSide(unsigned int n);
 		std::vector<bool> getActiveSide();
@@ -49,10 +58,10 @@ class Voxel{
 		VoxelColor getColor();
 		void setColor(VoxelColor vc);
 
-		unsigned char getBrightness(unsigned int n);
-		std::vector<unsigned char> getBrightness();
-		void setBrightness(unsigned int n, unsigned char c);
-		void setBrightness(std::vector<unsigned char> s);
+		float getBrightness(unsigned int n);
+		std::vector<float> getBrightness();
+		void setBrightness(unsigned int n, float c);
+		void setBrightness(std::vector<float> s);
 
 		int getVoxTex();
 		void setVoxTex(int t);
@@ -62,8 +71,9 @@ class Voxel{
 		glm::vec3 position;
 		std::vector<bool> activeSides = {true,true,true,true,true,true};
 		VoxelColor voxColor;
-		std::vector<unsigned char> brightness = {255,255,255,255,255,255};//here every value needs to be clamped to 0-255
+		std::vector<float> brightness = {255,255,255,255,255,255};//here every value needs to be clamped to 0-255
 		int voxTex = 0;
+		std::vector<glm::mat4> transformMatrices;
 };
 
 //This is the Mesh Class, It will be generated per chunk. each chunk will contain its own mesh? or each block will be its own mesh and will combine into a chunks final mesh?
@@ -76,26 +86,41 @@ class Mesh{
  		void GenerateMesh(Voxel v);
 		void UpdateMesh();
 
-		void GenerateCubeSide(CubeFace face, glm::vec3 offset, VoxelColor c);
+		void GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offset);
 		void addVertexToMesh(glm::vec3 vert);
 		void addNormalTomesh(glm::vec3 norm);
 		void addTexCoordToMesh(glm::vec2 tex);
 		void addColorToMesh(VoxelColor c);
+		void addMMToMesh(glm::mat4 mm);
+		void addBrightnessToMesh(float b);
+
+		void mergeWithMesh(Mesh * m);
 
 		void PrintMeshVerts();
 
 		void drawMesh();
 
+		std::vector<glm::vec4> getVerts();
+		std::vector<glm::vec4> getVertNormals();
+		std::vector<glm::vec2> getTexCoords();
+		std::vector<glm::vec3> getColors();
+		std::vector<GLuint> getIndices();
+		glm::mat4 getMatrix();
+		std::vector<float> getBrightness();
+
 	private:
 		//Below Contains all the OpenGL variables needed in order to draw this mesh.
 		GLuint VertexArrayObject;
-		GLuint VertexBuffer[4];
+		GLuint VertexBuffer[5];
+		std::vector<GLuint> shaderPositions;
+
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> vertexNormals;
 		std::vector<glm::vec2> textureCoords;
 		std::vector<glm::vec3> colors;
+		glm::mat4 modelMatrix;
+		std::vector<float> brightness;
 		std::vector<GLuint> indices;
-		std::vector<GLuint> shaderPositions;
 		//Below are all the variables not used in drawing.
 
 };
@@ -121,6 +146,8 @@ class RenderController{
 		void createShaderProgram();
 
 	private:
+		glm::mat4 projectionMatrix;
+		glm::mat4 viewMatrix;
 		std::string vertexShaderPath;
 		std::string fragmentShaderPath;
 		GLuint programVariable;

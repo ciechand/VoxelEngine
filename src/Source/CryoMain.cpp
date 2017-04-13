@@ -7,6 +7,8 @@
 sf::Window MainWindow;
 sf::Clock MainClock;
 
+std::vector<Chunk *> ChunkContainer;
+
 int main(int argc, char ** argv){
 	if(DEBUGMODE)std::cerr << "Starting Program" << std::endl;
 
@@ -34,8 +36,23 @@ int main(int argc, char ** argv){
 	
 	if(DEBUGMODE)std::cerr << "Done Loading Shader Program" << std::endl;
 
-	Voxel v;
-	Mesh *m = new Mesh(v);
+
+	unsigned int iterations = 3;
+	sf::Time t1 = MainClock.getElapsedTime();
+	for(int i=0; i<iterations; i++){
+		glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
+		if(DEBUGMODE == true)std::cerr << "Setting up Chunk #" << i  << " at:\t " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
+		if(i!=0)
+			ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)+DirectionVectors[i-1]));
+		else
+			ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)));
+	}
+	for(int i=0; i<iterations; i++){
+		ChunkContainer[i]->GenerateMesh();
+	}
+	sf::Time t2 = MainClock.getElapsedTime();
+	sf::Time dt = t2-t1;
+	std::cerr << "Time to generate Chunks: " << dt.asSeconds() << std::endl;
 	while(MainController.getCurrentGameState() != GameExiting){
 		sf::Event event;
 		while(MainWindow.pollEvent(event)){
@@ -50,11 +67,19 @@ int main(int argc, char ** argv){
 					break;
 			}
 		}
+		//Do the light Mapping rendering.
+
+		//Render the actual chunks. 
 		PrepForRender();
-		m->drawMesh();
+		for(int i=0; i<iterations; i++){
+			ChunkContainer[i]->drawChunk();
+		}
 		Render();
 	}
-	delete m;
+	for(int i=0; i<iterations; i++){
+		delete ChunkContainer[i];
+	}
+	ChunkContainer.clear();
 	MainWindow.close();
 	if(DEBUGMODE)std::cerr << "Program Complete" << std::endl;
 	return 0;
@@ -63,6 +88,7 @@ int main(int argc, char ** argv){
 void InitOpenGL(){
 	if(DEBUGMODE)std::cerr << "Initializing OpenGL" << std::endl;
 	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);

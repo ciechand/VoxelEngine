@@ -21,3 +21,24 @@ std::string readFileToString(const char* filePath)
     fileStream.close();
     return content;
 }
+
+glm::vec3 translate1DPos(unsigned int index, unsigned int size){
+    glm::vec3 tempVec(index%size, floor((index/size)%16),  floor((index/size)/size));
+    return tempVec;
+}
+
+unsigned int translate3DPos(glm::vec3 position, unsigned int size){
+    return (unsigned int)((position.z*size*size)+(position.y*size)+position.x);
+}
+
+void print4x4Matrix(glm::mat4 matrix){
+    std::cerr << "Matrix Printed Below:" << std::endl; 
+    for(int i=0; i<4; i++){
+        for(int j=0;j<4;j++){
+            std::cerr <<  matrix[i][j] << " ";
+        }
+        std::cerr << std::endl;
+    } 
+
+
+}

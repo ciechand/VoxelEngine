@@ -8,6 +8,11 @@
 #include <GL/glew.h>
 #include <GL/glu.h>
 
+#include <glm/glm.hpp>
+
 std::string readFileToString(const char* filePath);
+glm::vec3 translate1DPos(unsigned int index, unsigned int size);
+unsigned int translate3DPos(glm::vec3 position, unsigned int size);
+void print4x4Matrix(glm::mat4 matrix);
 
 #endif //util

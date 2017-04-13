@@ -1,18 +1,22 @@
 #version 430 core
 
-in vec4 VertexPosition;
-in vec4 VertexNormal;
-in vec3 VertexColor;
+layout(location=0) in mat4 modelMatrix;
+layout(location=4) in vec4 VertexPosition;
+layout(location=5) in vec4 VertexNormal;
+layout(location=6) in vec3 VertexColor;
+layout(location=8) in float brightness; 
 out vec4 vNormal;
 out vec3 vColor;
+flat out float outBright;
 
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 
 void main()
 {
-	gl_Position =  projectionMatrix * viewMatrix * VertexPosition;
+	gl_Position =  projectionMatrix * viewMatrix * modelMatrix * VertexPosition;
 	//gl_Position =  VertexPosition;
 	vColor = VertexColor;
 	vNormal = VertexNormal;
+	outBright = brightness;
 }

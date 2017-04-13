@@ -25,10 +25,11 @@
 #include <SFML/Window.hpp>
 #include <SFML/OpenGL.hpp>
 
-#include <glm/glm.hpp>
+
+#include <glm/gtc/integer.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
-#include <glm/gtc/integer.hpp>
+#include <glm/glm.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
