@@ -73,7 +73,6 @@ Chunk::Chunk(glm::vec3 pos){
 		glm::vec3 checkChunkPos = pos+DirectionVectors[i];
 		for(int j=0; j<ChunkContainer.size(); j++){
 			if(ChunkContainer[j]->getID() == checkChunkPos && ChunkContainer[j]->getID() != pos){
-				std::cerr << "Meow " << i  << std::endl;
 				ChunksPresent[i] = ChunkContainer[j];
 				break;
 			}

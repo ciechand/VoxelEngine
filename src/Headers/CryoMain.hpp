@@ -28,7 +28,7 @@
 #define SCREENWIDTH 1920
 #define SCREENHEIGHT 1080
 
-#define DEBUGMODE true
+#define DEBUGMODE false
 
 #define CUBESIZE 1.0f
 #define HALFSIZE CUBESIZE/2.0f
