@@ -2,7 +2,7 @@
 #include "../Headers/CryoChunk.hpp"
 #include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoBase.hpp"
-//#include "../Headers/CryoInput.hpp"
+#include "../Headers/CryoInput.hpp"
 
 sf::Window MainWindow;
 sf::Clock MainClock;
@@ -61,7 +61,10 @@ int main(int argc, char ** argv){
 					MainController.setCurrentGameState(GameExiting);
 					break;
 				case sf::Event::KeyPressed:
-					//processKeyPress(event);
+					processKeyPress(event);
+					break;
+				case sf::Event::Resized:
+					processResize(event);
 					break;
 				default:
 					break;

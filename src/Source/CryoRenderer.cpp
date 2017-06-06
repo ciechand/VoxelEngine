@@ -231,16 +231,6 @@ void Mesh::UpdateMesh(){
     glVertexAttribDivisor(shaderPositions[4]+2, 1);
     glVertexAttribDivisor(shaderPositions[4]+3, 1);
 
-    //Passing the brightness into the shader below
-    glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LBrightnessBuffer]);
-	glBufferData(GL_ARRAY_BUFFER, brightness.size()*sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, brightness.size()*sizeof(float), brightness.data());
-
-	shaderPositions.emplace_back(GLuint());
-	shaderPositions[5] = glGetAttribLocation(ShaderController.getProgramVariable(), "brightness");
-	glEnableVertexAttribArray(shaderPositions[5]);
-	glVertexAttribPointer(shaderPositions[5], 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
 }
 
 void Mesh::GenerateMesh(Voxel v){
@@ -269,7 +259,6 @@ void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offs
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addNormalTomesh(DirectionVectors[face]);
 			for(int i=0; i<6; i++){
-				addBrightnessToMesh(b);
 				addColorToMesh(c);
 			}
 			break;
@@ -293,7 +282,6 @@ void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offs
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(0.0f,0.0f));
 			for(int i=0; i<6; i++){
-				addBrightnessToMesh(b);
 				addColorToMesh(c);
 			}
 			break;
@@ -317,7 +305,6 @@ void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offs
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addBrightnessToMesh(b);
 				addColorToMesh(c);
 			}
 			break;
@@ -341,7 +328,6 @@ void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offs
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addBrightnessToMesh(b);
 				addColorToMesh(c);
 			}
 			break;
@@ -365,7 +351,6 @@ void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offs
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addBrightnessToMesh(b);
 				addColorToMesh(c);
 			}
 			break;
@@ -389,7 +374,6 @@ void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offs
 			addNormalTomesh(DirectionVectors[face]);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			for(int i=0; i<6; i++){
-				addBrightnessToMesh(b);
 				addColorToMesh(c);
 			}
 			break;
@@ -421,9 +405,6 @@ void Mesh::addMMToMesh(glm::mat4 mm){
 	modelMatrix = mm;
 }
 
-void Mesh::addBrightnessToMesh(float b){
-	brightness.emplace_back(b);
-}
 
 void Mesh::mergeWithMesh(Mesh * m){
 	std::vector<glm::vec4> tempVerts = m->getVerts();
@@ -436,8 +417,6 @@ void Mesh::mergeWithMesh(Mesh * m){
 	this->colors.insert(this->colors.end(), tempColors.begin(), tempColors.end());
 	glm::mat4 tempMatrix = m->getMatrix();
 	this->modelMatrix = tempMatrix;
-	std::vector<float> tempBright = m->getBrightness();
-	this->brightness.insert(this->brightness.end(), tempBright.begin(), tempBright.end());
 }
 
 void Mesh::PrintMeshVerts(){
@@ -473,21 +452,21 @@ std::vector<glm::vec3> Mesh::getColors(){
 	return colors;
 }
 
-std::vector<GLuint> Mesh::getIndices(){
-	return indices;
-}
-
 glm::mat4 Mesh::getMatrix(){
 	return modelMatrix;
 }
 
-std::vector<float> Mesh::getBrightness(){
-	return brightness;
-}
-
 RenderController::RenderController(){
 	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
-	viewMatrix = glm::lookAt(glm::vec3(-10.0f, 20.0f, 0.0f), glm::vec3(8.0f,8.0f,8.0f), glm::vec3(0.0f,1.0f,0.0f));
+	viewMatrix = glm::lookAt(cameraPos, glm::vec3(8.0f,8.0f,8.0f), glm::vec3(0.0f,1.0f,0.0f));
+}
+
+void initialize(std::string vertShader, std::string fragShader){
+
+}
+
+void initialize(){
+
 }
 
 RenderController::~RenderController(){
@@ -574,5 +553,23 @@ void RenderController::createShaderProgram(){
     glUseProgram(program);
     programVariable = program;
     glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "projectionMatrix"), 1, GL_FALSE, &(projectionMatrix[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
+}
+
+glm::vec2 RenderController::getWindowSize(){
+	return windowSize;
+}
+
+void RenderController::setWindowSize(glm::vec2 ws){
+	windowSize = ws;
+}
+
+glm::vec3 RenderController::getCamPos(){
+	return cameraPos;
+}
+
+void RenderController::setCamPos(glm::vec3 pos){
+	cameraPos = pos;
+	viewMatrix = glm::lookAt(cameraPos, glm::vec3(8.0f,8.0f,8.0f), glm::vec3(0.0f,1.0f,0.0f));
 	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
 }

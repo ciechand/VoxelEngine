@@ -67,25 +67,43 @@ Chunk::Chunk():Chunk(glm::vec3(0,0,0)){
 
 Chunk::Chunk(glm::vec3 pos){
 	setID(pos);
-	std::vector<Chunk*> ChunksPresent;
+	Grid.assign(CHUNKSIZE, nullptr);
+	for(int i=0; i<CHUNKSIZE; i++){
+		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
+		if(blockPos.y > CHUNKSIDE/2 || blockPos.x == 6 || blockPos.z == 11)
+			continue;
+		Grid[i] = new Block();
+	}
+	updateMesh();
+	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks" << std::endl;
+}
+
+Chunk::~Chunk(){
+	for(int i=0; i<CHUNKSIZE; i++){
+		if(Grid[i] != nullptr)
+			delete Grid[i];
+	}
+	if(chunkMesh != nullptr)
+		delete chunkMesh;
+}
+
+void Chunk::updateMesh(){
+std::vector<Chunk*> ChunksPresent;
 	ChunksPresent.assign(6, nullptr);
 	for(int i=0; i<6; i++){
-		glm::vec3 checkChunkPos = pos+DirectionVectors[i];
+		glm::vec3 checkChunkPos = getID()+DirectionVectors[i];
 		for(int j=0; j<ChunkContainer.size(); j++){
-			if(ChunkContainer[j]->getID() == checkChunkPos && ChunkContainer[j]->getID() != pos){
+			if(ChunkContainer[j]->getID() == checkChunkPos && ChunkContainer[j]->getID() != getID()){
 				ChunksPresent[i] = ChunkContainer[j];
 				break;
 			}
 		}
 	}
 
-	Grid.assign(CHUNKSIZE, nullptr);
-	for(int i=0; i<CHUNKSIZE; i++){
-			Grid[i] = new Block();
-	}
-	unsigned int blockIndex = 0;
 	for(int i=0; i<CHUNKSIZE; i++){
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
+		if(Grid[i] == nullptr)
+			continue;
 		Grid[i]->setPosition(blockPos);
 		Grid[i]->setScale(CUBESIZE);
 		Grid[i]->setColor(Green);
@@ -163,17 +181,25 @@ Chunk::Chunk(glm::vec3 pos){
 			}
 		}
 	}
-	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks" << std::endl;
 }
 
-Chunk::~Chunk(){
-	for(int i=0; i<CHUNKSIZE; i++){
-		if(Grid[i] != nullptr)
-			delete Grid[i];
+void Chunk::updateBlockMeshes(){
+	for(int i=0; i<Grid.size(); i++){
+		bool empty = true;
+		for(int s=0;s<6;s++){
+			if(Grid[i] != nullptr && Grid[i]->getActiveSide(s)){
+				empty = false;
+				break;
+			}
+		}
+		if(Grid[i] != nullptr && empty == true)
+			Grid[i]->setActive(false);
+		if(Grid[i] != nullptr && Grid[i]->getActive() == true)
+			Grid[i]->GenerateMesh();
 	}
-	if(chunkMesh != nullptr)
-		delete chunkMesh;
 }
+
+
 //Functions for chunk class 
 void Chunk::GenerateMesh(){
 	if(chunkMesh == nullptr)
@@ -184,6 +210,8 @@ void Chunk::GenerateMesh(){
 	}
 	Mesh * blockMesh = nullptr;
 	for(int i=0; i<CHUNKSIZE; i++){
+		if(Grid[i] == nullptr)
+			continue;
 		if(Grid[i]->getActive() == true)
 			Grid[i]->GenerateMesh();
 		blockMesh = Grid[i]->getMesh();

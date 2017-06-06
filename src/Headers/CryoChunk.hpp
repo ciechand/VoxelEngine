@@ -48,6 +48,8 @@ class Chunk{
 		~Chunk();
 
 		void GenerateMesh();
+		void updateMesh();
+		void updateBlockMeshes();
 
 		void drawChunk();
 
@@ -66,8 +68,6 @@ class Chunk{
 		glm::mat4 TMatrix;
 		std::vector<Block *> Grid;
 		Mesh *chunkMesh = nullptr;
-
-
 };
 
 #endif //CryoChunk

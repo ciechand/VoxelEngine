@@ -92,7 +92,6 @@ class Mesh{
 		void addTexCoordToMesh(glm::vec2 tex);
 		void addColorToMesh(VoxelColor c);
 		void addMMToMesh(glm::mat4 mm);
-		void addBrightnessToMesh(float b);
 
 		void mergeWithMesh(Mesh * m);
 
@@ -104,9 +103,8 @@ class Mesh{
 		std::vector<glm::vec4> getVertNormals();
 		std::vector<glm::vec2> getTexCoords();
 		std::vector<glm::vec3> getColors();
-		std::vector<GLuint> getIndices();
-		glm::mat4 getMatrix();
-		std::vector<float> getBrightness();
+		glm::mat4 getMatrix(); 
+
 
 	private:
 		//Below Contains all the OpenGL variables needed in order to draw this mesh.
@@ -119,8 +117,6 @@ class Mesh{
 		std::vector<glm::vec2> textureCoords;
 		std::vector<glm::vec3> colors;
 		glm::mat4 modelMatrix;
-		std::vector<float> brightness;
-		std::vector<GLuint> indices;
 		//Below are all the variables not used in drawing.
 
 };
@@ -134,6 +130,9 @@ class RenderController{
 		RenderController();
 		~RenderController();
 
+		void initialize(std::string vertShader, std::string fragShader);
+		void initialize();
+
 		std::string getVertexShaderPath();
 		void setVertexShaderPath(std::string path);
 
@@ -145,12 +144,26 @@ class RenderController{
 
 		void createShaderProgram();
 
+		glm::vec2 getWindowSize();
+		void setWindowSize(glm::vec2 ws);
+
+		glm::vec3 getCamPos();
+		void setCamPos(glm::vec3 pos);
+
 	private:
+		//Compilation of things needed to draw
+		std::vector<glm::vec4> totalVertices;
+		GLuint vao;
+		GLuint vbo;
+		GLuint* textures = new GLuint[3];
+		//Variables needed for other stuff
 		glm::mat4 projectionMatrix;
 		glm::mat4 viewMatrix;
 		std::string vertexShaderPath;
 		std::string fragmentShaderPath;
 		GLuint programVariable;
+		glm::vec3 cameraPos = glm::vec3(20.0f,20.0f,20.0f);
+		glm::vec2 windowSize = glm::vec2(SCREENWIDTH,SCREENHEIGHT);
 
 };
 
