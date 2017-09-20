@@ -5,10 +5,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include <glm/glm.hpp>
 
 #include "./CryoRenderer.hpp"
+
+//Precompile definitions
+#define MAXBLOCKTREEDEPTH 5
 
 //Forward Declarations
 class Mesh;
@@ -23,21 +27,58 @@ class Block: public Voxel{
 		void GenerateMesh(); 
 
 		Mesh * getMesh();
-
-		void drawBlock();
-
-		bool getWhole();
-		void setWhole(bool w);
-
-		Voxel * getVoxel(unsigned int index);
-		std::vector<Voxel *> getVoxel();
-
+		
 		glm::vec3 getPosition();
 		void setPosition(glm::vec3 pos);
 	protected:
-		std::vector<Voxel *> voxels;
 		Mesh *blockMesh = nullptr;
-		bool wholeBlock = true;
+};
+
+//Class Definition for a Block BLOckTreeNode
+class BLOckTreeNode{
+	public:
+		BLOckTreeNode(std::string parentID, int nodeID);
+		BLOckTreeNode(int chunkID, int nodeID);
+		BLOckTreeNode(glm::vec3 center);
+		~BLOckTreeNode();
+
+		glm::vec3 getCenter();
+		void setCenter(glm::vec3 center);
+
+		bool getLeaf();
+		void setLeaf(bool l);
+
+		int getLevel();
+		void setLevel(int l);
+
+		string getID();
+		void setID(std::string s);
+
+		Block* getBlockData();
+		void setBlockData(Block* b);
+
+		BLOckTreeNode* getChild(int index);
+		void setChild(int index, BLOckTreeNode* b);
+	private:
+		glm::vec3 centerPoint;
+		bool leaf = false;
+		int level = 0;
+		std::string  identifier = "";
+		Block* blockData;
+		std::array<BLOckTreeNode*, 8> children;
+};
+
+//Class Definition for the A Block Octree
+class BLOckTree{
+	public:
+		BLOckTree(int chunkID);
+		~BLOckTree();
+
+		bool createBlockTree();
+
+		Mesh*  generateTreeMesh();
+	private:
+		BLOckTreeNode* Root;
 
 };
 
@@ -56,8 +97,8 @@ class Chunk{
 		glm::vec3 getID();
 		void setID(glm::vec3 pos);
 
-		glm::mat4 getTMatrix();
-		void setTMatrix(glm::mat4 mm);
+		int getIdentifier();
+		void setIdentifier(int id);
 
 		std::vector<Block*> getBlock();
 		Block* getBlock(unsigned int index);
@@ -65,9 +106,12 @@ class Chunk{
 
 	protected:
 		glm::vec3 ChunkID = {0, 0, 0};
-		glm::mat4 TMatrix;
-		std::vector<Block *> Grid;
+		int chunkIdentifier = 0;
+		BLOckTree * blockTree;
 		Mesh *chunkMesh = nullptr;
+
+	private:
+		std::array<int, 6> _adjacentChunks;
 };
 
 #endif //CryoChunk

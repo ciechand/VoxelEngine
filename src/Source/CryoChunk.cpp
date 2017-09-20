@@ -15,49 +15,107 @@ Block::~Block(){
 //Functions for the Block Class
 void Block::GenerateMesh(){
 	blockMesh = new Mesh();
-	if(voxels.size() > 0)
-		wholeBlock = false;
-	if(wholeBlock == true){
-		blockMesh->GenerateMesh(*this);
-		blockMesh->UpdateMesh();
-	}else{
-		for(int i=0; i<voxels.size(); i++){
-			blockMesh->GenerateMesh(*voxels[i]);
-			blockMesh->UpdateMesh();
-		}
-	}
+	blockMesh->GenerateMesh(*this);
 }
 
 Mesh * Block::getMesh(){
 	return blockMesh;
 }
 
-void Block::drawBlock(){
-	blockMesh->drawMesh();		
-}
-
-bool Block::getWhole(){
-	return wholeBlock;
-}
-
-void Block::setWhole(bool w){
-	wholeBlock = w;
-}
-
-Voxel * Block::getVoxel(unsigned int index){
-	return voxels[index];
-}
-
-std::vector<Voxel *> Block::getVoxel(){
-	return voxels;
-}
-
 glm::vec3 Block::getPosition(){
 	return Voxel::getPosition();
 }
 
-void Block::setPosition(glm::vec3 pos){
+void Block::setPosition(glm::vec3 pos){ 
 	Voxel::setPosition(pos);
+}
+
+//functions contained in the BLOckTree Class
+BLOckTreeNode::BLOckTreeNode(std::string parentID, int nodeID, glm::vec3 center){
+	identifier+=parentID+std::to_string(nodeID);
+	BLOckTreeNode(center);
+}
+
+BLOckTreeNode::BLOckTreeNode(int chunkID, int nodeID, glm::vec3 center){
+	identifier+=std::to_string(chunkID)+"#"+std::to_string(nodeID);
+	BLOckTreeNode(center); 
+}
+
+BLOckTreeNode(glm::vec3 center){
+	centerPoint = center;
+}
+
+BLOckTreeNode::~BLOckTreeNode(){
+
+}
+
+glm::vec3 BLOckTreeNode::getCenter(){
+ 	return centerPoint;
+}
+
+void BLOckTreeNode::setCenter(glm::vec3 center){
+	centerPoint = center;
+}
+
+bool BLOckTreeNode::getLeaf(){
+	return leaf;
+}
+
+void BLOckTreeNode::setLeaf(bool l){
+	leaf = l;
+}
+
+int BLOckTreeNode::getLevel(){
+	return level;
+}
+
+void BLOckTreeNode::setLevel(int l){
+	level = l;
+}
+
+string BLOckTreeNode::getID(){
+	return identifier;
+}
+
+void BLOckTreeNode::setID(std::string s){
+	identifier = s;
+}
+
+Block* BLOckTreeNode::getBlockData(){
+	return blockData;
+}
+
+void BLOckTreeNode::setBlockData(Block* b){
+	blockData = b;
+}
+
+BLOckTreeNode* BLOckTreeNode::getChild(int index){
+	return children[index];
+}
+
+void BLOckTreeNode::setChild(int index, BLOckTreeNode* b){
+	if(children[index] != nullptr){
+		std::cerr << "STOP TRYING TO SET CHILDREN THAT ARE NOT NULL" << std::endl;
+		delete children[index];
+	}
+	children[index] = b;
+}
+
+//Functions contained in the BLOcktree Class
+BLOckTree::BLOcktree(int chunkID){
+
+}
+
+BLOckTree::~BLOcktree(){
+
+}
+
+bool BLOckTree::createBlockTree(){
+
+}
+
+Mesh*  BLOckTree::generateTreeMesh(){
+
 }
 
 //Constructors for Chunk Class
@@ -74,7 +132,6 @@ Chunk::Chunk(glm::vec3 pos){
 			continue;
 		Grid[i] = new Block();
 	}
-	updateMesh();
 	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks" << std::endl;
 }
 
@@ -88,13 +145,11 @@ Chunk::~Chunk(){
 }
 
 void Chunk::updateMesh(){
-std::vector<Chunk*> ChunksPresent;
-	ChunksPresent.assign(6, nullptr);
 	for(int i=0; i<6; i++){
 		glm::vec3 checkChunkPos = getID()+DirectionVectors[i];
-		for(int j=0; j<ChunkContainer.size(); j++){
-			if(ChunkContainer[j]->getID() == checkChunkPos && ChunkContainer[j]->getID() != getID()){
-				ChunksPresent[i] = ChunkContainer[j];
+		for(int j=1; j<ChunkContainer.size(); j++){
+			if(ChunkContainer[j]->getID() == checkChunkPos){
+				adjacentChunks[i] = j;
 				break;
 			}
 		}
@@ -121,8 +176,8 @@ std::vector<Chunk*> ChunksPresent;
 			if(blockPos[s] == 0.0f){
 				glm::vec3 transBlockPos = blockPos;
 				transBlockPos[s] = CHUNKSIDE-1;
-				if(ChunksPresent[(s*2)+1] != nullptr)
-					checkBlock = ChunksPresent[(s*2)+1]->getBlock(transBlockPos);
+				if(adjacentChunks[(s*2)+1] != 0)
+					checkBlock = ChunkContainer[adjacentChunks[(s*2)+1]]->getBlock(transBlockPos);
 				if(checkBlock != nullptr && checkBlock->getActive() == true) {
 					Grid[i]->setColor(Blue);
 					checkBlock->setColor(Red);
@@ -142,8 +197,8 @@ std::vector<Chunk*> ChunksPresent;
 			}else if(blockPos[s] == (CHUNKSIDE-1)){
 				glm::vec3 transBlockPos = blockPos;
 				transBlockPos[s] = 0.0f;
-				if(ChunksPresent[(s*2)] != nullptr)
-					checkBlock = ChunksPresent[(s*2)]->getBlock(transBlockPos);
+				if(adjacentChunks[(s*2)] != 0)
+					checkBlock = ChunkContainer[adjacentChunks[(s*2)]]->getBlock(transBlockPos);
 				if(checkBlock != nullptr && checkBlock->getActive() == true) {
 					Grid[i]->setColor(Blue);
 					checkBlock->setColor(Red);
@@ -212,16 +267,11 @@ void Chunk::GenerateMesh(){
 	for(int i=0; i<CHUNKSIZE; i++){
 		if(Grid[i] == nullptr)
 			continue;
-		if(Grid[i]->getActive() == true)
-			Grid[i]->GenerateMesh();
 		blockMesh = Grid[i]->getMesh();
 		if(blockMesh == nullptr || Grid[i]->getActive() == false)
 			continue;
-		chunkMesh->mergeWithMesh(blockMesh);
+		//ADD THIS BLOCK MESH TO THE RENDER CONTROLLER.
 	}
-	chunkMesh->addMMToMesh(TMatrix);
-
-	chunkMesh->UpdateMesh();
 }
 
 void Chunk::drawChunk(){
@@ -229,15 +279,7 @@ void Chunk::drawChunk(){
 		std::cerr << "Trying to Draw uninitialized Chunk" << std::endl;
 		return;
 	}
-	chunkMesh->drawMesh();
-}
-
-glm::mat4 Chunk::getTMatrix(){
-	return TMatrix;
-}
-
-void Chunk::setTMatrix(glm::mat4 mm){
-	TMatrix = mm;
+	//THIS WILL INVOLVE QUEUEING THIS CHUNK FOR DRAWING. CHUNK ORGANIZER YAY!!!
 }
 
 glm::vec3 Chunk::getID(){
@@ -246,7 +288,14 @@ glm::vec3 Chunk::getID(){
 
 void Chunk::setID(glm::vec3 pos){
 	ChunkID = pos;
-	TMatrix = glm::translate(glm::mat4(), ((float)CHUNKSIDE*CUBESIZE)*pos);
+}
+
+int getIdentifier(){
+	return chunkIdentifier;
+}
+
+void setIdentifier(int id){
+	chunkIdentifier = id;
 }
 
 std::vector<Block*> Chunk::getBlock(){

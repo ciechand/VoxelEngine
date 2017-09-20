@@ -32,6 +32,11 @@ enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LColorArray, LModelMatr
 //Enum for the Transformation Matrices
 enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, CombinedMatrix};
 
+//Classes for bounding boxes goes here, there will be a normal BB which will inherit from an AABB
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
 //typedef for the voxel class, these voxels will comprise blocks. (should )
 class Voxel{
 	public:
@@ -51,17 +56,17 @@ class Voxel{
 		glm::mat4 getTMatrix(unsigned int index);
 
 		bool getActiveSide(unsigned int n);
-		std::vector<bool> getActiveSide();
+		std::array<bool> getActiveSide();
 		void setActiveSide(unsigned int n, bool s);
-		void setActiveSide(std::vector<bool> s);
+		void setActiveSide(std::array<bool> s);
 
 		VoxelColor getColor();
 		void setColor(VoxelColor vc);
 
 		float getBrightness(unsigned int n);
-		std::vector<float> getBrightness();
+		std::array<float> getBrightness();
 		void setBrightness(unsigned int n, float c);
-		void setBrightness(std::vector<float> s);
+		void setBrightness(std::array<float> s);
 
 		int getVoxTex();
 		void setVoxTex(int t);
@@ -69,9 +74,9 @@ class Voxel{
 	private:
 		bool voxActive = true;
 		glm::vec3 position;
-		std::vector<bool> activeSides = {true,true,true,true,true,true};
+		std::array<bool,6> activeSides = {true,true,true,true,true,true};
 		VoxelColor voxColor;
-		std::vector<float> brightness = {255,255,255,255,255,255};//here every value needs to be clamped to 0-255
+		std::array<float, 6> brightness = {255,255,255,255,255,255};//here every value needs to be clamped to 0-255
 		int voxTex = 0;
 		std::vector<glm::mat4> transformMatrices;
 };
@@ -84,7 +89,6 @@ class Mesh{
 		~Mesh();
  
  		void GenerateMesh(Voxel v);
-		void UpdateMesh();
 
 		void GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offset);
 		void addVertexToMesh(glm::vec3 vert);
@@ -93,7 +97,7 @@ class Mesh{
 		void addColorToMesh(VoxelColor c);
 		void addMMToMesh(glm::mat4 mm);
 
-		void mergeWithMesh(Mesh * m);
+		//void mergeWithMesh(Mesh * m); Obselette?
 
 		void PrintMeshVerts();
 
@@ -108,10 +112,6 @@ class Mesh{
 
 	private:
 		//Below Contains all the OpenGL variables needed in order to draw this mesh.
-		GLuint VertexArrayObject;
-		GLuint VertexBuffer[5];
-		std::vector<GLuint> shaderPositions;
-
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> vertexNormals;
 		std::vector<glm::vec2> textureCoords;
@@ -130,7 +130,6 @@ class RenderController{
 		RenderController();
 		~RenderController();
 
-		void initialize(std::string vertShader, std::string fragShader);
 		void initialize();
 
 		std::string getVertexShaderPath();
@@ -152,10 +151,14 @@ class RenderController{
 
 	private:
 		//Compilation of things needed to draw
-		std::vector<glm::vec4> totalVertices;
-		GLuint vao;
-		GLuint vbo;
-		GLuint* textures = new GLuint[3];
+		GLuint VertexArrayObject;
+		GLuint VertexBuffer[5];
+		std::vector<GLuint> shaderPositions;
+		std::vector<glm::vec4> vertices;
+		std::vector<glm::vec4> vertexNormals;
+		std::vector<glm::vec3> colors;
+		std::vector<glm::vec2> texCoords;
+		std::vector<glm::mat4> modelMatrix;
 		//Variables needed for other stuff
 		glm::mat4 projectionMatrix;
 		glm::mat4 viewMatrix;

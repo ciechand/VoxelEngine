@@ -24,6 +24,7 @@ int main(int argc, char ** argv){
 	glewInit();
 
 	InitOpenGL();
+	ChunkContainer.assign(1, nullptr);
 
 	if(DEBUGMODE)std::cerr << "Loading Vertex Shader Path" << std::endl;
 	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/VertexShader.glsl"));
@@ -42,10 +43,14 @@ int main(int argc, char ** argv){
 	for(int i=0; i<iterations; i++){
 		glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
 		if(DEBUGMODE == true)std::cerr << "Setting up Chunk #" << i  << " at:\t " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
-		if(i!=0)
+		int numChunks = ChunkContainer.size();
+		if(i!=0){
 			ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)+DirectionVectors[i-1]));
-		else
+			ChunkContainer[numChunks].setIdentifier(numChunks);
+		}else{
 			ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)));
+			ChunkContainer[numChunks].setIdentifier(numChunks);
+		}
 	}
 	for(int i=0; i<iterations; i++){
 		ChunkContainer[i]->GenerateMesh();

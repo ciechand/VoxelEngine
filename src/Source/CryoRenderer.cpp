@@ -78,7 +78,7 @@ bool Voxel::getActiveSide(unsigned int n){
 	return activeSides[n];
 }
 
-std::vector<bool> Voxel::getActiveSide(){
+std::array<bool> Voxel::getActiveSide(){
 	return activeSides;
 }
 
@@ -91,7 +91,7 @@ void Voxel::setActiveSide(unsigned int s, bool a){
 	voxActive = false;
 }
 
-void Voxel::setActiveSide(std::vector<bool> s){
+void Voxel::setActiveSide(std::array<bool> s){
 	activeSides = s;
 }
 
@@ -104,7 +104,7 @@ void Voxel::setColor(VoxelColor vc){
 	voxColor = vc;
 }
 
-std::vector<float> Voxel::getBrightness(){
+std::array<float> Voxel::getBrightness(){
 	return brightness;
 }
 
@@ -116,7 +116,7 @@ void Voxel::setBrightness(unsigned int n, float c){
 	brightness[n] = c;
 }
 
-void Voxel::setBrightness(std::vector<float> s){
+void Voxel::setBrightness(std::array<float> s){
 	brightness = s;
 }
 
@@ -132,11 +132,7 @@ void Voxel::setVoxTex(int t){
 
 //Start of MESH Class
 Mesh::Mesh(){
-	glGenVertexArrays(1, &VertexArrayObject);
-	glBindVertexArray(VertexArrayObject);
-
-	glGenBuffers(5, &VertexBuffer[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
+	
 }
 
 Mesh::Mesh(Voxel v){
@@ -150,86 +146,11 @@ Mesh::Mesh(Voxel v){
 		Color (defined per voxel.)
 
 	*/
-	glGenVertexArrays(1, &VertexArrayObject);
-	glBindVertexArray(VertexArrayObject);
-
-	glGenBuffers(5, &VertexBuffer[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
-
 	GenerateMesh(v);
-	UpdateMesh();
 	//PrintMeshVerts();
 }
 
 Mesh::~Mesh(){
-	glDeleteVertexArrays(1, &VertexArrayObject);
-	glDeleteBuffers(5, &VertexBuffer[0]);
-}
-
-void Mesh::UpdateMesh(){
-	glBindVertexArray(VertexArrayObject);
-	//Initializing the vertex and normals for this particular mesh.
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4) + vertexNormals.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
-	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
-
-	shaderPositions.emplace_back(GLuint());
-	shaderPositions[0] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexPosition");
-	glEnableVertexAttribArray(shaderPositions[0]);
-	glVertexAttribPointer(shaderPositions[0], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-	shaderPositions.emplace_back(GLuint());
-	shaderPositions[1] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexNormal");
-	glEnableVertexAttribArray(shaderPositions[1]);
-	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
-
-	//Initializing the texture values for this mesh.
-	// glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LTextureBuffer]);
-	// glBufferData(GL_ARRAY_BUFFER, textureCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-	// glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), textureCoords.data());
-
-	// shaderPositions.emplace_back();
-	// shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(), "TextureCoords");
-	// glEnableVertexAttribArray(shaderPositions[2]);
-	// glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-	//Initializing the Color values for each vertex of this mesh
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LColorArray]);
-	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size()*sizeof(glm::vec3), colors.data());
-
-	shaderPositions.emplace_back(GLuint());
-
-	shaderPositions.emplace_back(GLuint());
-	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexColor");
-	glEnableVertexAttribArray(shaderPositions[3]);
-	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-	//Initialize which texture will be utilized for this particular Side.
-	
-	//Initialize the Model matrices / Will I even need this? Or can this be passed in as a uniform for this particular Mesh?
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LModelMatrices]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4), &modelMatrix);
-/*	for(int i=0; i<modelMatrices.size(); i++){
-		print4x4Matrix(modelMatrices[i]);
-	}*/
-
-	shaderPositions.emplace_back(GLuint());
-	shaderPositions[4] = glGetAttribLocation(ShaderController.getProgramVariable(), "modelMatrix");
-    glEnableVertexAttribArray(shaderPositions[4]); 
-    glVertexAttribPointer(shaderPositions[4], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-    glEnableVertexAttribArray(shaderPositions[4]+1); 
-    glVertexAttribPointer(shaderPositions[4]+1, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4))));
-    glEnableVertexAttribArray(shaderPositions[4]+2); 
-    glVertexAttribPointer(shaderPositions[4]+2, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4)*2)));
-    glEnableVertexAttribArray(shaderPositions[4]+3); 
-    glVertexAttribPointer(shaderPositions[4]+3, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4)*3)));
-    glVertexAttribDivisor(shaderPositions[4], 1);
-    glVertexAttribDivisor(shaderPositions[4]+1, 1);
-    glVertexAttribDivisor(shaderPositions[4]+2, 1);
-    glVertexAttribDivisor(shaderPositions[4]+3, 1);
 
 }
 
@@ -406,7 +327,7 @@ void Mesh::addMMToMesh(glm::mat4 mm){
 }
 
 
-void Mesh::mergeWithMesh(Mesh * m){
+/*void Mesh::mergeWithMesh(Mesh * m){
 	std::vector<glm::vec4> tempVerts = m->getVerts();
 	this->vertices.insert(this->vertices.end(), tempVerts.begin(), tempVerts.end());
 	std::vector<glm::vec4> tempVertNorms = m->getVertNormals();
@@ -417,7 +338,7 @@ void Mesh::mergeWithMesh(Mesh * m){
 	this->colors.insert(this->colors.end(), tempColors.begin(), tempColors.end());
 	glm::mat4 tempMatrix = m->getMatrix();
 	this->modelMatrix = tempMatrix;
-}
+}*/
 
 void Mesh::PrintMeshVerts(){
 	std::cerr << "verts Size:" << vertices.size() << std::endl;
@@ -427,13 +348,6 @@ void Mesh::PrintMeshVerts(){
 	for(int i=0; i<vertices.size(); i++){
 		std::cerr << "\tVertex " << i << ": \nX: " << vertices[i].x << "\nY: " << vertices[i].y << "\nZ: " << vertices[i].z << std::endl;
 	}	
-}
-
-void Mesh::drawMesh(){
-	//PrintMeshVerts();
-	glBindVertexArray(VertexArrayObject);
-	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-	glGetError();
 }
 
 std::vector<glm::vec4> Mesh::getVerts(){
@@ -459,18 +373,81 @@ glm::mat4 Mesh::getMatrix(){
 RenderController::RenderController(){
 	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
 	viewMatrix = glm::lookAt(cameraPos, glm::vec3(8.0f,8.0f,8.0f), glm::vec3(0.0f,1.0f,0.0f));
+
+	glGenVertexArrays(1, &VertexArrayObject);
+	glBindVertexArray(VertexArrayObject);
+
+	glGenBuffers(5, &VertexBuffer[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
 }
 
-void initialize(std::string vertShader, std::string fragShader){
+void RenderController::initialize(){
+	glBindVertexArray(VertexArrayObject);
+	//Initializing the vertex and normals for this particular mesh.
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4) + vertexNormals.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
+	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
 
-}
+	shaderPositions.emplace_back();
+	shaderPositions[0] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexPosition");
+	glEnableVertexAttribArray(shaderPositions[0]);
+	glVertexAttribPointer(shaderPositions[0], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
-void initialize(){
+	shaderPositions.emplace_back();
+	shaderPositions[1] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexNormal");
+	glEnableVertexAttribArray(shaderPositions[1]);
+	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
 
+	//Initializing the texture values for this mesh.
+	// glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LTextureBuffer]);
+	// glBufferData(GL_ARRAY_BUFFER, textureCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
+	// glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), textureCoords.data());
+
+	// shaderPositions.emplace_back();
+	// shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(), "TextureCoords");
+	// glEnableVertexAttribArray(shaderPositions[2]);
+	// glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	//Initializing the Color values for each vertex of this mesh
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LColorArray]);
+	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size()*sizeof(glm::vec3), colors.data());
+
+	shaderPositions.emplace_back();
+
+	shaderPositions.emplace_back();
+	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexColor");
+	glEnableVertexAttribArray(shaderPositions[3]);
+	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	//Initialize which texture will be utilized for this particular Side.
+	
+	//Initialize the Model matrices
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LModelMatrices]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4), &modelMatrix);
+
+
+	shaderPositions.emplace_back();
+	shaderPositions[4] = glGetAttribLocation(ShaderController.getProgramVariable(), "modelMatrix");
+    glEnableVertexAttribArray(shaderPositions[4]); 
+    glVertexAttribPointer(shaderPositions[4], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+    glEnableVertexAttribArray(shaderPositions[4]+1); 
+    glVertexAttribPointer(shaderPositions[4]+1, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4))));
+    glEnableVertexAttribArray(shaderPositions[4]+2); 
+    glVertexAttribPointer(shaderPositions[4]+2, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4)*2)));
+    glEnableVertexAttribArray(shaderPositions[4]+3); 
+    glVertexAttribPointer(shaderPositions[4]+3, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET((sizeof(glm::vec4)*3)));
+    glVertexAttribDivisor(shaderPositions[4], 1);
+    glVertexAttribDivisor(shaderPositions[4]+1, 1);
+    glVertexAttribDivisor(shaderPositions[4]+2, 1);
+    glVertexAttribDivisor(shaderPositions[4]+3, 1);
 }
 
 RenderController::~RenderController(){
-
+	glDeleteVertexArrays(1, &VertexArrayObject);
+	glDeleteBuffers(5, &VertexBuffer[0]);
 }
 
 std::string RenderController::getVertexShaderPath(){
