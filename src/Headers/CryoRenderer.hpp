@@ -11,7 +11,7 @@
 #include <GL/glu.h>
 
 extern const glm::vec3 CubeVerts[8];
-extern const glm::vec3 DirectionVectors[6];
+extern const glm::vec3 DirectionVectors[7];
 extern const glm::vec3 BlockColors[16];
 
 //MACROS
@@ -24,7 +24,7 @@ enum CubeVertices{TopBackLeft=0, TopBackRight, TopFrontLeft, TopFrontRight, Bott
 enum VoxelColor{None=0, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine, Cyan, Lime, Green, Yellow, Brown, Golden, Orange};
 
 //enum for sides of a cube
-enum CubeFace{LeftFace=0, RightFace, TopFace, BottomFace, FrontFace, BackFace};
+enum CubeFace{LeftFace=0, RightFace, TopFace, BottomFace, FrontFace, BackFace, CenterFace};
 
 //Enum for the different vertex buffers labels
 enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LColorArray, LModelMatrices, LBrightnessBuffer};
@@ -56,17 +56,17 @@ class Voxel{
 		glm::mat4 getTMatrix(unsigned int index);
 
 		bool getActiveSide(unsigned int n);
-		std::array<bool> getActiveSide();
+		std::array<bool,6> getActiveSide();
 		void setActiveSide(unsigned int n, bool s);
-		void setActiveSide(std::array<bool> s);
+		void setActiveSide(std::array<bool,6> s);
 
 		VoxelColor getColor();
 		void setColor(VoxelColor vc);
 
 		float getBrightness(unsigned int n);
-		std::array<float> getBrightness();
+		std::array<float,6> getBrightness();
 		void setBrightness(unsigned int n, float c);
-		void setBrightness(std::array<float> s);
+		void setBrightness(std::array<float,6> s);
 
 		int getVoxTex();
 		void setVoxTex(int t);
@@ -97,17 +97,15 @@ class Mesh{
 		void addColorToMesh(VoxelColor c);
 		void addMMToMesh(glm::mat4 mm);
 
-		//void mergeWithMesh(Mesh * m); Obselette?
+		void mergeMeshes(Mesh * m);
 
 		void PrintMeshVerts();
-
-		void drawMesh();
 
 		std::vector<glm::vec4> getVerts();
 		std::vector<glm::vec4> getVertNormals();
 		std::vector<glm::vec2> getTexCoords();
 		std::vector<glm::vec3> getColors();
-		glm::mat4 getMatrix(); 
+		std::vector<glm::mat4> getMatrix(); 
 
 
 	private:
@@ -116,7 +114,7 @@ class Mesh{
 		std::vector<glm::vec4> vertexNormals;
 		std::vector<glm::vec2> textureCoords;
 		std::vector<glm::vec3> colors;
-		glm::mat4 modelMatrix;
+		std::vector<glm::mat4> modelMatrix;
 		//Below are all the variables not used in drawing.
 
 };
@@ -149,6 +147,7 @@ class RenderController{
 		glm::vec3 getCamPos();
 		void setCamPos(glm::vec3 pos);
 
+		void drawScene();
 	private:
 		//Compilation of things needed to draw
 		GLuint VertexArrayObject;

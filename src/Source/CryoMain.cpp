@@ -10,8 +10,9 @@ sf::Clock MainClock;
 std::vector<Chunk *> ChunkContainer;
 
 int main(int argc, char ** argv){
-	if(DEBUGMODE)std::cerr << "Starting Program" << std::endl;
+	std::cerr << "Beginning of Program" << std::endl;
 
+	if(DEBUGMODE)std::cerr << "Starting Program" << std::endl;
 
 	//Firstly, We need to initiate SFML and create our main window.
 	sf::ContextSettings setting;
@@ -20,11 +21,11 @@ int main(int argc, char ** argv){
 
 	if(DEBUGMODE)std::cerr << "Window Created" << std::endl;
 
+
 	glewExperimental = GL_TRUE;
 	glewInit();
 
 	InitOpenGL();
-	ChunkContainer.assign(1, nullptr);
 
 	if(DEBUGMODE)std::cerr << "Loading Vertex Shader Path" << std::endl;
 	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/VertexShader.glsl"));
@@ -40,24 +41,31 @@ int main(int argc, char ** argv){
 
 	unsigned int iterations = 3;
 	sf::Time t1 = MainClock.getElapsedTime();
-	for(int i=0; i<iterations; i++){
-		glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
-		if(DEBUGMODE == true)std::cerr << "Setting up Chunk #" << i  << " at:\t " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
-		int numChunks = ChunkContainer.size();
-		if(i!=0){
-			ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)+DirectionVectors[i-1]));
-			ChunkContainer[numChunks].setIdentifier(numChunks);
-		}else{
-			ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)));
-			ChunkContainer[numChunks].setIdentifier(numChunks);
+	for(int i=6; i>=(6-iterations); i--){
+		if(DEBUGMODE == true){
+			glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
+			std::cerr << "Setting up Chunk #" << i  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
 		}
+		ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)+DirectionVectors[i]));
 	}
-	for(int i=0; i<iterations; i++){
-		ChunkContainer[i]->GenerateMesh();
-	}
+
 	sf::Time t2 = MainClock.getElapsedTime();
 	sf::Time dt = t2-t1;
 	std::cerr << "Time to generate Chunks: " << dt.asSeconds() << std::endl;
+	t1 = MainClock.getElapsedTime();
+
+	for(int i=6; i>=(6-iterations); i--){
+		if(DEBUGMODE == true){
+			glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
+			std::cerr << "Configuring Mesh for Chunk #" << i  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
+		}
+		ChunkContainer[(6-i)]->GenerateMesh();
+	}
+
+	t2 = MainClock.getElapsedTime();
+	dt = t2-t1;
+	std::cerr << "Time to generate Chunk Meshes: " << dt.asSeconds() << std::endl;
+
 	while(MainController.getCurrentGameState() != GameExiting){
 		sf::Event event;
 		while(MainWindow.pollEvent(event)){
@@ -79,12 +87,9 @@ int main(int argc, char ** argv){
 
 		//Render the actual chunks. 
 		PrepForRender();
-		for(int i=0; i<iterations; i++){
-			ChunkContainer[i]->drawChunk();
-		}
 		Render();
 	}
-	for(int i=0; i<iterations; i++){
+	for(int i=0; i<ChunkContainer.size(); i++){
 		delete ChunkContainer[i];
 	}
 	ChunkContainer.clear();
@@ -110,5 +115,6 @@ void PrepForRender(){
 }
 
 void Render(){	
+	ShaderController.drawScene();
 	MainWindow.display();
 }

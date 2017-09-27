@@ -6,7 +6,6 @@
 #include <vector>
 #include <string>
 #include <random>
-#include <unordered_map>
 
 #include <GL/glew.h>
 #include <GL/glu.h>
@@ -33,7 +32,7 @@
 #define CUBESIZE 1.0f
 #define HALFSIZE CUBESIZE/2.0f
 
-#define CHUNKSIDE 16
+#define CHUNKSIDE 32
 #define CHUNKSIZE CHUNKSIDE*CHUNKSIDE*CHUNKSIDE
 
 #define PI 3.14f

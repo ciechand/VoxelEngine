@@ -24,10 +24,10 @@ glm::vec3(-HALFSIZE,-HALFSIZE,HALFSIZE),glm::vec3(HALFSIZE,-HALFSIZE,HALFSIZE)
 };
 
 //Const GlobaL array for the different directional vectors, these can be accessed with the CubeFace Enum.
-const glm::vec3 DirectionVectors[6] = { 
+const glm::vec3 DirectionVectors[7] = {
 glm::vec3(1.0,0.0,0.0), glm::vec3(-1.0,0.0,0.0),
 glm::vec3(0.0,1.0,0.0), glm::vec3(0.0,-1.0,0.0),
-glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0)
+glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0), glm::vec3(0.0,0.0,0.0)
 };
 
 //Functions for the Voxel Class
@@ -78,7 +78,7 @@ bool Voxel::getActiveSide(unsigned int n){
 	return activeSides[n];
 }
 
-std::array<bool> Voxel::getActiveSide(){
+std::array<bool,6> Voxel::getActiveSide(){
 	return activeSides;
 }
 
@@ -91,7 +91,7 @@ void Voxel::setActiveSide(unsigned int s, bool a){
 	voxActive = false;
 }
 
-void Voxel::setActiveSide(std::array<bool> s){
+void Voxel::setActiveSide(std::array<bool,6> s){
 	activeSides = s;
 }
 
@@ -104,7 +104,7 @@ void Voxel::setColor(VoxelColor vc){
 	voxColor = vc;
 }
 
-std::array<float> Voxel::getBrightness(){
+std::array<float,6> Voxel::getBrightness(){
 	return brightness;
 }
 
@@ -116,7 +116,7 @@ void Voxel::setBrightness(unsigned int n, float c){
 	brightness[n] = c;
 }
 
-void Voxel::setBrightness(std::array<float> s){
+void Voxel::setBrightness(std::array<float,6> s){
 	brightness = s;
 }
 
@@ -179,9 +179,8 @@ void Mesh::GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offs
 			addVertexToMesh(CubeVerts[TopFrontLeft]+offset);
 			addTexCoordToMesh(glm::vec2(1.0f,1.0f));
 			addNormalTomesh(DirectionVectors[face]);
-			for(int i=0; i<6; i++){
-				addColorToMesh(c);
-			}
+			addColorToMesh(c);
+			addMMToMesh(glm::translate(glm::mat4(), offset));
 			break;
 		case LeftFace:
 			addVertexToMesh(CubeVerts[TopBackRight]+offset);
@@ -323,11 +322,11 @@ void Mesh::addColorToMesh(VoxelColor c){
 }
 
 void Mesh::addMMToMesh(glm::mat4 mm){
-	modelMatrix = mm;
+	modelMatrix.emplace_back(mm);
 }
 
 
-/*void Mesh::mergeWithMesh(Mesh * m){
+void Mesh::mergeMeshes(Mesh * m){
 	std::vector<glm::vec4> tempVerts = m->getVerts();
 	this->vertices.insert(this->vertices.end(), tempVerts.begin(), tempVerts.end());
 	std::vector<glm::vec4> tempVertNorms = m->getVertNormals();
@@ -336,9 +335,9 @@ void Mesh::addMMToMesh(glm::mat4 mm){
 	this->textureCoords.insert(this->textureCoords.end(), tempTexCoords.begin(), tempTexCoords.end());
 	std::vector<glm::vec3> tempColors = m->getColors();
 	this->colors.insert(this->colors.end(), tempColors.begin(), tempColors.end());
-	glm::mat4 tempMatrix = m->getMatrix();
-	this->modelMatrix = tempMatrix;
-}*/
+	std::vector<glm::mat4> tempMatrices = m->getMatrix();
+	this->modelMatrix.insert(this->modelMatrix.end(), tempMatrices.begin(), tempMatrices.end());
+}
 
 void Mesh::PrintMeshVerts(){
 	std::cerr << "verts Size:" << vertices.size() << std::endl;
@@ -366,7 +365,7 @@ std::vector<glm::vec3> Mesh::getColors(){
 	return colors;
 }
 
-glm::mat4 Mesh::getMatrix(){
+std::vector<glm::mat4> Mesh::getMatrix(){
 	return modelMatrix;
 }
 
@@ -374,14 +373,15 @@ RenderController::RenderController(){
 	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
 	viewMatrix = glm::lookAt(cameraPos, glm::vec3(8.0f,8.0f,8.0f), glm::vec3(0.0f,1.0f,0.0f));
 
+}
+
+void RenderController::initialize(){
 	glGenVertexArrays(1, &VertexArrayObject);
 	glBindVertexArray(VertexArrayObject);
 
 	glGenBuffers(5, &VertexBuffer[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
-}
 
-void RenderController::initialize(){
 	glBindVertexArray(VertexArrayObject);
 	//Initializing the vertex and normals for this particular mesh.
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
@@ -549,4 +549,8 @@ void RenderController::setCamPos(glm::vec3 pos){
 	cameraPos = pos;
 	viewMatrix = glm::lookAt(cameraPos, glm::vec3(8.0f,8.0f,8.0f), glm::vec3(0.0f,1.0f,0.0f));
 	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
+}
+
+void RenderController::drawScene(){
+	//YAYS!!!! DO THE DRAW THING!!!! ^^
 }
