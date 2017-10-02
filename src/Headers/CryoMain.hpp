@@ -30,12 +30,16 @@
 #define DEBUGMODE true
 
 #define CUBESIZE 1.0f
-#define HALFSIZE CUBESIZE/2.0f
+#define HALFSIZE (CUBESIZE/2.0f)+0.003f
 
-#define CHUNKSIDE 32
+#define CHUNKSIDE 16
 #define CHUNKSIZE CHUNKSIDE*CHUNKSIDE*CHUNKSIDE
 
 #define PI 3.14f
+
+#define GLM_FORCE_RADIANS
+
+#define TO_RADIANS(angle) ((angle*PI)/180.0f)
 
 //Forward Definitions
 class Chunk;
@@ -45,6 +49,7 @@ void InitOpenGL();
 void PrepForRender();
 void Render();
 
+extern sf::Window MainWindow;
 extern sf::Clock MainClock;
 extern std::vector<Chunk *> ChunkContainer;
 

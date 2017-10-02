@@ -1,11 +1,14 @@
 #include "../Headers/CryoMain.hpp"
-#include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoChunk.hpp"
+#include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoUtil.hpp"
 
 
 //Constructors for the Block Class
-Block::Block():Voxel(){
+Block::Block(){
+	setScale(glm::vec3(CUBESIZE,CUBESIZE,CUBESIZE));
+	sideColors.fill(BlockColors[None]);
+	objectMatrix.fill(glm::mat4());
 }
 
 Block::~Block(){
@@ -14,21 +17,102 @@ Block::~Block(){
 }
 //Functions for the Block Class
 void Block::GenerateMesh(){
+	if(blockMesh != nullptr)
+			delete blockMesh;
 	blockMesh = new Mesh();
-	blockMesh->GenerateMesh(*this);
+	blockMesh->GenerateMesh(this);
 }
 
 Mesh * Block::getMesh(){
 	return blockMesh;
 }
 
-glm::vec3 Block::getPosition(){
-	return Voxel::getPosition();
+bool Block::getActive(){
+	return blockActive;
 }
 
-void Block::setPosition(glm::vec3 pos){ 
-	Voxel::setPosition(pos);
+void Block::setActive(bool ba){
+	blockActive = ba;
 }
+
+glm::vec3 Block::getPosition(){
+	return position;
+}
+
+void Block::setPosition(glm::vec3 pos){
+	objectMatrix[TranslateMatrix] = glm::translate(glm::mat4(), pos);
+	objectMatrix[CombinedMatrix] = objectMatrix[TranslateMatrix]*objectMatrix[RotationMatrix]*objectMatrix[ScaleMatrix];
+	position = pos;
+}
+	
+void Block::setRotation(float angle, glm::vec3 axis){
+	objectMatrix[RotationMatrix] = glm::rotate(glm::mat4(), angle, axis);
+	objectMatrix[CombinedMatrix] = objectMatrix[TranslateMatrix]*objectMatrix[RotationMatrix]*objectMatrix[ScaleMatrix];
+	
+}
+
+void Block::setScale(glm::vec3 scale){
+	objectMatrix[ScaleMatrix] = glm::scale(glm::mat4(), scale);
+	objectMatrix[CombinedMatrix] = objectMatrix[TranslateMatrix]*objectMatrix[RotationMatrix]*objectMatrix[ScaleMatrix];
+	
+}
+
+glm::mat4 Block::getObjectMatrix(){
+	return objectMatrix[CombinedMatrix];
+}
+
+bool Block::getActiveSide(unsigned int n){
+	return activeSides[n];
+}
+
+std::array<bool,6> Block::getActiveSide(){
+	return activeSides;
+}
+
+void Block::setActiveSide(unsigned int n, bool s){
+ 	activeSides[n] = s;
+}
+
+void Block::setActiveSide(std::array<bool,6> s){
+	activeSides = s;
+}
+
+glm::vec3 Block::getSideColor(unsigned int n){
+	return sideColors[n];
+}
+
+std::array<glm::vec3,6> Block::getSideColor(){
+	return sideColors;
+}
+
+void Block::setSideColor(unsigned int n, VoxelColor s){
+	sideColors[n] = BlockColors[s];
+}
+
+void Block::setSideColor(std::array<glm::vec3,6> s){
+	sideColors = s;
+}
+
+void Block::setColor(VoxelColor c){
+	sideColors.fill(BlockColors[c]);
+}
+
+int Block::getSideTexture(unsigned int n){
+	return sideTextures[n];
+}
+
+std::array<int,6> Block::getSideTexture(){
+	return sideTextures;
+}
+
+void Block::setSideTexture(unsigned int n, int s){
+	sideTextures[n] = s;
+}
+
+void Block::setSideTexture(std::array<int,6> s){
+	sideTextures = s;
+}
+
 
 //Constructors for Chunk Class
 Chunk::Chunk():Chunk(glm::vec3(0,0,0)){
@@ -41,8 +125,8 @@ Chunk::Chunk(glm::vec3 pos){
 	adjacentChunks.fill(-1);
 	for(int i=0; i<CHUNKSIZE; i++){
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
-		if(blockPos.y > CHUNKSIDE/2 || blockPos.x == 6 || blockPos.z == 11 || blockPos.y == 20)
-			continue;
+		//if(blockPos.y > CHUNKSIDE/2 || blockPos.x == 6 || blockPos.z == 11 || blockPos.y == 20)
+		//	continue;
 		Grid[i] = new Block();
 	}
 	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks" << std::endl;
@@ -55,8 +139,6 @@ Chunk::~Chunk(){
 		if(Grid[i] != nullptr)
 			delete Grid[i];
 	}
-	if(chunkMesh != nullptr)
-		delete chunkMesh;
 }
 
 void Chunk::initializeMesh(){
@@ -72,14 +154,10 @@ void Chunk::initializeMesh(){
 		if(Grid[i] == nullptr)
 			continue;
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
-		Grid[i]->setPosition((blockPos+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE,CHUNKSIDE,CHUNKSIDE)/2.0f));
-		Grid[i]->setScale(CUBESIZE);
+		Grid[i]->setPosition(((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE,CHUNKSIDE,CHUNKSIDE)/2.0f));
+		Grid[i]->setScale(glm::vec3(HALFSIZE,HALFSIZE,HALFSIZE));
 		Grid[i]->setColor(Green);
-		//Grid[i]->setColor((VoxelColor)(i%CHUNKSIDE));
-		// for(int b=0; b<6; b++){
-		// 	float bright = ((CHUNKSIDE*i)/(CHUNKSIDE*CHUNKSIDE));
-		// 	Grid[i]->setBrightness(b, bright/255.0f);
-		// }
+		Grid[i]->setColor((VoxelColor)(i%CHUNKSIDE));
 		/*if(DEBUGMODE == true){
 			glm::vec3 tempBPos = Grid[i]->getPosition();
 			std::cerr << "Current Block Pos: \n\tX: " << tempBPos.x << "\n\tY: " << tempBPos.y << "\n\tZ: " << tempBPos.z << std::endl;
@@ -153,16 +231,18 @@ void Chunk::initializeMesh(){
 
 void Chunk::updateMesh(){
 	for(int i=0; i<Grid.size(); i++){
+		if(Grid[i] == nullptr)
+			continue;
 		bool empty = true;
 		for(int s=0;s<6;s++){
-			if(Grid[i] != nullptr && Grid[i]->getActiveSide(s)){
+			if(Grid[i]->getActiveSide(s)){
 				empty = false;
 				break;
 			}
 		}
-		if(Grid[i] != nullptr && empty == true)
+		if(empty == true)
 			Grid[i]->setActive(false);
-		if(Grid[i] != nullptr && Grid[i]->getActive() == true)
+		if(Grid[i]->getActive() == true)
 			Grid[i]->GenerateMesh();
 	}
 }
@@ -171,13 +251,9 @@ void Chunk::updateMesh(){
 //Functions for chunk class 
 void Chunk::GenerateMesh(){
 	initializeMesh();
+	if(DEBUGMODE == true) std::cerr << "initialized Mesh" << std::endl;
 	updateMesh();
-	if(chunkMesh == nullptr){
-		chunkMesh = new Mesh;
-	}else{
-		delete chunkMesh;
-		chunkMesh = nullptr;
-	}
+	if(DEBUGMODE == true) std::cerr << "updated Mesh" << std::endl;
 	Mesh * blockMesh = nullptr;
 	for(int i=0; i<CHUNKSIZE; i++){
 		if(Grid[i] == nullptr)
@@ -185,20 +261,11 @@ void Chunk::GenerateMesh(){
 		blockMesh = Grid[i]->getMesh();
 		if(blockMesh == nullptr || Grid[i]->getActive() == false)
 			continue;
-		chunkMesh->mergeMeshes(blockMesh);
+		blockMesh->addMeshToRenderer(Grid[i]->getObjectMatrix());
 	}
+	if(DEBUGMODE == true) std::cerr << "Generated Mesh" << std::endl;
 }
 
-void Chunk::drawChunk(){
-	if(chunkMesh == nullptr){
-		std::cerr << "Trying to Draw uninitialized Chunk" << std::endl;
-		return;
-	}
-	std::cerr << "STOP TRYING TO DRAW CHUNKS DIRECTLY!!" << std::endl;
-	//THIS WILL INVOLVE QUEUEING THIS CHUNK FOR DRAWING. CHUNK ORGANIZER YAY!!!
-	//INcorporated in this is creating a chunk manager.
-	//Drawing a chunk will not be part of the chunkk class, this will be part of the render controller.
-}
 
 glm::vec3 Chunk::getPos(){
 	return chunkPos;

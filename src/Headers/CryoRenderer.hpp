@@ -3,7 +3,9 @@
 
 #include <iostream>
 
+#include <string>
 #include <vector>
+#include <map>
 
 #include <glm/glm.hpp>
 
@@ -17,6 +19,9 @@ extern const glm::vec3 BlockColors[16];
 //MACROS
 #define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
 
+//Class predefinition
+class Block;
+
 //Enum for defining positions of the different cube vertices.
 enum CubeVertices{TopBackLeft=0, TopBackRight, TopFrontLeft, TopFrontRight, BottomBackLeft, BottomBackRight, BottomFrontLeft, BottomFrontRight};
 
@@ -27,7 +32,7 @@ enum VoxelColor{None=0, Red, Maroon, Pink, DPink, Purple, Aqua, Blue, Aquamarine
 enum CubeFace{LeftFace=0, RightFace, TopFace, BottomFace, FrontFace, BackFace, CenterFace};
 
 //Enum for the different vertex buffers labels
-enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LColorArray, LModelMatrices, LBrightnessBuffer};
+enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LColorArray, LModelMatrices, LIndexBuffer};
 
 //Enum for the Transformation Matrices
 enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, CombinedMatrix};
@@ -37,86 +42,101 @@ enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, Combi
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-//typedef for the voxel class, these voxels will comprise blocks. (should )
-class Voxel{
+//VertexInfo Class, used when reading in the vertices
+struct vertexInfo{
+	glm::vec4 verts;
+	glm::vec4 norms;
+	glm::vec2 tex;
+	bool operator<(const vertexInfo that) const{
+		return memcmp((void*)this, (void*)&that, sizeof(vertexInfo))>0;
+	};
+};
+
+//This is the baseMesh class, this contains all the information read in from a 
+class BaseMesh{
 	public:
-		Voxel();
-		~Voxel();
+		BaseMesh(std::string filename);
+		~BaseMesh();
 
-		bool getActive();
-		void setActive(bool va);
+		bool loadModel();
 
-		virtual glm::vec3 getPosition();
-		virtual void setPosition(glm::vec3 pos);
+		void addToController();
 
-		void setScale(unsigned int s);
+		unsigned int getID();
+		void setID(unsigned int id);
 
-		void setRotation(float angle, glm::vec3 rot);
+		unsigned int getVertStart();
+		void setVertStart(unsigned int index);
 
-		glm::mat4 getTMatrix(unsigned int index);
+		unsigned int getTexStart();
+		void setTexStart(unsigned int index);
 
-		bool getActiveSide(unsigned int n);
-		std::array<bool,6> getActiveSide();
-		void setActiveSide(unsigned int n, bool s);
-		void setActiveSide(std::array<bool,6> s);
+		unsigned int getNormalStart();
+		void setNormalStart(unsigned int index);
 
-		VoxelColor getColor();
-		void setColor(VoxelColor vc);
+		std::vector<glm::vec4> getVertices();
+		std::vector<glm::vec2> getTexCoords();
+		std::vector<glm::vec4> getNormals();
+		std::vector<unsigned int> getIndices();
 
-		float getBrightness(unsigned int n);
-		std::array<float,6> getBrightness();
-		void setBrightness(unsigned int n, float c);
-		void setBrightness(std::array<float,6> s);
+		void addToColors(std::vector<glm::vec3>::iterator begining, std::vector<glm::vec3>::iterator ending);
+		void addToColors(glm::vec3 color);
+		std::vector<glm::vec3> getColors();
 
-		int getVoxTex();
-		void setVoxTex(int t);
+		void addToModels(std::vector<glm::mat4>::iterator begining, std::vector<glm::mat4>::iterator ending);
+		void addToModels(glm::mat4 model);
+		std::vector<glm::mat4> getModels();
 
 	private:
-		bool voxActive = true;
-		glm::vec3 position;
-		std::array<bool,6> activeSides = {true,true,true,true,true,true};
-		VoxelColor voxColor;
-		std::array<float, 6> brightness = {255,255,255,255,255,255};//here every value needs to be clamped to 0-255
-		int voxTex = 0;
-		std::vector<glm::mat4> transformMatrices;
+		unsigned int ID;
+		std::string modelFile = "";
+		unsigned int vertexStart = 0;
+		std::vector<glm::vec4> vertices;
+		unsigned int texStart = 0;
+		std::vector<glm::vec2> texCoords;
+		unsigned int normalStart = 0;
+		std::vector<glm::vec4> normals; 
+		std::vector<unsigned int> indices;
+
+		std::vector<glm::vec3> colors;
+		std::vector<glm::mat4> modelMatrices;
 };
+
 
 //This is the Mesh Class, It will be generated per chunk. each chunk will contain its own mesh? or each block will be its own mesh and will combine into a chunks final mesh?
 class Mesh{
 	public:
 		Mesh();
-		Mesh(Voxel v);
 		~Mesh();
  
- 		void GenerateMesh(Voxel v);
+ 		void GenerateMesh(Block * parentBlock);
 
-		void GenerateCubeSide(CubeFace face, float b, VoxelColor c, glm::vec3 offset);
-		void addVertexToMesh(glm::vec3 vert);
-		void addNormalTomesh(glm::vec3 norm);
-		void addTexCoordToMesh(glm::vec2 tex);
-		void addColorToMesh(VoxelColor c);
-		void addMMToMesh(glm::mat4 mm);
+		void GenerateCubeSide(CubeFace face, glm::vec3 c, glm::vec3 offset);
 
-		void mergeMeshes(Mesh * m);
+		void addBaseToMesh(int baseID);
+		std::vector<int> getBase();
+		int getBase(unsigned int index);
 
-		void PrintMeshVerts();
+		void addTexIDToMesh(int texID);
+		std::vector<int> getTexID();
+		int getTexID(unsigned int index);
 
-		std::vector<glm::vec4> getVerts();
-		std::vector<glm::vec4> getVertNormals();
-		std::vector<glm::vec2> getTexCoords();
+		void addColorToMesh(glm::vec3 c);
 		std::vector<glm::vec3> getColors();
-		std::vector<glm::mat4> getMatrix(); 
+		glm::vec3 getColors(unsigned int index);
 
+		void addMatrixToMesh(glm::mat4 mm);
+		std::vector<glm::mat4> getMatrix(); 
+		glm::mat4 getMatrix(unsigned int index);
+
+		void addMeshToRenderer(glm::mat4 objectMatrix = glm::mat4());
 
 	private:
-		//Below Contains all the OpenGL variables needed in order to draw this mesh.
-		std::vector<glm::vec4> vertices;
-		std::vector<glm::vec4> vertexNormals;
-		std::vector<glm::vec2> textureCoords;
-		std::vector<glm::vec3> colors;
-		std::vector<glm::mat4> modelMatrix;
-		//Below are all the variables not used in drawing.
-
+		//NEW VARIABLES FOR MESHES!!
+		std::vector<int> meshIDs; //there should be one for every model.
+		std::vector<int> textureIDs; //there should be one for every model.
+		std::vector<glm::vec3> colors; // There should be one for every model.
+		std::vector<glm::mat4> modelMatrix; //There should be one for ever model.
 };
 
 
@@ -129,6 +149,9 @@ class RenderController{
 		~RenderController();
 
 		void initialize();
+		int loadBaseMeshes();
+		void reloadBuffers();
+		void createShaderProgram();
 
 		std::string getVertexShaderPath();
 		void setVertexShaderPath(std::string path);
@@ -139,13 +162,18 @@ class RenderController{
 		GLuint getProgramVariable();
 		void setProgramVariable(GLuint prog);
 
-		void createShaderProgram();
+		std::vector<BaseMesh *> &getBaseMeshes();	
 
 		glm::vec2 getWindowSize();
 		void setWindowSize(glm::vec2 ws);
 
 		glm::vec3 getCamPos();
 		void setCamPos(glm::vec3 pos);
+
+		glm::vec3 getCamRot();
+		void setCamRot(glm::vec3 rot);
+
+		void setViewMatrix(glm::mat4 mat);
 
 		void drawScene();
 	private:
@@ -155,8 +183,9 @@ class RenderController{
 		std::vector<GLuint> shaderPositions;
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> vertexNormals;
-		std::vector<glm::vec3> colors;
 		std::vector<glm::vec2> texCoords;
+		std::vector<unsigned int> indices;
+		std::vector<glm::vec3> colors;
 		std::vector<glm::mat4> modelMatrix;
 		//Variables needed for other stuff
 		glm::mat4 projectionMatrix;
@@ -164,7 +193,10 @@ class RenderController{
 		std::string vertexShaderPath;
 		std::string fragmentShaderPath;
 		GLuint programVariable;
+		// std::map<String, int> MeshOrder; Maybe?
+		std::vector<BaseMesh *> baseMeshes;
 		glm::vec3 cameraPos = glm::vec3(20.0f,20.0f,20.0f);
+		glm::vec3 cameraRotation = glm::vec3(0.0f,0.0f,0.0f);
 		glm::vec2 windowSize = glm::vec2(SCREENWIDTH,SCREENHEIGHT);
 
 };

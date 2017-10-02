@@ -11,7 +11,11 @@
 #include <SFML/Window.hpp>
 #include <SFML/OpenGL.hpp>
 
+#define LOOKSPEED 1.0f
+#define CAMERADIST 20.0f
+
 void processKeyPress(sf::Event event);
+void processMouseMove(sf::Event event);
 void processResize(sf::Event event);
 
 #endif //input

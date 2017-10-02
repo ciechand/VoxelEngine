@@ -13,7 +13,6 @@ uniform mat4 projectionMatrix;
 void main()
 {
 	gl_Position =  projectionMatrix * viewMatrix * modelMatrix * VertexPosition;
-	//gl_Position =  VertexPosition;
-	vColor = VertexColor;
+	vColor = VertexColor/255.0f;
 	vNormal = VertexNormal;
 }
