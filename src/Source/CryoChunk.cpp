@@ -125,8 +125,8 @@ Chunk::Chunk(glm::vec3 pos){
 	adjacentChunks.fill(-1);
 	for(int i=0; i<CHUNKSIZE; i++){
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
-		//if(blockPos.y > CHUNKSIDE/2 || blockPos.x == 6 || blockPos.z == 11 || blockPos.y == 20)
-		//	continue;
+		if((blockPos.x >= CHUNKSIDE/2 && blockPos.x <= CHUNKSIDE-5.0f) || (blockPos.y >= 4 && blockPos.y <= CHUNKSIDE-5.0f) || (blockPos.z >= 4 && blockPos.z <= CHUNKSIDE-5.0f))
+			continue;
 		Grid[i] = new Block();
 	}
 	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks" << std::endl;

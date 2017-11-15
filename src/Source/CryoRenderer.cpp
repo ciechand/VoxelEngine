@@ -4,6 +4,7 @@
 #include "../Headers/CryoUtil.hpp"
 
 RenderController ShaderController;
+CameraController Camera;
 
 VoxelColor GlobalColor = Red;
 
@@ -231,7 +232,7 @@ void Mesh::GenerateMesh(Block * parentBlock){
 }
 
 void Mesh::GenerateCubeSide(CubeFace face, glm::vec3 c, glm::vec3 offset){
-	std::cerr << "Offset: \n\tX: " << offset.x << "\n\tY: " << offset.y << "\n\tZ: " << offset.z << std::endl; 
+	//std::cerr << "Offset: \n\tX: " << offset.x << "\n\tY: " << offset.y << "\n\tZ: " << offset.z << std::endl; 
 	glm::mat4 translated = glm::translate(glm::mat4(), DirectionVectors[face]-(DirectionVectors[face]*0.001f));
 	glm::mat4 rotated;
 	switch(face){
@@ -346,10 +347,77 @@ void Mesh::addMeshToRenderer(glm::mat4 objectMatrix){
 	}
 }
 
-
-RenderController::RenderController(){
+CameraController::CameraController(){
 	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
 	viewMatrix = glm::lookAt(cameraPos, glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
+}
+
+CameraController::~CameraController(){
+
+}
+
+glm::vec3 CameraController::getCamPos(){
+	return cameraPos;
+}
+
+void CameraController::setCamPos(glm::vec3 pos){
+	cameraPos = pos;
+	viewMatrix = glm::lookAt(cameraPos, glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(ShaderBase), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
+}
+
+glm::vec3 CameraController::getCamRot(){
+	return cameraRotation;
+}
+
+void CameraController::setCamRot(glm::vec3 rot){
+	cameraRotation = rot;
+}
+
+glm::vec3 CameraController::getCamAt(){
+	return cameraAt;
+}
+
+void CameraController::setCamAt(glm::vec3 at){
+	cameraAt = at;
+}
+
+glm::vec3 CameraController::getCamUp(){
+	return cameraUp;
+}
+
+void CameraController::setCamUp(glm::vec3 up){
+	cameraUp = up;
+}
+
+glm::vec3 CameraController::getCamFRot(){
+	return cameraFinalRotation;
+}
+
+void CameraController::setCamFRot(glm::vec3 frot){
+	cameraFinalRotation = frot;
+}
+
+glm::mat4 CameraController::getProjMatrix(){
+	return projectionMatrix;
+}
+
+void CameraController::setProjMatrix(glm::mat4 vm){
+	projectionMatrix = vm;
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(ShaderBase), "projectionMatrix"), 1, GL_FALSE, &(projectionMatrix[0][0]));
+}
+
+glm::mat4 CameraController::getViewMatrix(){
+	return viewMatrix;
+}
+
+void CameraController::setViewMatrix(glm::mat4 vm){
+	viewMatrix = vm;
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(ShaderBase), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
+}
+
+
+RenderController::RenderController(){
 
 }
 
@@ -359,7 +427,9 @@ RenderController::~RenderController(){
 	for(int i=0; i<baseMeshes.size(); i++){
 		delete baseMeshes[i];
 	}
-	glDeleteProgram(programVariable);
+	for(int i=0; i<programVariables.size(); i++){
+		glDeleteProgram(programVariables[i]);
+	}
 }
 
 void RenderController::initialize(){
@@ -376,12 +446,12 @@ void RenderController::initialize(){
 	glBufferSubData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
 
 	shaderPositions.emplace_back();
-	shaderPositions[0] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexPosition");
+	shaderPositions[0] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexPosition");
 	glEnableVertexAttribArray(shaderPositions[0]);
 	glVertexAttribPointer(shaderPositions[0], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	shaderPositions.emplace_back();
-	shaderPositions[1] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexNormal");
+	shaderPositions[1] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexNormal");
 	glEnableVertexAttribArray(shaderPositions[1]);
 	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
 
@@ -392,7 +462,7 @@ void RenderController::initialize(){
 	// glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), textureCoords.data());
 
 	// shaderPositions.emplace_back();
-	// shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(), "TextureCoords");
+	// shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "TextureCoords");
 	// glEnableVertexAttribArray(shaderPositions[2]);
 	// glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
@@ -402,7 +472,7 @@ void RenderController::initialize(){
 	glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size()*sizeof(glm::vec3), colors.data());
 
 	shaderPositions.emplace_back();
-	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(), "VertexColor");
+	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexColor");
 	glEnableVertexAttribArray(shaderPositions[3]);
 	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 	glVertexAttribDivisor(shaderPositions[3], 1);
@@ -416,7 +486,7 @@ void RenderController::initialize(){
 
 
 	shaderPositions.emplace_back();
-	shaderPositions[4] = glGetAttribLocation(ShaderController.getProgramVariable(), "modelMatrix");
+	shaderPositions[4] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "modelMatrix");
     glEnableVertexAttribArray(shaderPositions[4]); 
     glVertexAttribPointer(shaderPositions[4], 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET(0));
     glVertexAttribDivisor(shaderPositions[4], 1);
@@ -438,6 +508,32 @@ void RenderController::initialize(){
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VertexBuffer[LIndexBuffer]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	//Initialize shadow buffers
+	glGenFramebuffers(1, &shadowBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
+
+	//Initialize depth texture
+	glGenTextures(1, &shadowDepthTexture);
+	glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 0 , GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
+
+	glDrawBuffer(GL_NONE);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(ShaderShadow), "projectionMatrix"), 1, GL_FALSE, &(Camera.getProjMatrix()[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(ShaderShadow), "viewMatrix"), 1, GL_FALSE, &(Camera.getViewMatrix()[0][0]));
+
+	shaderPositions[0] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderShadow), "VertexPosition");
+	glEnableVertexAttribArray(shaderPositions[0]);
+	glVertexAttribPointer(shaderPositions[0], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 }
 
 int RenderController::loadBaseMeshes(){
@@ -484,17 +580,6 @@ void RenderController::reloadBuffers(){
 
 	}
 
-	// for(int i=0; i<indices.size(); i++){
-	// 	std::cerr << "index " << i << ":" << indices[i] << std::endl; 
-	// }
-	// for(int i=0; i<vertices.size(); i++){
-	// 	std::cerr << "Vertices " << i << ": \n\tX: " << vertices[i].x << "\n\tY: " <<vertices[i].y << "\n\tZ: " <<vertices[i].z << std::endl; 
-	// 	std::cerr << "vertexNormals " << i << ": \n\tX: " << vertexNormals[i].x << "\n\tY: " <<vertexNormals[i].y << "\n\tZ: " <<vertexNormals[i].z << std::endl; 
-	// }
-	//for(int i=0; i<colors.size(); i++){
-	//	std::cerr << "colors " << i << ": \n\tX: " << colors[i].x << "\n\tY: " <<colors[i].y << "\n\tZ: " <<colors[i].z << std::endl; 
-		//print4x4Matrix(modelMatrix[i]);
-	//}
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LColorArray]);
 	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), colors.data(), GL_DYNAMIC_DRAW);
 
@@ -505,7 +590,7 @@ void RenderController::reloadBuffers(){
 }
 
 // Create a GLSL program object from vertex and fragment shader files
-void RenderController::createShaderProgram(){
+void RenderController::createNewShaderProgram(){
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -559,11 +644,12 @@ void RenderController::createShaderProgram(){
     glDeleteShader(vertShader);
     glDeleteShader(fragShader);
     glUseProgram(program);
-    programVariable = program;
-    glDetachShader(programVariable,vertShader);
-    glDetachShader(programVariable,fragShader);
-    glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "projectionMatrix"), 1, GL_FALSE, &(projectionMatrix[0][0]));
-	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
+    int programVectorSize = programVariables.size();
+    programVariables.emplace_back(program);
+    glDetachShader(programVariables[programVectorSize],vertShader);
+    glDetachShader(programVariables[programVectorSize],fragShader);
+    glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(programVectorSize), "projectionMatrix"), 1, GL_FALSE, &(Camera.getProjMatrix()[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(programVectorSize), "viewMatrix"), 1, GL_FALSE, &(Camera.getViewMatrix()[0][0]));
 }
 
 
@@ -583,12 +669,12 @@ void RenderController::setFragmentShaderPath(std::string path){
 	fragmentShaderPath = path;
 }
 
-GLuint RenderController::getProgramVariable(){
-	return programVariable;
+GLuint RenderController::getProgramVariable(int index){
+	return programVariables[index];
 }
 
-void RenderController::setProgramVariable(GLuint prog){
-	programVariable = prog;
+void RenderController::setProgramVariable(GLuint prog, int index){
+	programVariables[index] = prog;
 }
 
 
@@ -604,35 +690,31 @@ void RenderController::setWindowSize(glm::vec2 ws){
 	windowSize = ws;
 }
 
-glm::vec3 RenderController::getCamPos(){
-	return cameraPos;
+bool RenderController::getChanged(){
+	return sceneChanged;
 }
 
-void RenderController::setCamPos(glm::vec3 pos){
-	cameraPos = pos;
-	viewMatrix = glm::lookAt(cameraPos, glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
-	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
-}
-
-glm::vec3 RenderController::getCamRot(){
-	return cameraRotation;
-}
-
-void RenderController::setCamRot(glm::vec3 rot){
-	cameraRotation = rot;
-}
-
-void RenderController::setViewMatrix(glm::mat4 mat){
-	viewMatrix = mat;
-	glUniformMatrix4fv(glGetUniformLocation(ShaderController.getProgramVariable(), "viewMatrix"), 1, GL_FALSE, &(viewMatrix[0][0]));
+void RenderController::setChanged(bool c){
+	sceneChanged = c;
 }
 
 void RenderController::drawScene(){
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer[LVertexBuffer]);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VertexBuffer[LIndexBuffer]);
+	glUseProgram(programVariables[ShaderShadow]);
+	//if(sceneChanged == true){
+		//Here we reload buffers if the scene changes
+		reloadBuffers();
+		//render the Shadow maps!
+		/*for each light, draw elements instanced.*/
 
+		//Here we setup the depth buffer things that only changes when the scene changes.
+		sceneChanged = false;
+	//}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrix.size());
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

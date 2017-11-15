@@ -48,6 +48,7 @@ class Chunk;
 void InitOpenGL();
 void PrepForRender();
 void Render();
+void Cleanup();
 
 extern sf::Window MainWindow;
 extern sf::Clock MainClock;

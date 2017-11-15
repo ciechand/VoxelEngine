@@ -27,16 +27,28 @@ int main(int argc, char ** argv){
 
 	InitOpenGL();
 
-	if(DEBUGMODE)std::cerr << "Loading Vertex Shader Path" << std::endl;
-	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/VertexShader.glsl"));
+	//THIS SECTION IS LOADING ALL THE DIFFERENT SHADERS USED
+	if(DEBUGMODE)std::cerr << "Loading Base Vertex Shader Path" << std::endl;
+	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/BaseVertexShader.glsl"));
 	
-	if(DEBUGMODE)std::cerr << "Loading Fragment Shader Path" << std::endl;
-	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/FragmentShader.glsl"));
+	if(DEBUGMODE)std::cerr << "Loading Base Fragment Shader Path" << std::endl;
+	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/BaseFragmentShader.glsl"));
 	
-	if(DEBUGMODE)std::cerr << "Loading Shader Program" << std::endl;
-	ShaderController.createShaderProgram();
+	if(DEBUGMODE)std::cerr << "Loading Base Shader Program" << std::endl;
+	ShaderController.createNewShaderProgram();
+
+	if(DEBUGMODE)std::cerr << "Loading Shadow Vertex Shader Path" << std::endl;
+	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/ShadowVertexShader.glsl"));
 	
-	if(DEBUGMODE)std::cerr << "Done Loading Shader Program" << std::endl;
+	if(DEBUGMODE)std::cerr << "Loading Shadow Fragment Shader Path" << std::endl;
+	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/ShadowFragmentShader.glsl"));
+	
+	if(DEBUGMODE)std::cerr << "Loading Shadow Shader Program" << std::endl;
+	ShaderController.createNewShaderProgram();
+	
+	if(DEBUGMODE)std::cerr << "Done Loading Shader Programs" << std::endl;
+	//THIS IS THE END OF LOADING SHADERS
+
 	ShaderController.loadBaseMeshes();
 	ShaderController.initialize();
 
@@ -83,7 +95,7 @@ int main(int argc, char ** argv){
 					processResize(event);
 					break;
 				case sf::Event::MouseMoved:
-					//processMouseMove(event);
+					processMouseMove(event);
 					break;
 				default:
 					break;
@@ -94,6 +106,7 @@ int main(int argc, char ** argv){
 		//Render the actual chunks. 
 		PrepForRender();
 		Render();
+		Cleanup();
 	}
 	for(int i=0; i<ChunkContainer.size(); i++){
 		delete ChunkContainer[i];
@@ -120,9 +133,13 @@ void PrepForRender(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void Render(){	
-
-	ShaderController.reloadBuffers();
+void Render(){
 	ShaderController.drawScene();
 	MainWindow.display();
+}
+
+void Cleanup(){
+	sf::Vector2u windowSize = MainWindow.getSize();
+	sf::Mouse::setPosition(sf::Vector2i(windowSize.x/2, windowSize.y/2), MainWindow);
+	MainWindow.setMouseCursorVisible(false);
 }

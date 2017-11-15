@@ -37,6 +37,9 @@ enum VertexBufferLabels{LVertexBuffer=0, LTextureBuffer, LColorArray, LModelMatr
 //Enum for the Transformation Matrices
 enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, CombinedMatrix};
 
+//Enum outlining the different shaderPrograms
+enum shaderTypes{ShaderBase=0, ShaderShadow};
+
 //Classes for bounding boxes goes here, there will be a normal BB which will inherit from an AABB
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,6 +53,22 @@ struct vertexInfo{
 	bool operator<(const vertexInfo that) const{
 		return memcmp((void*)this, (void*)&that, sizeof(vertexInfo))>0;
 	};
+};
+
+//Light class, this class contains everythng necessary to create a light. Directional and Point Lights will inherit from this class.
+class light{
+	public:
+		light();
+		~light();
+
+		glm::vec4 getPos();
+		void setPos(glm::vec4 p);
+
+		float getDist();
+		void setDist(float d);
+	private:
+		glm::vec4 pos = glm::vec4(0.0f,0.0f,0.0f,0.0f);
+		float distance = 1.0f;
 };
 
 //This is the baseMesh class, this contains all the information read in from a 
@@ -139,10 +158,53 @@ class Mesh{
 		std::vector<glm::mat4> modelMatrix; //There should be one for ever model.
 };
 
+//Light SourceController
+class lightController{
+	public:
+	private:
 
-//This is the definition of the Renderer for the Game, This is in process and Will contain alot of pseudocode for quite some time.
+};
 
-//Not sure if this class is needed, maybe to manage chunks and when they get rendered but will decide in the future.
+
+//Class for controlling the camera and storing all the camera variables
+class CameraController{
+	public:
+		CameraController();
+		~CameraController();
+
+		glm::mat4 getProjMatrix();
+		void setProjMatrix(glm::mat4 vm);
+
+		glm::mat4 getViewMatrix();
+		void setViewMatrix(glm::mat4 vm);
+
+		glm::vec3 getCamPos();
+		void setCamPos(glm::vec3 pos);
+
+		glm::vec3 getCamRot();
+		void setCamRot(glm::vec3 rot);
+
+		glm::vec3 getCamAt();
+		void setCamAt(glm::vec3 at);
+
+		glm::vec3 getCamUp();
+		void setCamUp(glm::vec3 up);
+
+		glm::vec3 getCamFRot();
+		void setCamFRot(glm::vec3 frot);
+
+	private:
+		glm::mat4 projectionMatrix = glm::mat4();
+		glm::mat4 viewMatrix = glm::mat4();
+		glm::vec3 cameraPos = glm::vec3(20.0f,20.0f,20.0f);
+		glm::vec3 cameraRotation = glm::vec3(0.0f,0.0f,0.0f);
+		glm::vec3 cameraAt = glm::vec3(0.0f,0.0f,0.0f);
+		glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
+		glm::vec3 cameraFinalRotation = glm::vec3(0.0f,0.0f,0.0f);
+};
+
+
+//Class that controlls all rendering for this program.
 class RenderController{
 	public:
 		RenderController();
@@ -151,7 +213,8 @@ class RenderController{
 		void initialize();
 		int loadBaseMeshes();
 		void reloadBuffers();
-		void createShaderProgram();
+		void createNewShaderProgram();
+		void overwriteShaderProgram(int index);
 
 		std::string getVertexShaderPath();
 		void setVertexShaderPath(std::string path);
@@ -159,21 +222,17 @@ class RenderController{
 		std::string getFragmentShaderPath();
 		void setFragmentShaderPath(std::string path);
 
-		GLuint getProgramVariable();
-		void setProgramVariable(GLuint prog);
+		GLuint getProgramVariable(int index);
+		void setProgramVariable(GLuint prog, int index);
 
 		std::vector<BaseMesh *> &getBaseMeshes();	
 
 		glm::vec2 getWindowSize();
 		void setWindowSize(glm::vec2 ws);
 
-		glm::vec3 getCamPos();
-		void setCamPos(glm::vec3 pos);
+		bool getChanged();
+		void setChanged(bool c);
 
-		glm::vec3 getCamRot();
-		void setCamRot(glm::vec3 rot);
-
-		void setViewMatrix(glm::mat4 mat);
 
 		void drawScene();
 	private:
@@ -187,20 +246,23 @@ class RenderController{
 		std::vector<unsigned int> indices;
 		std::vector<glm::vec3> colors;
 		std::vector<glm::mat4> modelMatrix;
+		
 		//Variables needed for other stuff
-		glm::mat4 projectionMatrix;
-		glm::mat4 viewMatrix;
 		std::string vertexShaderPath;
 		std::string fragmentShaderPath;
-		GLuint programVariable;
-		// std::map<String, int> MeshOrder; Maybe?
+		std::vector<GLuint> programVariables;
 		std::vector<BaseMesh *> baseMeshes;
-		glm::vec3 cameraPos = glm::vec3(20.0f,20.0f,20.0f);
-		glm::vec3 cameraRotation = glm::vec3(0.0f,0.0f,0.0f);
 		glm::vec2 windowSize = glm::vec2(SCREENWIDTH,SCREENHEIGHT);
 
+		//variables necessary for shadow mapping
+		GLuint shadowBuffer = 0;
+		GLuint shadowDepthTexture;
+
+		//Variable to dicatate if the scene has changed.
+		bool sceneChanged = true;
 };
 
 extern RenderController ShaderController;
+extern CameraController Camera;
 
 #endif //CryoRender
