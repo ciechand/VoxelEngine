@@ -130,7 +130,7 @@ void InitOpenGL(){
 }
 
 void PrepForRender(){
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
 }
 
 void Render(){
@@ -140,6 +140,7 @@ void Render(){
 
 void Cleanup(){
 	sf::Vector2u windowSize = MainWindow.getSize();
-	sf::Mouse::setPosition(sf::Vector2i(windowSize.x/2, windowSize.y/2), MainWindow);
+	if(mouseBound)
+		sf::Mouse::setPosition(sf::Vector2i(windowSize.x/2, windowSize.y/2), MainWindow);
 	MainWindow.setMouseCursorVisible(false);
 }

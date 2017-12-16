@@ -3,6 +3,7 @@
 #include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoInput.hpp"
 
+bool mouseBound = true;
 
 void processKeyPress(sf::Event event){
 	glm::vec3 ca = Camera.getCamAt();
@@ -28,6 +29,9 @@ void processKeyPress(sf::Event event){
 		case sf::Keyboard::E:
 			ca.y += WALKSPEED;
 			break;
+		case sf::Keyboard::K:
+			mouseBound = !mouseBound;
+			break;
 		default:
 			break;
 	}
@@ -37,6 +41,8 @@ void processKeyPress(sf::Event event){
 }
 
 void processMouseMove(sf::Event event){
+		if(!mouseBound)
+			return;
 		sf::Vector2u windowSize = MainWindow.getSize();
 		glm::vec3 camRot = Camera.getCamRot();
 
@@ -54,6 +60,7 @@ void processMouseMove(sf::Event event){
  		glm::vec3 rotations = glm::vec3(-sin(rotationPer[0])*cos(rotationPer[1])*CAMERADIST, -sin(rotationPer[1])*CAMERADIST, cos(rotationPer[0])*cos(rotationPer[1])*CAMERADIST);
  		//std::cerr << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
  		Camera.setViewMatrix(glm::lookAt(Camera.getCamAt()+rotations, Camera.getCamAt(), Camera.getCamUp()));
+ 		//std::cerr << " Camera Pos: \n\tX:" << (Camera.getCamAt()+rotations).x << "\n\tY: " << (Camera.getCamAt()+rotations).y << "\n\tZ: " << (Camera.getCamAt()+rotations).z << std::endl;
 
  		Camera.setCamFRot(rotations);
 		Camera.setCamRot(camRot);

@@ -12,13 +12,8 @@ compile: $(TARGETO)
 	$(CXX) $(CPPFLAGS) -o $(TARGETEXE) $^ $(INC)
 	@echo "Compilation Complete"
 
-#-include $(TARGETD)
-
 ./src/Objects/%.o:./src/Source/%.cpp $(HPPS)
 	$(CXX) $(CPPFLAGS) -o $@ -c $<
-
-#./src/Dependencies/%.d:./src/Objects/%.o $(HPPS)
-#	$(CXX) $(CPPFLAGS) $< -MM -MT $(@:./src/Dependencies/%.d=./src/Objects/%.o) >$@
 
 clean:
 	rm $(TARGETO) $(TARGETD) $(TARGETEXE)

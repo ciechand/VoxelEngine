@@ -4,6 +4,323 @@
 #include "../Headers/CryoUtil.hpp"
 
 
+//Start of definitions for BaseMesh Class!
+BaseMesh::BaseMesh(std::string filename){
+	modelFile = filename;
+}
+
+BaseMesh::~BaseMesh(){
+
+}
+
+bool BaseMesh::loadModel(){
+	vertices.clear();
+	normals.clear();
+	texCoords.clear();
+	indices.clear();
+	//Make sure the object file has a name already assigned
+	if (modelFile.empty()){
+		std::cerr << "Have not set a modelFile, Please do so before trying to load an obj file again." << std::endl;
+		return false;
+	}
+//std::cerr << "Loading in Asset as : " << modelFile << std::endl;
+	//opening the OBJ file for reading
+	FILE * objFile = fopen(modelFile.c_str(), "r");
+	if (objFile == nullptr){
+		perror("THAT FILE DOES NOT EXIST");
+		exit(EXIT_FAILURE);
+	}
+	//creating a buffer to read the file into
+	char fileBuffer[128];
+	std::vector<GLuint> vertexIndices;
+	std::vector<GLuint> normalIndices;
+	std::vector<GLuint> textureIndices;
+	while (fgets(fileBuffer, 128, objFile) != nullptr){
+		//checking which identifier you are currently reading and assigning appropriately.
+		char identifier[3];
+		sscanf(fileBuffer, "%s", identifier);
+		if (strcmp(identifier, "#") == 0){
+			continue;
+		} else if (strcmp(identifier, "v") == 0){
+			glm::vec4 verts;
+			sscanf(fileBuffer, "%*s %f %f %f", &verts.x, &verts.y, &verts.z);
+			verts.w = 1.0;
+			vertices.emplace_back(verts);
+		} else if (strcmp(identifier, "vn") == 0){
+			glm::vec4 norm;
+			sscanf(fileBuffer, "%*s %f %f %f", &norm.x, &norm.y, &norm.z);
+			norm.w = 0.0;
+			normals.emplace_back(norm);
+		} else if (strcmp(identifier, "vt") == 0){
+			glm::vec2 tex;
+			sscanf(fileBuffer, "%*s %f %f", &tex.x, &tex.y);
+			texCoords.emplace_back(tex);
+		} else if (strcmp(identifier, "f") == 0){
+			GLuint indices[9];
+			sscanf(fileBuffer, "%*s %d/%d/%d %d/%d/%d %d/%d/%d", &indices[0], &indices[1], &indices[2], &indices[3], &indices[4], &indices[5], &indices[6], &indices[7], &indices[8]);
+			for (int j = 0; j < 3; j++){
+				vertexIndices.push_back(indices[(3 * j)] - 1);
+				normalIndices.push_back(indices[(3 * j) + 2] - 1);
+				textureIndices.push_back(indices[(3 * j) + 1] - 1);
+			}
+		}else{
+			perror("Incorrect Identifier!"); //WTF KINDA OBJ FILE ARE YOU READING?!
+		}
+	}
+
+	fclose(objFile);
+	std::map<vertexInfo, GLuint> indexMap;
+	std::vector<glm::vec4> verts;
+	std::vector<glm::vec4> norms;
+	std::vector<glm::vec2> tex;
+
+	//Fix all the indices so that it doesnt have to be done later.
+	//This needs to be done since open gl only allows one index array for each object so, you need to reorganize the indices that are read in from the OBJ file.
+
+	for (size_t i = 0; i < vertexIndices.size(); i++){
+		struct vertexInfo v = {vertices[vertexIndices[i]], normals[normalIndices[i]], texCoords[textureIndices[i]]};
+		bool exists = false;
+		GLuint index = 0;
+		//Checking for unique (vertex,normal,texture) triplets.
+		std::map<vertexInfo, GLuint>::iterator it = indexMap.find(v);
+		 
+		if (it == indexMap.end()){
+			exists = false;
+		} else{
+			index = it->second;
+			exists = true;
+		}
+		if (exists){
+			indices.emplace_back(index);
+		} else{
+			verts.push_back(vertices[vertexIndices[i]]);
+			norms.push_back(normals[normalIndices[i]]);
+			tex.push_back(texCoords[textureIndices[i]]);
+			index = (GLuint)verts.size() - 1;
+			indices.emplace_back(index);
+			indexMap[v] = index;
+		}
+	};
+
+	vertices.clear();
+	normals.clear();
+	texCoords.clear();
+	//The vectors must be re-applied so that the order is correct in correspondence with the new index array.
+	vertices = verts;
+	normals = norms;
+	texCoords = tex;
+	//std::cerr << "Finnished Loading in Asset of : " << modelFile << std::endl;
+}
+
+unsigned int BaseMesh::getID(){
+	return ID;
+}
+
+void BaseMesh::setID(unsigned int id){
+	ID = id;
+}
+
+unsigned int BaseMesh::getVertStart(){
+	return vertexStart;
+}
+
+void BaseMesh::setVertStart(unsigned int index){
+	vertexStart = index;
+}
+
+unsigned int BaseMesh::getTexStart(){
+	return texStart;
+}
+
+void BaseMesh::setTexStart(unsigned int index){
+	texStart = index;
+}
+
+unsigned int BaseMesh::getNormalStart(){
+	return normalStart;
+}
+
+void BaseMesh::setNormalStart(unsigned int index){
+	normalStart = index;
+}
+
+
+std::vector<glm::vec4> BaseMesh::getVertices(){
+	return vertices;
+}
+
+std::vector<glm::vec2> BaseMesh::getTexCoords(){
+	return texCoords;
+}
+
+std::vector<glm::vec4> BaseMesh::getNormals(){
+	return normals;
+}
+
+std::vector<unsigned int> BaseMesh::getIndices(){
+	return indices;
+}
+
+void BaseMesh::addToColors(std::vector<glm::vec3>::iterator begining, std::vector<glm::vec3>::iterator ending){
+	colors.insert(colors.end(), begining, ending);
+}
+
+void BaseMesh::addToColors(glm::vec3 color){
+	colors.emplace_back(color);
+}
+
+std::vector<glm::vec3> BaseMesh::getColors(){
+	return colors;
+}
+
+void BaseMesh::addToModels(std::vector<glm::mat4>::iterator begining, std::vector<glm::mat4>::iterator ending){
+	modelMatrices.insert(modelMatrices.end(), begining, ending);
+}
+
+void BaseMesh::addToModels(glm::mat4 model){
+	modelMatrices.emplace_back(model);
+}
+
+std::vector<glm::mat4> BaseMesh::getModels(){
+	return modelMatrices;
+}
+
+//Start of MESH Class
+Mesh::Mesh(){
+}
+
+Mesh::~Mesh(){
+
+}
+
+void Mesh::GenerateMesh(Block * parentBlock){
+	if(meshIDs.size() != 0 || textureIDs.size() != 0 || colors.size()  != 0 || modelMatrix.size() != 0)
+			std::cerr << "DONT TRY AND GENERATE A MESH WHEN THE PREVIOUS ONE HAS NOT BEEN CLEARED!!!" << std::endl;
+	std::array<bool,6> tempActiveArr = parentBlock->getActiveSide();
+	for(int i=0; i<6; i++){
+		if(tempActiveArr[i] == true){
+			GenerateCubeSide((CubeFace)i, parentBlock->getSideColor(i), parentBlock->getPosition());
+		}
+	}
+}
+
+void Mesh::GenerateCubeSide(CubeFace face, glm::vec3 c, glm::vec3 offset){
+	//std::cerr << "Offset: \n\tX: " << offset.x << "\n\tY: " << offset.y << "\n\tZ: " << offset.z << std::endl; 
+	glm::mat4 translated = glm::translate(glm::mat4(), (DirectionVectors[face]*0.5f));
+	glm::mat4 rotated;
+	switch(face){
+		case RightFace:
+			addBaseToMesh(0);
+			addTexIDToMesh(0);
+			addColorToMesh(c);
+			rotated = glm::rotate(glm::mat4(),TO_RADIANS(-90.0f),glm::vec3(0,1,0));
+			addMatrixToMesh(translated*rotated);
+			break;
+		case LeftFace:
+			addBaseToMesh(0);
+			addTexIDToMesh(0);
+			addColorToMesh(c);
+			rotated = glm::rotate(glm::mat4(),TO_RADIANS(90.0f),glm::vec3(0,1,0));
+			addMatrixToMesh(translated*rotated);
+			break;
+		case TopFace:
+			addBaseToMesh(0);
+			addTexIDToMesh(0);
+			addColorToMesh(c);
+			rotated = glm::rotate(glm::mat4(),TO_RADIANS(-90.0f),glm::vec3(1,0,0));
+			addMatrixToMesh(translated*rotated);
+			break;
+		case BottomFace:
+			addBaseToMesh(0);
+			addTexIDToMesh(0);
+			addColorToMesh(c);
+			rotated = glm::rotate(glm::mat4(),TO_RADIANS(90.0f),glm::vec3(1,0,0));
+			addMatrixToMesh(translated*rotated);
+			break;
+		case FrontFace:
+			addBaseToMesh(0);
+			addTexIDToMesh(0);
+			//No rotation needed
+			addColorToMesh(c);
+			rotated = glm::mat4();
+			addMatrixToMesh(translated*rotated);
+			break;
+		case BackFace:
+			addBaseToMesh(0);
+			addTexIDToMesh(0);
+			addColorToMesh(c);
+			rotated = glm::rotate(glm::mat4(),TO_RADIANS(180.0f),glm::vec3(0,1,0));
+			addMatrixToMesh(translated*rotated);
+			break;
+		default:
+			std::cerr << "INVALID SIDE GENERATION ATTEMPT." << std::endl;
+			break;
+	}
+}
+
+void Mesh::addBaseToMesh(int baseID){
+	meshIDs.emplace_back(baseID);
+}
+
+std::vector<int> Mesh::getBase(){
+	return meshIDs;
+}
+
+int Mesh::getBase(unsigned int index){
+	return meshIDs[index];
+}
+
+void Mesh::addTexIDToMesh(int texID){
+	textureIDs.emplace_back(texID);
+}
+
+std::vector<int> Mesh::getTexID(){
+	return textureIDs;
+}
+
+int Mesh::getTexID(unsigned int index){
+	return textureIDs[index];
+}
+
+void Mesh::addColorToMesh(glm::vec3 c){
+	colors.emplace_back(c);
+}
+
+std::vector<glm::vec3> Mesh::getColors(){
+	return colors;
+}
+
+glm::vec3 Mesh::getColors(unsigned int index){
+	return colors[index];
+}
+
+void Mesh::addMatrixToMesh(glm::mat4 mm){
+	modelMatrix.emplace_back(mm);
+}
+
+std::vector<glm::mat4> Mesh::getMatrix(){
+	return modelMatrix;
+}
+
+glm::mat4 Mesh::getMatrix(unsigned int index){
+	return modelMatrix[index];
+}
+
+void Mesh::addMeshToRenderer(glm::mat4 objectMatrix){
+	if(colors.size() == 0)
+		std::cerr << "Trying to add a mesh with nothing in it." << std::endl;
+
+	std::vector<BaseMesh *> controllerBases = ShaderController.getBaseMeshes();
+	if(controllerBases.size() == 0)
+		std::cerr << "attempting to add a mesh without any base meshes." << std::endl;
+
+	for(int i=0; i<meshIDs.size(); i++){
+		controllerBases[meshIDs[i]]->addToColors(colors[i]);
+		controllerBases[meshIDs[i]]->addToModels(objectMatrix*modelMatrix[i]);
+	}
+}
+
+
 //Constructors for the Block Class
 Block::Block(){
 	setScale(glm::vec3(CUBESIZE,CUBESIZE,CUBESIZE));
@@ -125,7 +442,8 @@ Chunk::Chunk(glm::vec3 pos){
 	adjacentChunks.fill(-1);
 	for(int i=0; i<CHUNKSIZE; i++){
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
-		if((blockPos.x >= CHUNKSIDE/2 && blockPos.x <= CHUNKSIDE-5.0f) || (blockPos.y >= 4 && blockPos.y <= CHUNKSIDE-5.0f) || (blockPos.z >= 4 && blockPos.z <= CHUNKSIDE-5.0f))
+		//if((blockPos.x >= CHUNKSIDE/2 && blockPos.x <= CHUNKSIDE-5.0f) || (blockPos.y >= 4 && blockPos.y <= CHUNKSIDE-5.0f) || (blockPos.z >= 4 && blockPos.z <= CHUNKSIDE-5.0f))
+		if((blockPos.y > CHUNKSIDE/2) && ((blockPos.x != CHUNKSIDE/2) || (blockPos.z != CHUNKSIDE/2)))
 			continue;
 		Grid[i] = new Block();
 	}
@@ -155,7 +473,7 @@ void Chunk::initializeMesh(){
 			continue;
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
 		Grid[i]->setPosition(((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE,CHUNKSIDE,CHUNKSIDE)/2.0f));
-		Grid[i]->setScale(glm::vec3(HALFSIZE,HALFSIZE,HALFSIZE));
+		Grid[i]->setScale(glm::vec3(CUBESIZE,CUBESIZE,CUBESIZE));
 		Grid[i]->setColor(Green);
 		Grid[i]->setColor((VoxelColor)(i%CHUNKSIDE));
 		/*if(DEBUGMODE == true){
@@ -170,8 +488,6 @@ void Chunk::initializeMesh(){
 				if(adjacentChunks[(s*2)+1] != -1)
 					checkBlock = ChunkContainer[adjacentChunks[(s*2)+1]]->getBlock(transBlockPos);
 				if(checkBlock != nullptr && checkBlock->getActive() == true) {
-					Grid[i]->setColor(Blue);
-					checkBlock->setColor(Red);
 					Grid[i]->setActiveSide((s*2)+1, false);
 		 			checkBlock->setActiveSide((s*2), false);
 
@@ -191,8 +507,6 @@ void Chunk::initializeMesh(){
 				if(adjacentChunks[(s*2)] != -1)
 					checkBlock = ChunkContainer[adjacentChunks[(s*2)]]->getBlock(transBlockPos);
 				if(checkBlock != nullptr && checkBlock->getActive() == true) {
-					Grid[i]->setColor(Blue);
-					checkBlock->setColor(Red);
 					Grid[i]->setActiveSide((s*2), false);
 		 			checkBlock->setActiveSide((s*2)+1, false);
 
@@ -231,6 +545,7 @@ void Chunk::initializeMesh(){
 
 void Chunk::updateMesh(){
 	for(int i=0; i<Grid.size(); i++){
+		//Somewhere in this loop I need to setup/update the greedy mesh.
 		if(Grid[i] == nullptr)
 			continue;
 		bool empty = true;
