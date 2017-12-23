@@ -162,7 +162,7 @@ void RenderController::initialize(){
 	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexColor");
 	glEnableVertexAttribArray(shaderPositions[3]);
 	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-	glVertexAttribDivisor(shaderPositions[3], 1);
+	glVertexAttribDivisor(shaderPositions[3], 0);
 
 	//Initialize which texture will be utilized for this particular Side.
 	

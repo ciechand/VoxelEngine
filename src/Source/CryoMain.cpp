@@ -53,7 +53,7 @@ int main(int argc, char ** argv){
 	ShaderController.initialize();
 
 
-	unsigned int iterations = 6;
+	unsigned int iterations = 1;
 	sf::Time t1 = MainClock.getElapsedTime();
 	for(int i=6; i>(6-iterations); i--){
 		if(DEBUGMODE == true){

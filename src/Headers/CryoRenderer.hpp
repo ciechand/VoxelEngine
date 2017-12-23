@@ -43,21 +43,6 @@ enum shaderTypes{ShaderBase=0, ShaderShadow};
 //forward class declarations go here
 class BaseMesh;
 
-//Classes for bounding boxes goes here, there will be a normal BB which will inherit from an AABB
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-//VertexInfo Class, used when reading in the vertices
-struct vertexInfo{
-	glm::vec4 verts;
-	glm::vec4 norms;
-	glm::vec2 tex;
-	bool operator<(const vertexInfo that) const{
-		return memcmp((void*)this, (void*)&that, sizeof(vertexInfo))>0;
-	};
-};
-
 //Light class, this class contains everythng necessary to create a light. Directional and Point Lights will inherit from this class.
 class light{
 	public:

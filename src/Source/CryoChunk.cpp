@@ -14,6 +14,8 @@ BaseMesh::~BaseMesh(){
 }
 
 bool BaseMesh::loadModel(){
+	if(modelFile.compare("") == 0)
+		return false;
 	vertices.clear();
 	normals.clear();
 	texCoords.clear();
@@ -28,7 +30,7 @@ bool BaseMesh::loadModel(){
 	FILE * objFile = fopen(modelFile.c_str(), "r");
 	if (objFile == nullptr){
 		perror("THAT FILE DOES NOT EXIST");
-		exit(EXIT_FAILURE);
+		return false;
 	}
 	//creating a buffer to read the file into
 	char fileBuffer[128];
@@ -109,7 +111,23 @@ bool BaseMesh::loadModel(){
 	vertices = verts;
 	normals = norms;
 	texCoords = tex;
+	size = indices.size();
 	//std::cerr << "Finnished Loading in Asset of : " << modelFile << std::endl;
+	return true;
+}
+
+void BaseMesh::addToController(){
+	//Todo, pretty simple, call a function in render controller passing in this mesh.
+}
+
+void BaseMesh::clearMesh(){
+	vertices.clear();
+	texCoords.clear();
+	normals.clear(); 
+	indices.clear();
+	colors.clear();
+	modelMatrices.clear();
+	size = 0;
 }
 
 unsigned int BaseMesh::getID(){
@@ -159,6 +177,21 @@ std::vector<glm::vec4> BaseMesh::getNormals(){
 
 std::vector<unsigned int> BaseMesh::getIndices(){
 	return indices;
+}
+
+void BaseMesh::addVertex(glm::vec4 vert, glm::vec4 norm, glm::vec3 color){
+	for(int i=0; i<vertices.size(); i++){
+		if(vert == vertices[i]){
+			indices.push_back(i);
+			addToColors(color);
+			return;
+		}
+	}
+	indices.push_back(vertices.size());
+	vertices.push_back(vert);
+	normals.push_back(norm);
+	texCoords.push_back(glm::vec2(0.0f,1.0f));
+	colors.push_back();
 }
 
 void BaseMesh::addToColors(std::vector<glm::vec3>::iterator begining, std::vector<glm::vec3>::iterator ending){
@@ -212,28 +245,36 @@ void Mesh::GenerateCubeSide(CubeFace face, glm::vec3 c, glm::vec3 offset){
 		case RightFace:
 			addBaseToMesh(0);
 			addTexIDToMesh(0);
-			addColorToMesh(c);
+			for(int i=0; i<4; i++){
+				addColorToMesh(c);
+			}
 			rotated = glm::rotate(glm::mat4(),TO_RADIANS(-90.0f),glm::vec3(0,1,0));
 			addMatrixToMesh(translated*rotated);
 			break;
 		case LeftFace:
 			addBaseToMesh(0);
 			addTexIDToMesh(0);
-			addColorToMesh(c);
+			for(int i=0; i<4; i++){
+				addColorToMesh(c);
+			}
 			rotated = glm::rotate(glm::mat4(),TO_RADIANS(90.0f),glm::vec3(0,1,0));
 			addMatrixToMesh(translated*rotated);
 			break;
 		case TopFace:
 			addBaseToMesh(0);
 			addTexIDToMesh(0);
-			addColorToMesh(c);
+			for(int i=0; i<4; i++){
+				addColorToMesh(c);
+			}
 			rotated = glm::rotate(glm::mat4(),TO_RADIANS(-90.0f),glm::vec3(1,0,0));
 			addMatrixToMesh(translated*rotated);
 			break;
 		case BottomFace:
 			addBaseToMesh(0);
 			addTexIDToMesh(0);
-			addColorToMesh(c);
+			for(int i=0; i<4; i++){
+				addColorToMesh(c);
+			}
 			rotated = glm::rotate(glm::mat4(),TO_RADIANS(90.0f),glm::vec3(1,0,0));
 			addMatrixToMesh(translated*rotated);
 			break;
@@ -241,14 +282,18 @@ void Mesh::GenerateCubeSide(CubeFace face, glm::vec3 c, glm::vec3 offset){
 			addBaseToMesh(0);
 			addTexIDToMesh(0);
 			//No rotation needed
-			addColorToMesh(c);
+			for(int i=0; i<4; i++){
+				addColorToMesh(c);
+			}
 			rotated = glm::mat4();
 			addMatrixToMesh(translated*rotated);
 			break;
 		case BackFace:
 			addBaseToMesh(0);
 			addTexIDToMesh(0);
-			addColorToMesh(c);
+			for(int i=0; i<4; i++){
+				addColorToMesh(c);
+			}
 			rotated = glm::rotate(glm::mat4(),TO_RADIANS(180.0f),glm::vec3(0,1,0));
 			addMatrixToMesh(translated*rotated);
 			break;
@@ -332,12 +377,27 @@ Block::~Block(){
 	if (blockMesh != nullptr)
 		delete blockMesh;
 }
-//Functions for the Block Class
-void Block::GenerateMesh(){
-	if(blockMesh != nullptr)
-			delete blockMesh;
-	blockMesh = new Mesh();
-	blockMesh->GenerateMesh(this);
+
+bool Block::isSame(Block* b){
+	for(int i=0; i<6; i++){
+		if(activeSides[i] != b->getActiveSide(i))
+			return false;
+		if(sideColors[i] != b->getSideColor(i))
+			return false;
+		if(sideTextures[i] != b->getSideTexture(i))
+			return false;
+	}
+	return true;
+}
+
+bool isSideSame(Block * b, unsigned int side){
+	if(activeSides[side] != b->getActiveSide(side))
+		return false;
+	if(sideColors[side] != b->getSideColor(side))
+		return false;
+	if(sideTextures[side] != b->getSideTexture(side))
+		return false;
+	return true;
 }
 
 Mesh * Block::getMesh(){
@@ -557,8 +617,6 @@ void Chunk::updateMesh(){
 		}
 		if(empty == true)
 			Grid[i]->setActive(false);
-		if(Grid[i]->getActive() == true)
-			Grid[i]->GenerateMesh();
 	}
 }
 
@@ -569,18 +627,41 @@ void Chunk::GenerateMesh(){
 	if(DEBUGMODE == true) std::cerr << "initialized Mesh" << std::endl;
 	updateMesh();
 	if(DEBUGMODE == true) std::cerr << "updated Mesh" << std::endl;
-	Mesh * blockMesh = nullptr;
-	for(int i=0; i<CHUNKSIZE; i++){
-		if(Grid[i] == nullptr)
-			continue;
-		blockMesh = Grid[i]->getMesh();
-		if(blockMesh == nullptr || Grid[i]->getActive() == false)
-			continue;
-		blockMesh->addMeshToRenderer(Grid[i]->getObjectMatrix());
-	}
+
+	glm::vec3 startPos = glm::vec3(0,0,0);
+	unsigned int startIndex = translate3DPos(startPos);
+	glm::vec3 endPos = glm::vec3(0,0,0);
+	unsigned int curIndex = 0;
+	for(int dir=0; dir<6; dir++){
+		//For loops are not the solution. at least not auto advancing
+			for(int y=0; y<CHUNKSIDE; y++){
+				for(int x=0; x<CHUNKSIDE; x++){
+					glm::vec3 curPos = glm::vec3(x,y,z);
+					curIndex = translate3DPos(curPos,CHUNKSIDE);
+					if(Grid[curIndex] == nullptr || Grid[curIndex]->getActive() == false)
+						continue;
+					if(Grid[startIndex].isSideSame(Grid[curIndex]))
+						endPos = curPos;
+						if((x!=(CHUNKSIDE-1)||y!=(CHUNKSIDE-1)||z!=(CHUNKSIDE-1))){
+							GeneratePlane(startPos, endPos, dir);
+							startPos = curPos;
+							startIndex = translate3DPos(startPos);
+						}
+					else{
+						GeneratePlane(startPos, endPos, dir);
+						startPos = curPos;
+						startIndex = translate3DPos(startPos);
+					}	
+			}
+		}
+	}	
 	if(DEBUGMODE == true) std::cerr << "Generated Mesh" << std::endl;
 }
 
+
+void Chunk::GenerateFace(glm::vec3 start, glm::vec3 end, unsgined int dir){
+
+}
 
 glm::vec3 Chunk::getPos(){
 	return chunkPos;

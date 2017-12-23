@@ -14,6 +14,16 @@ class Chunk;
 
 #include "./CryoRenderer.hpp"
 
+//VertexInfo Class, used when reading in the vertices
+struct vertexInfo{
+	glm::vec4 verts;
+	glm::vec4 norms;
+	glm::vec2 tex;
+	bool operator<(const vertexInfo that) const{
+		return memcmp((void*)this, (void*)&that, sizeof(vertexInfo))>0;
+	};
+};
+
 //This is the baseMesh class, this contains all the information read in from a 
 class BaseMesh{
 	public:
@@ -23,6 +33,7 @@ class BaseMesh{
 		bool loadModel();
 
 		void addToController();
+		void clearMesh();
 
 		unsigned int getID();
 		void setID(unsigned int id);
@@ -41,6 +52,8 @@ class BaseMesh{
 		std::vector<glm::vec4> getNormals();
 		std::vector<unsigned int> getIndices();
 
+		void addVertex(glm::vec4 vert, glm::vec4 norm, glm::vec3 color);
+
 		void addToColors(std::vector<glm::vec3>::iterator begining, std::vector<glm::vec3>::iterator ending);
 		void addToColors(glm::vec3 color);
 		std::vector<glm::vec3> getColors();
@@ -51,6 +64,7 @@ class BaseMesh{
 
 	private:
 		unsigned int ID;
+		unsigned int size = 0;
 		std::string modelFile = "";
 		unsigned int vertexStart = 0;
 		std::vector<glm::vec4> vertices;
@@ -108,21 +122,14 @@ class Block{
 		Block();
 		~Block();
 
-		void GenerateMesh(); 
-
-		Mesh * getMesh();
+		bool isSame(Block * b);
+		bool isSideSame(Block * b, unsigned int side);
 
 		bool getActive();
 		void setActive(bool ba);
 		
 		glm::vec3 getPosition();
 		void setPosition(glm::vec3 pos);
-
-		void setRotation(float angle, glm::vec3 axis);
-
-		void setScale(glm::vec3 scale);
-
-		glm::mat4 getObjectMatrix();
 
 		bool getActiveSide(unsigned int n);
 		std::array<bool,6> getActiveSide();
@@ -140,10 +147,8 @@ class Block{
 		void setSideTexture(unsigned int n, int s);
 		void setSideTexture(std::array<int,6> s);
 	protected:
-		Mesh *blockMesh = nullptr;
 		bool blockActive = true;
 		glm::vec3 position = glm::vec3(0, 0, 0);
-		std::array<glm::mat4,4> objectMatrix;
 		std::array<bool,6> activeSides = {true,true,true,true,true,true};
 		std::array<glm::vec3,6> sideColors;
 		std::array<int,6> sideTextures = {0,0,0,0,0,0};
@@ -156,8 +161,11 @@ class Chunk{
 		~Chunk();
 
 		void GenerateMesh();
+		void GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir);
 		void initializeMesh();
 		void updateMesh();
+
+		void addChunkToRenderer();
 
 		glm::vec3 getPos();
 		void setPos(glm::vec3 pos);
@@ -167,6 +175,7 @@ class Chunk{
 		Block* getBlock(glm::vec3 pos);
 
 	protected:
+		BaseMesh chunkMesh;
 		glm::vec3 chunkPos;	
 		std::array<Block*, CHUNKSIZE> Grid;	
 
