@@ -628,7 +628,9 @@ void Chunk::GenerateMesh(){
 	updateMesh();
 	if(DEBUGMODE == true) std::cerr << "updated Mesh" << std::endl;
 
-	glm::vec3 startPos = glm::vec3(0,0,0);
+	
+
+/*	glm::vec3 startPos = glm::vec3(0,0,0);
 	unsigned int startIndex = translate3DPos(startPos);
 	glm::vec3 endPos = glm::vec3(0,0,0);
 	unsigned int curIndex = 0;
@@ -654,7 +656,7 @@ void Chunk::GenerateMesh(){
 					}	
 			}
 		}
-	}	
+	}	*/
 	if(DEBUGMODE == true) std::cerr << "Generated Mesh" << std::endl;
 }
 
