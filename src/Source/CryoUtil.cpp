@@ -31,6 +31,10 @@ unsigned int translate3DPos(glm::vec3 position, unsigned int size){
     return (unsigned int)((position.z*size*size)+(position.y*size)+position.x);
 }
 
+unsigned int translate3DPos(int x,int y,int z, unsigned int size){
+    return (unsigned int)((z*size*size)+(y*size)+x);
+}
+
 void print4x4Matrix(glm::mat4 matrix){
     std::cerr << "Matrix Printed Below:" << std::endl; 
     for(int i=0; i<4; i++){

@@ -24,12 +24,14 @@ void main()
 {
 	// float zval = gl_FragCoord.z*gl_FragCoord.w;
 	// fColor = vec4(zval,zval,zval, 1.0f);
-	for(int i=0; i<4; i++){
-		tempColor = texture(shadowMap, shaderCoord.xy+ poissonDisk[i]/2000.0).z;
-		if(tempColor < shaderCoord.z-bias)
-			visibility -= 0.2f;
-	}
+	// for(int i=0; i<4; i++){
+	// 	tempColor = texture(shadowMap, shaderCoord.xy+ poissonDisk[i]/2000.0).z;
+	// 	if(tempColor < shaderCoord.z-bias)
+	// 		visibility -= 0.2f;
+	// }
 	tempColor = texture(shadowMap, shaderCoord.xy).z;
-	fColor = vec4(((vColor/255.0f)*visibility*(1-tempColor)),1.0f);
+	if(tempColor < shaderCoord.z-bias)
+		visibility = 0.5f;
+	fColor = vec4(((vColor/255.0f)*visibility*(tempColor)),1.0f);
 	norm = vNormal;
 }

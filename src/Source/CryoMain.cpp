@@ -49,8 +49,8 @@ int main(int argc, char ** argv){
 	if(DEBUGMODE)std::cerr << "Done Loading Shader Programs" << std::endl;
 	//THIS IS THE END OF LOADING SHADERS
 
-	ShaderController.loadBaseMeshes();
-	ShaderController.initialize();
+	//ShaderController.loadBaseMeshes();
+
 
 
 	unsigned int iterations = 1;
@@ -76,7 +76,7 @@ int main(int argc, char ** argv){
 		ChunkContainer[(6-i)]->GenerateMesh();
 	}
 
-
+	ShaderController.initialize();
 
 	t2 = MainClock.getElapsedTime();
 	dt = t2-t1;

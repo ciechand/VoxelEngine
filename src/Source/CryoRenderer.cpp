@@ -105,7 +105,7 @@ RenderController::RenderController(){
 RenderController::~RenderController(){
 	glDeleteVertexArrays(2, &(VertexArrayObject[0]));
 	glDeleteBuffers(5, &VertexBufferBase[0]);
-	for(int i=0; i<baseMeshes.size(); i++){
+	for(int i=0; i<meshBorder; i++){
 		delete baseMeshes[i];
 	}
 	for(int i=0; i<programVariables.size(); i++){
@@ -209,8 +209,8 @@ void RenderController::initialize(){
 	glGenTextures(1, &shadowDepthTexture);
 	glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 0 , GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -287,6 +287,29 @@ int RenderController::loadBaseMeshes(){
 		vertexNormals.insert(vertexNormals.end(), tempN.begin(), tempN.end());
 		indices.insert(indices.end(), tempI.begin(), tempI.end());
 	}
+	meshBorder = baseMeshes.size();
+}
+
+void RenderController::addBaseMesh(BaseMesh* m){
+	int id = baseMeshes.size();
+	baseMeshes.push_back(m);
+	baseMeshes[id]->setID(id);
+	baseMeshes[id]->setVertStart(vertices.size());
+	baseMeshes[id]->setTexStart(texCoords.size());
+	baseMeshes[id]->setNormalStart(vertexNormals.size());
+	
+	std::vector<glm::vec4> tempV;
+	std::vector<glm::vec2> tempT;
+	std::vector<glm::vec4> tempN;
+	std::vector<unsigned int> tempI;
+	tempV = m->getVertices();
+	tempT = m->getTexCoords();
+	tempN = m->getNormals();
+	tempI = m->getIndices();
+	vertices.insert(vertices.end(), tempV.begin(), tempV.end());
+	texCoords.insert(texCoords.end(), tempT.begin(), tempT.end());
+	vertexNormals.insert(vertexNormals.end(), tempN.begin(), tempN.end());
+	indices.insert(indices.end(), tempI.begin(), tempI.end());
 }
 
 void RenderController::reloadBuffers(){
@@ -311,6 +334,7 @@ void RenderController::reloadBuffers(){
 
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LModelMatrices]);
 	glBufferData(GL_ARRAY_BUFFER, modelMatrix.size()*sizeof(glm::mat4), modelMatrix.data(), GL_DYNAMIC_DRAW);
+
 
 	//reload all the things for the shadow maps
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
@@ -452,7 +476,8 @@ void RenderController::drawScene(){
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
 
 	//glm::mat4 tempProjMatrix = Camera.getProjMatrix();
-	glm::mat4 tempProjMatrix =	glm::ortho<float>(-100,100,-100,100,-100,100);
+
+	glm::mat4 tempProjMatrix =	glm::ortho<float>(-50,50,-50,50,-50,50);
 	glm::mat4 tempViewMatrix = glm::lookAt(glm::vec3(10.0f,10.0f,10.0f),glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,1.0f,0.0f));
 	glm::mat4 VPMatrix = tempProjMatrix * tempViewMatrix;
 	//glm::mat4 tempViewMatrix = Camera.getViewMatrix();
@@ -460,6 +485,7 @@ void RenderController::drawScene(){
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
 	glClear(GL_DEPTH_BUFFER_BIT);
+	//glCullFace(GL_FRONT);
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrix.size());
 
 	glUseProgram(programVariables[ShaderBase]); 
@@ -473,6 +499,7 @@ void RenderController::drawScene(){
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//glCullFace(GL_BACK);
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrix.size());
 
 	glBindVertexArray(0);

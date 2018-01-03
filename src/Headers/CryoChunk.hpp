@@ -14,6 +14,22 @@ class Chunk;
 
 #include "./CryoRenderer.hpp"
 
+//A struct for defining the 
+// struct voxelSideInfo{
+// 	bool active = true;
+// 	glm::vec3 color = glm::vec3(0.0f,0.0f,0.0f);
+// 	int texture = 0;	
+// 	voxelSideInfo(bool a, glm::vec3 c, int t){
+// 		active = a;
+// 		color = c;
+// 		texture = t;
+// 	}
+// 	bool operator==(const voxelSideInfo that) const{
+// 		return ((this.active == that.active) && (this.color == that.color) && (this.texture == that.texture));
+// 	}
+// };
+
+
 //VertexInfo Class, used when reading in the vertices
 struct vertexInfo{
 	glm::vec4 verts;
@@ -27,6 +43,7 @@ struct vertexInfo{
 //This is the baseMesh class, this contains all the information read in from a 
 class BaseMesh{
 	public:
+		BaseMesh();
 		BaseMesh(std::string filename);
 		~BaseMesh();
 
@@ -52,7 +69,7 @@ class BaseMesh{
 		std::vector<glm::vec4> getNormals();
 		std::vector<unsigned int> getIndices();
 
-		void addVertex(glm::vec4 vert, glm::vec4 norm, glm::vec3 color);
+		void addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color);
 
 		void addToColors(std::vector<glm::vec3>::iterator begining, std::vector<glm::vec3>::iterator ending);
 		void addToColors(glm::vec3 color);
@@ -161,7 +178,7 @@ class Chunk{
 		~Chunk();
 
 		void GenerateMesh();
-		void GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir);
+		void GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir, glm::vec3 color);
 		void initializeMesh();
 		void updateMesh();
 
@@ -181,6 +198,7 @@ class Chunk{
 
 	private: 
 		std::array<int,6> adjacentChunks;
-};
+		std::array<bool, CHUNKSIDE*CHUNKSIDE> GridMask = {false};	
+};	
 
 #endif //CryoChunk

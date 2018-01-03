@@ -5,6 +5,9 @@
 
 
 //Start of definitions for BaseMesh Class!
+BaseMesh::BaseMesh(){
+}
+
 BaseMesh::BaseMesh(std::string filename){
 	modelFile = filename;
 }
@@ -118,6 +121,7 @@ bool BaseMesh::loadModel(){
 
 void BaseMesh::addToController(){
 	//Todo, pretty simple, call a function in render controller passing in this mesh.
+	ShaderController.addBaseMesh(this);
 }
 
 void BaseMesh::clearMesh(){
@@ -179,19 +183,19 @@ std::vector<unsigned int> BaseMesh::getIndices(){
 	return indices;
 }
 
-void BaseMesh::addVertex(glm::vec4 vert, glm::vec4 norm, glm::vec3 color){
+void BaseMesh::addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color){
 	for(int i=0; i<vertices.size(); i++){
-		if(vert == vertices[i]){
+		if(glm::vec4(vert,1.0f) == vertices[i]){
 			indices.push_back(i);
-			addToColors(color);
+			colors.push_back(color);
 			return;
 		}
 	}
 	indices.push_back(vertices.size());
-	vertices.push_back(vert);
-	normals.push_back(norm);
+	vertices.push_back(glm::vec4(vert,1.0f));
+	normals.push_back(glm::vec4(norm,0.0f));
 	texCoords.push_back(glm::vec2(0.0f,1.0f));
-	colors.push_back();
+	colors.push_back(color);
 }
 
 void BaseMesh::addToColors(std::vector<glm::vec3>::iterator begining, std::vector<glm::vec3>::iterator ending){
@@ -368,14 +372,11 @@ void Mesh::addMeshToRenderer(glm::mat4 objectMatrix){
 
 //Constructors for the Block Class
 Block::Block(){
-	setScale(glm::vec3(CUBESIZE,CUBESIZE,CUBESIZE));
 	sideColors.fill(BlockColors[None]);
-	objectMatrix.fill(glm::mat4());
 }
 
 Block::~Block(){
-	if (blockMesh != nullptr)
-		delete blockMesh;
+
 }
 
 bool Block::isSame(Block* b){
@@ -390,7 +391,7 @@ bool Block::isSame(Block* b){
 	return true;
 }
 
-bool isSideSame(Block * b, unsigned int side){
+bool Block::isSideSame(Block * b, unsigned int side){
 	if(activeSides[side] != b->getActiveSide(side))
 		return false;
 	if(sideColors[side] != b->getSideColor(side))
@@ -398,10 +399,6 @@ bool isSideSame(Block * b, unsigned int side){
 	if(sideTextures[side] != b->getSideTexture(side))
 		return false;
 	return true;
-}
-
-Mesh * Block::getMesh(){
-	return blockMesh;
 }
 
 bool Block::getActive(){
@@ -417,25 +414,7 @@ glm::vec3 Block::getPosition(){
 }
 
 void Block::setPosition(glm::vec3 pos){
-	objectMatrix[TranslateMatrix] = glm::translate(glm::mat4(), pos);
-	objectMatrix[CombinedMatrix] = objectMatrix[TranslateMatrix]*objectMatrix[RotationMatrix]*objectMatrix[ScaleMatrix];
 	position = pos;
-}
-	
-void Block::setRotation(float angle, glm::vec3 axis){
-	objectMatrix[RotationMatrix] = glm::rotate(glm::mat4(), angle, axis);
-	objectMatrix[CombinedMatrix] = objectMatrix[TranslateMatrix]*objectMatrix[RotationMatrix]*objectMatrix[ScaleMatrix];
-	
-}
-
-void Block::setScale(glm::vec3 scale){
-	objectMatrix[ScaleMatrix] = glm::scale(glm::mat4(), scale);
-	objectMatrix[CombinedMatrix] = objectMatrix[TranslateMatrix]*objectMatrix[RotationMatrix]*objectMatrix[ScaleMatrix];
-	
-}
-
-glm::mat4 Block::getObjectMatrix(){
-	return objectMatrix[CombinedMatrix];
 }
 
 bool Block::getActiveSide(unsigned int n){
@@ -490,8 +469,8 @@ void Block::setSideTexture(std::array<int,6> s){
 	sideTextures = s;
 }
 
-
 //Constructors for Chunk Class
+
 Chunk::Chunk():Chunk(glm::vec3(0,0,0)){
 
 }
@@ -499,11 +478,12 @@ Chunk::Chunk():Chunk(glm::vec3(0,0,0)){
 Chunk::Chunk(glm::vec3 pos){
 	setPos(pos);
 	Grid.fill(nullptr);
+	//GridMask.fill(false);
 	adjacentChunks.fill(-1);
 	for(int i=0; i<CHUNKSIZE; i++){
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
 		//if((blockPos.x >= CHUNKSIDE/2 && blockPos.x <= CHUNKSIDE-5.0f) || (blockPos.y >= 4 && blockPos.y <= CHUNKSIDE-5.0f) || (blockPos.z >= 4 && blockPos.z <= CHUNKSIDE-5.0f))
-		if((blockPos.y > CHUNKSIDE/2) && ((blockPos.x != CHUNKSIDE/2) || (blockPos.z != CHUNKSIDE/2)))
+		if(((blockPos.y >= CHUNKSIDE/2))&&((blockPos.x != CHUNKSIDE/2) || (blockPos.z != CHUNKSIDE/2)))
 			continue;
 		Grid[i] = new Block();
 	}
@@ -533,9 +513,8 @@ void Chunk::initializeMesh(){
 			continue;
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
 		Grid[i]->setPosition(((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE,CHUNKSIDE,CHUNKSIDE)/2.0f));
-		Grid[i]->setScale(glm::vec3(CUBESIZE,CUBESIZE,CUBESIZE));
 		Grid[i]->setColor(Green);
-		Grid[i]->setColor((VoxelColor)(i%CHUNKSIDE));
+		//Grid[i]->setColor((VoxelColor)(i%CHUNKSIDE));
 		/*if(DEBUGMODE == true){
 			glm::vec3 tempBPos = Grid[i]->getPosition();
 			std::cerr << "Current Block Pos: \n\tX: " << tempBPos.x << "\n\tY: " << tempBPos.y << "\n\tZ: " << tempBPos.z << std::endl;
@@ -628,41 +607,164 @@ void Chunk::GenerateMesh(){
 	updateMesh();
 	if(DEBUGMODE == true) std::cerr << "updated Mesh" << std::endl;
 
-	
+	//std::array<unsigned int, CHUNKSIDE*CHUNKSIDE> ChunkMask = {0};
+	chunkMesh.clearMesh();
+	chunkMesh.addToModels(glm::mat4(1.0f));
+	glm::vec3 currentQueryPos = glm::vec3(0.0f,0.0f,0.0f);
 
-/*	glm::vec3 startPos = glm::vec3(0,0,0);
-	unsigned int startIndex = translate3DPos(startPos);
-	glm::vec3 endPos = glm::vec3(0,0,0);
-	unsigned int curIndex = 0;
-	for(int dir=0; dir<6; dir++){
-		//For loops are not the solution. at least not auto advancing
-			for(int y=0; y<CHUNKSIDE; y++){
-				for(int x=0; x<CHUNKSIDE; x++){
-					glm::vec3 curPos = glm::vec3(x,y,z);
-					curIndex = translate3DPos(curPos,CHUNKSIDE);
-					if(Grid[curIndex] == nullptr || Grid[curIndex]->getActive() == false)
-						continue;
-					if(Grid[startIndex].isSideSame(Grid[curIndex]))
-						endPos = curPos;
-						if((x!=(CHUNKSIDE-1)||y!=(CHUNKSIDE-1)||z!=(CHUNKSIDE-1))){
-							GeneratePlane(startPos, endPos, dir);
-							startPos = curPos;
-							startIndex = translate3DPos(startPos);
+	unsigned int currentAxis = 0;
+	unsigned int direction1 = 0;
+	unsigned int direction2 = 0;
+
+	unsigned int difTypeNum = 0;
+
+	for(int sign=0; sign<2; sign++){
+		for(int i=0; i<3; i++){
+			currentAxis = ((i*2)+sign)%6;
+			//int px = ((i+2+(2*((i+1)%2)))%6);
+			//int py = ((i+2+(2*(i%2)))%6);
+
+			direction1 = (i+1)%3;
+			direction2 = (i+2)%3;
+			int px = ((direction1*2)+(sign))%6;
+			int py = ((direction2*2)+(sign))%6;
+
+			//std::cerr << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+			//std::cerr << "dir: " << currentAxis << std::endl;
+			//std::cerr << "px: " << px << std::endl;
+			//std::cerr << "py: " << py << std::endl;
+			//std::cerr << "dir1: " << direction1 << std::endl;
+			//std::cerr << "dir2: " << direction2 << std::endl;
+			currentQueryPos = glm::vec3(0.0f,0.0f,0.0f);
+
+			for(currentQueryPos[i]=0; currentQueryPos[i]<CHUNKSIDE;currentQueryPos[i]++){
+				GridMask.fill(false);
+
+				for(currentQueryPos[direction2] = 0; currentQueryPos[direction2] < CHUNKSIDE; currentQueryPos[direction2]++){
+					for(currentQueryPos[direction1] = 0; currentQueryPos[direction1] < CHUNKSIDE;){
+						unsigned int curIndex = translate3DPos(currentQueryPos, CHUNKSIDE);
+						glm::vec3 xmod = DirectionVectors[(direction1*2)%6];
+						glm::vec3 ymod = DirectionVectors[(direction2*2)%6];
+						if(Grid[curIndex]!=nullptr && GridMask[(currentQueryPos[direction2]*CHUNKSIDE)+currentQueryPos[direction1]] != true){
+							if(!Grid[curIndex]->getActiveSide(currentAxis)){
+								GridMask[(currentQueryPos[direction2]*CHUNKSIDE)+currentQueryPos[direction1]] = true;
+								currentQueryPos[direction1]++;
+								continue;
+							}
+							int w, h;
+							for(w = 1; (currentQueryPos+(xmod*(float)w))[direction1]>=0 && 
+										(currentQueryPos+(xmod*(float)w))[direction1] < CHUNKSIDE && 
+										Grid[translate3DPos(currentQueryPos+(xmod*(float)w), CHUNKSIDE)] != nullptr && 
+										Grid[translate3DPos(currentQueryPos+(xmod*(float)w), CHUNKSIDE)]->getActiveSide(currentAxis) && 
+										Grid[translate3DPos(currentQueryPos+(xmod*(float)w), CHUNKSIDE)]->isSideSame(Grid[curIndex], i) && 
+										GridMask[(currentQueryPos[direction2]*CHUNKSIDE)+(currentQueryPos[direction1]+w)] == false; w++){}
+
+							bool done =  false;
+							for(h = 1; (currentQueryPos+(ymod*(float)h))[direction2] >= 0 && (currentQueryPos+(ymod*(float)h))[direction2] < CHUNKSIDE; h++){
+								for(int k=0; k < w; k++){
+									if(Grid[translate3DPos(currentQueryPos+(ymod*(float)h)+(xmod*(float)k), CHUNKSIDE)]== nullptr || 
+										!(Grid[translate3DPos(currentQueryPos+(ymod*(float)h)+(xmod*(float)k), CHUNKSIDE)]->isSideSame(Grid[curIndex], currentAxis)) || 
+										!Grid[translate3DPos(currentQueryPos+(ymod*(float)h)+(xmod*(float)k), CHUNKSIDE)]->getActiveSide(currentAxis) ||
+										GridMask[((currentQueryPos[direction2]+h)*CHUNKSIDE)+(currentQueryPos[direction1]+k)] == true){done = true; break;}
+								}
+								if(done){break;}
+							}
+							//std::cerr << "Current Pos:\n\tX: " <<currentQueryPos.x << "\n\tY: " <<currentQueryPos.y << "\n\tZ: " <<currentQueryPos.z << std::endl;
+							//std::cerr << "w: " << w << std::endl;
+							//std::cerr << "h: " << h << std::endl;
+							glm::vec3 displacement = glm::vec3(0,0,0);
+							displacement += xmod*(float)(w-1);
+							displacement += ymod*(float)(h-1);
+							if(Grid[curIndex]->getActiveSide(currentAxis)){
+								GenerateFace(currentQueryPos, currentQueryPos+displacement, currentAxis, Grid[curIndex]->getSideColor(currentAxis));
+							}
+
+							for(int height=currentQueryPos[direction2]; height<currentQueryPos[direction2]+(h); height++){
+								for(int width=currentQueryPos[direction1];width<currentQueryPos[direction1]+(w); width++){
+									GridMask[(height*CHUNKSIDE)+width] = true;
+								}
+							}
+							currentQueryPos[direction1]+=w; // need to add the relative x coordinate. should always be w. 
+						}else{
+							GridMask[(currentQueryPos[direction2]*CHUNKSIDE)+currentQueryPos[direction1]] = true;
+							currentQueryPos[direction1]++;
 						}
-					else{
-						GeneratePlane(startPos, endPos, dir);
-						startPos = curPos;
-						startIndex = translate3DPos(startPos);
-					}	
+					}
+				}
 			}
 		}
-	}	*/
+	}
 	if(DEBUGMODE == true) std::cerr << "Generated Mesh" << std::endl;
+	ShaderController.addBaseMesh(&chunkMesh);
 }
 
+void Chunk::GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir, glm::vec3 color){
 
-void Chunk::GenerateFace(glm::vec3 start, glm::vec3 end, unsgined int dir){
+	//std::cerr << "dirinside: " << dir  << std::endl;
+	//std::cerr << "Start Point:\n\tX: " <<start.x << "\n\tY: " <<start.y << "\n\tZ: " <<start.z << std::endl;
+	//std::cerr << "End Point:\n\tX: " <<end.x << "\n\tY: " <<end.y << "\n\tZ: " <<end.z << std::endl;
+	//int px=(dir+2+(2*((dir+1)%2)))%6;
+	//int py=(dir+2+(2*(dir%2)))%6;
+	//int nx=(dir+(((dir%2)==0)?5:1))%6;
+	//int ny=(dir+3)%6; 
+	int px = ((((dir/2)+1)*2)+(((dir%2)==1)?1:0))%6;
+	int py = ((((dir/2)+2)*2)+(((dir%2)==1)?1:0))%6;
+	int nx = ((((dir/2)+1)*2)+(((dir%2)==0)?1:0))%6;
+	int ny = ((((dir/2)+2)*2)+(((dir%2)==0)?1:0))%6;
 
+	int xmod = px/2;
+	int ymod = py/2;
+	//std::cerr << "px: " << px << std::endl;
+	//std::cerr << "py: " << py << std::endl;
+	//std::cerr << "nx: " << nx << std::endl;
+	//std::cerr << "ny: " << ny << std::endl;
+	//std::cerr << "xmod: " << xmod << std::endl;
+	//std::cerr << "ymod: " << ymod << std::endl;
+
+	glm::vec3 Point1 = glm::vec3(0.0f);
+	glm::vec3 Point2 = glm::vec3(0.0f);
+	glm::vec3 Point3 = glm::vec3(0.0f); 
+	glm::vec3 Point4 = glm::vec3(0.0f);
+
+	Point1 = start;
+
+	Point2[xmod] = start[xmod];
+	Point2[ymod] = end[ymod];
+	Point2[dir/2] = start[dir/2];
+
+	Point3[xmod] = end[xmod];
+	Point3[ymod] = start[ymod];
+	Point3[dir/2] = start[dir/2];
+
+	Point4 = end;
+
+	if(dir%2 == 0){
+		Point1 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point2 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point3 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point4 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
+
+		chunkMesh.addVertex(Point1,Point1,color);
+		chunkMesh.addVertex(Point3,Point3,color);
+		chunkMesh.addVertex(Point2,Point2,color);
+
+		chunkMesh.addVertex(Point4,Point4,color);
+		chunkMesh.addVertex(Point2,Point2,color);
+		chunkMesh.addVertex(Point3,Point3,color);
+	}else{
+		Point1 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point2 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point3 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point4 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
+
+		chunkMesh.addVertex(Point1,Point1,color);
+		chunkMesh.addVertex(Point2,Point2,color);
+		chunkMesh.addVertex(Point3,Point3,color);
+
+		chunkMesh.addVertex(Point4,Point4,color);
+		chunkMesh.addVertex(Point3,Point3,color);
+		chunkMesh.addVertex(Point2,Point2,color);
+	}
 }
 
 glm::vec3 Chunk::getPos(){

@@ -6,6 +6,8 @@ TARGETEXE = ./Cryonyx.exe
 CPPFLAGS = -std=c++17 -g -static-libstdc++ -static-libgcc -DSFML_STATIC
 INC = -lsfml-graphics -lsfml-window -lsfml-system -lwinmm -lboost_filesystem-mt -lboost_system-mt -lglu32 -lopengl32 -lgdi32 -lglew32 -lpng -lz -ljpeg -lfreetype -lpthread
 
+PHONY := clean
+
 all: compile
 
 compile: $(TARGETO)
@@ -16,4 +18,4 @@ compile: $(TARGETO)
 	$(CXX) $(CPPFLAGS) -o $@ -c $<
 
 clean:
-	rm $(TARGETO) $(TARGETD) $(TARGETEXE)
+	rm $(TARGETO) $(TARGETD)

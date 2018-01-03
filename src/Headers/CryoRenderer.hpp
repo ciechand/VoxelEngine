@@ -112,6 +112,7 @@ class RenderController{
 
 		void initialize();
 		int loadBaseMeshes();
+		void addBaseMesh(BaseMesh* m);
 		void reloadBuffers();
 		void createNewShaderProgram();
 
@@ -149,6 +150,9 @@ class RenderController{
 		std::vector<glm::vec3> colors;
 		std::vector<glm::mat4> modelMatrix;
 		
+		//variable to determine the end of preloaded baseMeshes
+		unsigned int meshBorder = 0;
+
 		//Variables needed for other stuff
 		std::string vertexShaderPath;
 		std::string fragmentShaderPath;
