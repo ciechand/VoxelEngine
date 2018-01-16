@@ -36,7 +36,7 @@ void processKeyPress(sf::Event event){
 			break;
 	}
 	Camera.setCamAt(ca);
-	Camera.setViewMatrix(glm::lookAt(ca+Camera.getCamFRot(), ca, Camera.getCamUp()));
+	Camera.setCamPos(ca+Camera.getCamFRot());
 	//std::cerr << "Camera Pos: \n\tx: " << ShaderController.cameraPos.x << "\n\ty: " << ShaderController.cameraPos.y << "\n\tz: " << ShaderController.cameraPos.z << std::endl;
 }
 
@@ -58,8 +58,8 @@ void processMouseMove(sf::Event event){
 		rotationPer[1] = (camRot[1]*PI)+PI/2;
 
  		glm::vec3 rotations = glm::vec3(-sin(rotationPer[0])*cos(rotationPer[1])*CAMERADIST, -sin(rotationPer[1])*CAMERADIST, cos(rotationPer[0])*cos(rotationPer[1])*CAMERADIST);
- 		//std::cerr << "Rotation vector:\n X: " << rotations.x << "\n Y: " << rotations.y << "\n Z: " << rotations.z << std::endl;
- 		Camera.setViewMatrix(glm::lookAt(Camera.getCamAt()+rotations, Camera.getCamAt(), Camera.getCamUp()));
+ 		//std::cerr << "Rotation vector:\n X: " << camRot.x << "\n Y: " << camRot.y << "\n Z: " << camRot.z << std::endl;
+ 		Camera.setCamPos(Camera.getCamAt()+rotations);
  		//std::cerr << " Camera Pos: \n\tX:" << (Camera.getCamAt()+rotations).x << "\n\tY: " << (Camera.getCamAt()+rotations).y << "\n\tZ: " << (Camera.getCamAt()+rotations).z << std::endl;
 
  		Camera.setCamFRot(rotations);

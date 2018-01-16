@@ -33,8 +33,10 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0), glm::vec3(0.0,0.0,0.0)
 
 
 CameraController::CameraController(){
+	cameraRotation = glm::vec3(0.25,0.61,1);
+	cameraAt = glm::vec3(23,28,21);
 	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
-	viewMatrix = glm::lookAt(cameraPos, glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
+	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
 }
 
 CameraController::~CameraController(){
@@ -47,7 +49,7 @@ glm::vec3 CameraController::getCamPos(){
 
 void CameraController::setCamPos(glm::vec3 pos){
 	cameraPos = pos;
-	viewMatrix = glm::lookAt(cameraPos, glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));}
+	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);}
 
 glm::vec3 CameraController::getCamRot(){
 	return cameraRotation;
@@ -99,11 +101,11 @@ void CameraController::setViewMatrix(glm::mat4 vm){
 
 
 RenderController::RenderController(){
-	VertexArrayObject.assign(2,0);
+	VertexArrayObject.assign(3,0);
 }
 
 RenderController::~RenderController(){
-	glDeleteVertexArrays(2, &(VertexArrayObject[0]));
+	glDeleteVertexArrays(3, &(VertexArrayObject[0]));
 	glDeleteBuffers(5, &VertexBufferBase[0]);
 	for(int i=0; i<meshBorder; i++){
 		delete baseMeshes[i];
@@ -114,7 +116,7 @@ RenderController::~RenderController(){
 }
 
 void RenderController::initialize(){
-	glGenVertexArrays(2, &(VertexArrayObject[0]));
+	glGenVertexArrays(3, &(VertexArrayObject[0]));
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
 
 	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferBase[0]);
@@ -140,7 +142,7 @@ void RenderController::initialize(){
 	shaderPositions.emplace_back();
 	shaderPositions[1] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexNormal");
 	glEnableVertexAttribArray(shaderPositions[1]);
-	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertices.size() * sizeof(glm::vec4)));
+	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	//Initializing the texture values for this mesh.
 	shaderPositions.emplace_back();
@@ -211,6 +213,8 @@ void RenderController::initialize(){
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 0 , GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -244,7 +248,7 @@ void RenderController::initialize(){
     glEnableVertexAttribArray(shaderPositions[4]+1); 
     glVertexAttribPointer(shaderPositions[4]+1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET(sizeof(glm::vec4)));
 	glVertexAttribDivisor(shaderPositions[4]+1, 1);
-// 
+
     glEnableVertexAttribArray(shaderPositions[4]+2); 
     glVertexAttribPointer(shaderPositions[4]+2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET((sizeof(glm::vec4)*2)));
     glVertexAttribDivisor(shaderPositions[4]+2, 1);
@@ -256,6 +260,30 @@ void RenderController::initialize(){
     //Initializing the instances to  drawing the Mesh.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VertexBufferShadow[LIndexBuffer]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
+
+	glBindVertexArray(0);
+
+	glBindVertexArray(VertexArrayObject[ShaderPassThrough]);
+	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferPassThrough[0]);
+
+	std::vector<glm::vec2> quadVertices = {
+		glm::vec2(-1.0f, -1.0f),
+		glm::vec2( 1.0f, -1.0f),
+		glm::vec2(-1.0f,  1.0f),
+		glm::vec2(-1.0f,  1.0f),
+		glm::vec2( 1.0f, -1.0f),
+		glm::vec2( 1.0f,  1.0f)
+	};
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferPassThrough[LVertexBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, quadVertices.size()*sizeof(glm::vec2), quadVertices.data(), GL_DYNAMIC_DRAW);
+	
+
+	GLuint shaderPos = glGetAttribLocation(programVariables[ShaderPassThrough], "vertexPosition");
+	glEnableVertexAttribArray(shaderPos);
+	glVertexAttribPointer(shaderPos, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	GLuint texShaderPos = glGetUniformLocation(programVariables[ShaderPassThrough], "textureSample");
 
 	glBindVertexArray(0);
 }
@@ -306,10 +334,34 @@ void RenderController::addBaseMesh(BaseMesh* m){
 	tempT = m->getTexCoords();
 	tempN = m->getNormals();
 	tempI = m->getIndices();
-	vertices.insert(vertices.end(), tempV.begin(), tempV.end());
-	texCoords.insert(texCoords.end(), tempT.begin(), tempT.end());
-	vertexNormals.insert(vertexNormals.end(), tempN.begin(), tempN.end());
-	indices.insert(indices.end(), tempI.begin(), tempI.end());
+	//For loop checking all the vertices against the rest of the vertices to optimmize the indices. blegh... maybe fine a way to optimize in the future.
+	bool found = false;
+	unsigned int index = 0;
+	for(int i=0; i<tempI.size(); i++){
+		found = false;
+		index = tempI[i];
+		for(int j=0; j<vertices.size(); j++){
+			//std::cerr << "~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+			//std::cerr << "i: " << i <<  std::endl;
+			//std::cerr << "tempVertex"<< index <<":\n\tX: " <<tempV[index].x << "\n\tY: " <<tempV[index].y << "\n\tZ: " <<tempV[index].z << std::endl;
+			//std::cerr << "vertex"<< j <<":\n\tX: " <<vertices[j].x << "\n\tY: " <<vertices[j].y << "\n\tZ: " <<vertices[j].z << std::endl;
+			//std::cerr << "tempNormal"<< index <<":\n\tX: " <<tempN[index].x << "\n\tY: " <<tempN[index].y << "\n\tZ: " <<tempN[index].z << std::endl;
+			//std::cerr << "vertexNormal"<< j <<":\n\tX: " <<vertexNormals[j].x << "\n\tY: " <<vertexNormals[j].y << "\n\tZ: " <<vertexNormals[j].z << std::endl;
+			if(tempV[index] == vertices[j] && tempT[index] == texCoords[j] && tempN[index] == vertexNormals[j]){
+				indices.emplace_back(j);
+				found = true;
+				break;
+			}
+			//std::cerr << "Found: False" <<  std::endl;
+		}
+		if(found == true) continue;
+		unsigned int vSize = vertices.size();
+		indices.emplace_back(vSize);
+		vertices.emplace_back(tempV[index]);
+		texCoords.emplace_back(tempT[index]);
+		vertexNormals.emplace_back(tempN[index]);
+	}
+
 }
 
 void RenderController::reloadBuffers(){
@@ -329,6 +381,12 @@ void RenderController::reloadBuffers(){
 	//Reload the things for the base shader
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
 
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LVertexBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertices.data(), GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LNormalsBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data(), GL_DYNAMIC_DRAW);
+
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LColorArray]);
 	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), colors.data(), GL_DYNAMIC_DRAW);
 
@@ -338,6 +396,9 @@ void RenderController::reloadBuffers(){
 
 	//reload all the things for the shadow maps
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferShadow[LVertexBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4), vertices.data(), GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferShadow[LModelMatrices]);
 	glBufferData(GL_ARRAY_BUFFER, modelMatrix.size()*sizeof(glm::mat4), modelMatrix.data(), GL_DYNAMIC_DRAW);
@@ -475,32 +536,43 @@ void RenderController::drawScene(){
 	glUseProgram(programVariables[ShaderShadow]);
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
 
-	//glm::mat4 tempProjMatrix = Camera.getProjMatrix();
-
-	glm::mat4 tempProjMatrix =	glm::ortho<float>(-50,50,-50,50,-50,50);
-	glm::mat4 tempViewMatrix = glm::lookAt(glm::vec3(10.0f,10.0f,10.0f),glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,1.0f,0.0f));
-	glm::mat4 VPMatrix = tempProjMatrix * tempViewMatrix;
-	//glm::mat4 tempViewMatrix = Camera.getViewMatrix();
-	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "VP"), 1, GL_FALSE, &(VPMatrix[0][0]));
+	//glm::mat4 tempProjShadowMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 3.0f,-1.0f);
+	glm::mat4 tempProjShadowMatrix = glm::ortho<float>(-40,40,-40,40,-40,40);
+	glm::mat4 tempViewShadowMatrix = glm::lookAt(glm::vec3(20.0f,30.0f,20.0f),glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,1.0f,0.0f));
+	glm::mat4 VPShadowMatrix = tempProjShadowMatrix * tempViewShadowMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "VP"), 1, GL_FALSE, &(VPShadowMatrix[0][0]));
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
 	glClear(GL_DEPTH_BUFFER_BIT);
-	//glCullFace(GL_FRONT);
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrix.size());
+	glCullFace(GL_FRONT);
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 
 	glUseProgram(programVariables[ShaderBase]); 
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
 
-	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "DepthVP"), 1, GL_FALSE, &(VPMatrix[0][0]));
-	tempProjMatrix = Camera.getProjMatrix();
-	tempViewMatrix = Camera.getViewMatrix();
-	VPMatrix = tempProjMatrix * tempViewMatrix;
-	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "VP"), 1, GL_FALSE, &(VPMatrix[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "DepthVP"), 1, GL_FALSE, &(VPShadowMatrix[0][0]));
+
+	glDepthRange(0.0f,1.0f);
+	glm::mat4 tempProjMatrix = Camera.getProjMatrix();
+	glm::mat4 tempViewMatrix = Camera.getViewMatrix();
+	glm::mat4 VPMatrix = tempProjMatrix * tempViewMatrix;
+	glm::vec3 lightPos = glm::vec3(20.0f,30.0f,20.0f);
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "V"), 1, GL_FALSE, &(tempViewMatrix[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "P"), 1, GL_FALSE, &(tempProjMatrix[0][0]));
+	glUniform3fv(glGetUniformLocation(programVariables[ShaderBase], "lightPos"), 1,&(lightPos[0]));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	//glCullFace(GL_BACK);
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), modelMatrix.size());
+	glCullFace(GL_BACK);
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+
+	if(SHADOWMAPDEBUG){
+		glViewport(SCREENWIDTH-500, SCREENHEIGHT-500,500,500); 
+		glUseProgram(programVariables[ShaderPassThrough]);
+		glBindVertexArray(VertexArrayObject[ShaderPassThrough]);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glViewport(0, 0,SCREENWIDTH,SCREENHEIGHT);
+	}
 
 	glBindVertexArray(0);
 }

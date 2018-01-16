@@ -23,7 +23,7 @@ std::string readFileToString(const char* filePath)
 }
 
 glm::vec3 translate1DPos(unsigned int index, unsigned int size){
-    glm::vec3 tempVec(index%size, floor((index/size)%size),  floor((index/size)/size));
+    glm::vec3 tempVec(index%size, (unsigned int)(index/size)%size,  (unsigned int)(index/size)/size);
     return tempVec;
 }
 

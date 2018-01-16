@@ -45,42 +45,48 @@ int main(int argc, char ** argv){
 	
 	if(DEBUGMODE)std::cerr << "Loading Shadow Shader Program" << std::endl;
 	ShaderController.createNewShaderProgram();
+
+	if(DEBUGMODE)std::cerr << "Loading Shadow Vertex Shader Path" << std::endl;
+	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/PassThroughVertexShader.glsl"));
+	
+	if(DEBUGMODE)std::cerr << "Loading Passthrough Fragment Shader Path" << std::endl;
+	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/PassThroughFragmentShader.glsl"));
+	
+	if(DEBUGMODE)std::cerr << "Loading Passthrough Shader Program" << std::endl;
+	ShaderController.createNewShaderProgram();
 	
 	if(DEBUGMODE)std::cerr << "Done Loading Shader Programs" << std::endl;
 	//THIS IS THE END OF LOADING SHADERS
 
 	//ShaderController.loadBaseMeshes();
 
-
-
-	unsigned int iterations = 1;
 	sf::Time t1 = MainClock.getElapsedTime();
-	for(int i=6; i>(6-iterations); i--){
+	unsigned int iterations = 6;
+
+	ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)));
+	for(int i=0; i<iterations; i++){
 		if(DEBUGMODE == true){
 			glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
-			std::cerr << "Setting up Chunk #" << i  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
+			std::cerr << "Setting up Chunk #" << i+1  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
 		}
 		ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)+DirectionVectors[i]));
 	}
-
 	sf::Time t2 = MainClock.getElapsedTime();
 	sf::Time dt = t2-t1;
-	std::cerr << "Time to generate Chunks: " << dt.asSeconds() << std::endl;
+	std::cerr << "Time to generate and Mesh Chunks: " << dt.asSeconds() << std::endl;
 	t1 = MainClock.getElapsedTime();
 
-	for(int i=6; i>(6-iterations); i--){
+	ChunkContainer[0]->GenerateMesh();
+	for(int i=0; i<iterations; i++){
 		if(DEBUGMODE == true){
 			glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
-			std::cerr << "Configuring Mesh for Chunk #" << i  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
+			std::cerr << "Meshing Chunk #" << i+1  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
 		}
-		ChunkContainer[(6-i)]->GenerateMesh();
+		ChunkContainer[i+1]->GenerateMesh();
 	}
-
+	
 	ShaderController.initialize();
 
-	t2 = MainClock.getElapsedTime();
-	dt = t2-t1;
-	std::cerr << "Time to generate Chunk Meshes: " << dt.asSeconds() << std::endl;
 	while(MainController.getCurrentGameState() != GameExiting){
 		sf::Event event;
 		while(MainWindow.pollEvent(event)){
@@ -140,7 +146,8 @@ void Render(){
 
 void Cleanup(){
 	sf::Vector2u windowSize = MainWindow.getSize();
-	if(mouseBound)
+	if(mouseBound){
 		sf::Mouse::setPosition(sf::Vector2i(windowSize.x/2, windowSize.y/2), MainWindow);
-	MainWindow.setMouseCursorVisible(false);
+		MainWindow.setMouseCursorVisible(false);
+	}
 }

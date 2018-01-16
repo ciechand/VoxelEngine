@@ -120,7 +120,6 @@ bool BaseMesh::loadModel(){
 }
 
 void BaseMesh::addToController(){
-	//Todo, pretty simple, call a function in render controller passing in this mesh.
 	ShaderController.addBaseMesh(this);
 }
 
@@ -185,7 +184,7 @@ std::vector<unsigned int> BaseMesh::getIndices(){
 
 void BaseMesh::addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color){
 	for(int i=0; i<vertices.size(); i++){
-		if(glm::vec4(vert,1.0f) == vertices[i]){
+		if(glm::vec4(vert,1.0f) == vertices[i] && glm::vec4(norm,0.0f) == normals[i]){
 			indices.push_back(i);
 			colors.push_back(color);
 			return;
@@ -193,7 +192,7 @@ void BaseMesh::addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color){
 	}
 	indices.push_back(vertices.size());
 	vertices.push_back(glm::vec4(vert,1.0f));
-	normals.push_back(glm::vec4(norm,0.0f));
+	normals.push_back(glm::vec4(glm::normalize(norm),0.0f));
 	texCoords.push_back(glm::vec2(0.0f,1.0f));
 	colors.push_back(color);
 }
@@ -483,11 +482,11 @@ Chunk::Chunk(glm::vec3 pos){
 	for(int i=0; i<CHUNKSIZE; i++){
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
 		//if((blockPos.x >= CHUNKSIDE/2 && blockPos.x <= CHUNKSIDE-5.0f) || (blockPos.y >= 4 && blockPos.y <= CHUNKSIDE-5.0f) || (blockPos.z >= 4 && blockPos.z <= CHUNKSIDE-5.0f))
-		if(((blockPos.y >= CHUNKSIDE/2))&&((blockPos.x != CHUNKSIDE/2) || (blockPos.z != CHUNKSIDE/2)))
-			continue;
-		Grid[i] = new Block();
+		if((blockPos.x == CHUNKSIDE/2 && blockPos.z == (CHUNKSIDE*2)/3 && blockPos.y >= CHUNKSIDE/2) || blockPos.y < CHUNKSIDE/2 )
+			Grid[i] = new Block();
 	}
-	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks" << std::endl;
+	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks for Chunk:  " << chunkPos.x << ", " <<chunkPos.y  << ", " << chunkPos.z << ";" << std::endl;
+
 }
 
 Chunk::~Chunk(){
@@ -498,7 +497,6 @@ Chunk::~Chunk(){
 			delete Grid[i];
 	}
 }
-
 void Chunk::initializeMesh(){
 	for(int i=0; i<6; i++){
 		glm::vec3 checkChunkPos = getPos()+DirectionVectors[i];
@@ -508,6 +506,10 @@ void Chunk::initializeMesh(){
 		}
 	}
 
+	// std::cerr << "The adjacent Chunks are: " << std::endl;
+	// for(int i=0; i<6; i++){
+	// 	std::cerr << "\t"<< i << ":" << adjacentChunks[i] << std::endl;
+	// }
 	for(int i=0; i<CHUNKSIZE; i++){
 		if(Grid[i] == nullptr)
 			continue;
@@ -528,8 +530,7 @@ void Chunk::initializeMesh(){
 					checkBlock = ChunkContainer[adjacentChunks[(s*2)+1]]->getBlock(transBlockPos);
 				if(checkBlock != nullptr && checkBlock->getActive() == true) {
 					Grid[i]->setActiveSide((s*2)+1, false);
-		 			checkBlock->setActiveSide((s*2), false);
-
+					checkBlock->setActiveSide((s*2), false);
 				}
 				checkBlock = nullptr;
 				transBlockPos = blockPos+DirectionVectors[s*2];
@@ -537,7 +538,6 @@ void Chunk::initializeMesh(){
 				if(checkBlock != nullptr && checkBlock->getActive() == true){
 					Grid[i]->setActiveSide((s*2), false);
 		 			checkBlock->setActiveSide((s*2)+1, false);
-
 				}
 				continue;
 			}else if(blockPos[s] == (CHUNKSIDE-1)){
@@ -609,7 +609,7 @@ void Chunk::GenerateMesh(){
 
 	//std::array<unsigned int, CHUNKSIDE*CHUNKSIDE> ChunkMask = {0};
 	chunkMesh.clearMesh();
-	chunkMesh.addToModels(glm::mat4(1.0f));
+	chunkMesh.addToModels(glm::translate(glm::mat4(1.0f),chunkPos*(float)CHUNKSIDE));
 	glm::vec3 currentQueryPos = glm::vec3(0.0f,0.0f,0.0f);
 
 	unsigned int currentAxis = 0;
@@ -620,7 +620,7 @@ void Chunk::GenerateMesh(){
 
 	for(int sign=0; sign<2; sign++){
 		for(int i=0; i<3; i++){
-			currentAxis = ((i*2)+sign)%6;
+			currentAxis = ((i*2)+((sign+1)%2))%6;
 			//int px = ((i+2+(2*((i+1)%2)))%6);
 			//int py = ((i+2+(2*(i%2)))%6);
 
@@ -656,8 +656,8 @@ void Chunk::GenerateMesh(){
 										(currentQueryPos+(xmod*(float)w))[direction1] < CHUNKSIDE && 
 										Grid[translate3DPos(currentQueryPos+(xmod*(float)w), CHUNKSIDE)] != nullptr && 
 										Grid[translate3DPos(currentQueryPos+(xmod*(float)w), CHUNKSIDE)]->getActiveSide(currentAxis) && 
-										Grid[translate3DPos(currentQueryPos+(xmod*(float)w), CHUNKSIDE)]->isSideSame(Grid[curIndex], i) && 
-										GridMask[(currentQueryPos[direction2]*CHUNKSIDE)+(currentQueryPos[direction1]+w)] == false; w++){}
+										Grid[translate3DPos(currentQueryPos+(xmod*(float)w), CHUNKSIDE)]->isSideSame(Grid[curIndex], currentAxis) && 
+										!GridMask[(currentQueryPos[direction2]*CHUNKSIDE)+(currentQueryPos[direction1]+w)]; w++){}
 
 							bool done =  false;
 							for(h = 1; (currentQueryPos+(ymod*(float)h))[direction2] >= 0 && (currentQueryPos+(ymod*(float)h))[direction2] < CHUNKSIDE; h++){
@@ -665,7 +665,7 @@ void Chunk::GenerateMesh(){
 									if(Grid[translate3DPos(currentQueryPos+(ymod*(float)h)+(xmod*(float)k), CHUNKSIDE)]== nullptr || 
 										!(Grid[translate3DPos(currentQueryPos+(ymod*(float)h)+(xmod*(float)k), CHUNKSIDE)]->isSideSame(Grid[curIndex], currentAxis)) || 
 										!Grid[translate3DPos(currentQueryPos+(ymod*(float)h)+(xmod*(float)k), CHUNKSIDE)]->getActiveSide(currentAxis) ||
-										GridMask[((currentQueryPos[direction2]+h)*CHUNKSIDE)+(currentQueryPos[direction1]+k)] == true){done = true; break;}
+										GridMask[((currentQueryPos[direction2]+h)*CHUNKSIDE)+(currentQueryPos[direction1]+k)]){done = true; break;}
 								}
 								if(done){break;}
 							}
@@ -701,6 +701,7 @@ void Chunk::GenerateMesh(){
 void Chunk::GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir, glm::vec3 color){
 
 	//std::cerr << "dirinside: " << dir  << std::endl;
+	//std::cerr << "DirectionVectors[Dir]:\n\tX: " <<DirectionVectors[dir].x << "\n\tY: " <<DirectionVectors[dir].y << "\n\tZ: " <<DirectionVectors[dir].z << std::endl;
 	//std::cerr << "Start Point:\n\tX: " <<start.x << "\n\tY: " <<start.y << "\n\tZ: " <<start.z << std::endl;
 	//std::cerr << "End Point:\n\tX: " <<end.x << "\n\tY: " <<end.y << "\n\tZ: " <<end.z << std::endl;
 	//int px=(dir+2+(2*((dir+1)%2)))%6;
@@ -739,31 +740,47 @@ void Chunk::GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir, glm::
 	Point4 = end;
 
 	if(dir%2 == 0){
-		Point1 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
-		Point2 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
-		Point3 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
-		Point4 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point1 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
+		Point2 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
+		Point3 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
+		Point4 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
 
-		chunkMesh.addVertex(Point1,Point1,color);
-		chunkMesh.addVertex(Point3,Point3,color);
-		chunkMesh.addVertex(Point2,Point2,color);
+		chunkMesh.addVertex(Point1,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
 
-		chunkMesh.addVertex(Point4,Point4,color);
-		chunkMesh.addVertex(Point2,Point2,color);
-		chunkMesh.addVertex(Point3,Point3,color);
+		chunkMesh.addVertex(Point4,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
+
+		// chunkMesh.addVertex(Point1,Point1,color);
+		// chunkMesh.addVertex(Point3,Point3,color);
+		// chunkMesh.addVertex(Point2,Point2,color);
+
+		// chunkMesh.addVertex(Point4,Point4,color);
+		// chunkMesh.addVertex(Point2,Point2,color);
+		// chunkMesh.addVertex(Point3,Point3,color);
 	}else{
-		Point1 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
-		Point2 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
-		Point3 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2));
-		Point4 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2));
+		Point1 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
+		Point2 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
+		Point3 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
+		Point4 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
 
-		chunkMesh.addVertex(Point1,Point1,color);
-		chunkMesh.addVertex(Point2,Point2,color);
-		chunkMesh.addVertex(Point3,Point3,color);
+		chunkMesh.addVertex(Point1,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
 
-		chunkMesh.addVertex(Point4,Point4,color);
-		chunkMesh.addVertex(Point3,Point3,color);
-		chunkMesh.addVertex(Point2,Point2,color);
+		chunkMesh.addVertex(Point4,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
+
+		// chunkMesh.addVertex(Point1,Point1,color);
+		// chunkMesh.addVertex(Point2,Point2,color);
+		// chunkMesh.addVertex(Point3,Point3,color);
+
+		// chunkMesh.addVertex(Point4,Point4,color);
+		// chunkMesh.addVertex(Point3,Point3,color);
+		// chunkMesh.addVertex(Point2,Point2,color);
 	}
 }
 

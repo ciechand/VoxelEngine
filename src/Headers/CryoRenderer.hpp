@@ -38,7 +38,7 @@ enum VertexBufferLabels{LVertexBuffer=0, LNormalsBuffer,LTextureBuffer, LColorAr
 enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, CombinedMatrix};
 
 //Enum outlining the different shaderPrograms
-enum shaderTypes{ShaderBase=0, ShaderShadow};
+enum shaderTypes{ShaderBase=0, ShaderShadow, ShaderPassThrough};
 
 //forward class declarations go here
 class BaseMesh;
@@ -142,6 +142,7 @@ class RenderController{
 		std::vector<GLuint> VertexArrayObject;
 		GLuint VertexBufferBase[NUMBER_OF_LABELS];
 		GLuint VertexBufferShadow[NUMBER_OF_LABELS];
+		GLuint VertexBufferPassThrough[NUMBER_OF_LABELS];
 		std::vector<GLuint> shaderPositions;
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> vertexNormals;
@@ -152,6 +153,7 @@ class RenderController{
 		
 		//variable to determine the end of preloaded baseMeshes
 		unsigned int meshBorder = 0;
+		unsigned int meshCount = 0;
 
 		//Variables needed for other stuff
 		std::string vertexShaderPath;

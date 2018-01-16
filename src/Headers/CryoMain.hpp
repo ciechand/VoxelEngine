@@ -28,6 +28,7 @@
 #define SCREENHEIGHT 1080
 
 #define DEBUGMODE true
+#define SHADOWMAPDEBUG false
 
 #define CUBESIZE 1.0f
 #define HALFSIZE (CUBESIZE/2.0f)+0.003f
