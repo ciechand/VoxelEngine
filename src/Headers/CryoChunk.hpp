@@ -9,6 +9,8 @@
 
 #include <glm/glm.hpp>
 
+#include "../../Includes/FastNoise.h"
+
 class Block;
 class Chunk;
 
@@ -200,5 +202,7 @@ class Chunk{
 		std::array<int,6> adjacentChunks;
 		std::array<bool, CHUNKSIDE*CHUNKSIDE> GridMask = {false};	
 };	
+
+extern FastNoise noiseSampler;
 
 #endif //CryoChunk

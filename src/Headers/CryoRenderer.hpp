@@ -16,6 +16,9 @@ extern const glm::vec3 CubeVerts[8];
 extern const glm::vec3 DirectionVectors[7];
 extern const glm::vec3 BlockColors[16];
 
+//CONTANTS
+#define MAXSHADOWMAPS 30
+
 //MACROS
 #define BUFFER_OFFSET(offset) ((GLvoid*)(intptr_t)(offset))
 
@@ -42,29 +45,6 @@ enum shaderTypes{ShaderBase=0, ShaderShadow, ShaderPassThrough};
 
 //forward class declarations go here
 class BaseMesh;
-
-//Light class, this class contains everythng necessary to create a light. Directional and Point Lights will inherit from this class.
-class light{
-	public:
-		light();
-		~light();
-
-		glm::vec4 getPos();
-		void setPos(glm::vec4 p);
-
-		float getDist();
-		void setDist(float d);
-	private:
-		glm::vec4 pos = glm::vec4(0.0f,0.0f,0.0f,0.0f);
-		float distance = 1.0f;
-};
-
-//Light SourceController
-class lightController{
-	public:
-	private:
-
-};
 
 //Class for controlling the camera and storing all the camera variables
 class CameraController{
@@ -114,6 +94,7 @@ class RenderController{
 		int loadBaseMeshes();
 		void addBaseMesh(BaseMesh* m);
 		void reloadBuffers();
+		void reloadShaderBuffers();
 		void createNewShaderProgram();
 
 		void setShader(int index);
@@ -165,6 +146,12 @@ class RenderController{
 		//variables necessary for shadow mapping
 		GLuint shadowBuffer = 0;
 		GLuint shadowDepthTexture;
+		GLuint lightDataSSBO;
+		GLuint lightMatrixSSBO;
+		bool lighDataChanged = true;
+
+		//Variables needed for SSAO
+		GLuint SSAONoise = 0;
 
 		//Variable to dicatate if the scene has changed.
 		bool sceneChanged = true;

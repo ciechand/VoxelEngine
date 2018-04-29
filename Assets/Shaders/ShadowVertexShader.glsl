@@ -3,10 +3,10 @@
 layout(location=0) in mat4 modelMatrix;
 layout(location=4) in vec4 VertexPosition;
 
-layout(location=7)  uniform mat4 VP;
+layout(location=7)  uniform mat4 PV;
 
 
 
 void main(){
-	gl_Position =  VP * modelMatrix * VertexPosition;
+	gl_Position =  PV * modelMatrix * VertexPosition;
 }

@@ -2,6 +2,7 @@
 #include "../Headers/CryoChunk.hpp"
 #include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoUtil.hpp"
+#include "../Headers/CryoLighting.hpp"
 
 RenderController ShaderController;
 CameraController Camera;
@@ -33,7 +34,6 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0), glm::vec3(0.0,0.0,0.0)
 
 
 CameraController::CameraController(){
-	cameraRotation = glm::vec3(0.25,0.61,1);
 	cameraAt = glm::vec3(23,28,21);
 	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
 	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
@@ -49,7 +49,8 @@ glm::vec3 CameraController::getCamPos(){
 
 void CameraController::setCamPos(glm::vec3 pos){
 	cameraPos = pos;
-	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);}
+	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
+}
 
 glm::vec3 CameraController::getCamRot(){
 	return cameraRotation;
@@ -164,7 +165,6 @@ void RenderController::initialize(){
 	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexColor");
 	glEnableVertexAttribArray(shaderPositions[3]);
 	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-	glVertexAttribDivisor(shaderPositions[3], 0);
 
 	//Initialize which texture will be utilized for this particular Side.
 	
@@ -198,6 +198,19 @@ void RenderController::initialize(){
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
 
 
+	//Setting up the shader storage Buffers.
+	glGenBuffers(1, &lightDataSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightDataSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(Light), lightController.getLightData(), GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightDataSSBO); 
+
+	glGenBuffers(1, &lightMatrixSSBO); 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lightMatrixSSBO); 
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 	//Set the vertexArray
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
 
@@ -209,14 +222,14 @@ void RenderController::initialize(){
 
 	//Initialize depth texture
 	glGenTextures(1, &shadowDepthTexture);
-	glBindTexture(GL_TEXTURE_2D, shadowDepthTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 0 , GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 10, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
 
@@ -304,16 +317,19 @@ int RenderController::loadBaseMeshes(){
 	std::vector<glm::vec4> tempV;
 	std::vector<glm::vec2> tempT;
 	std::vector<glm::vec4> tempN;
+	std::vector<glm::vec3> tempC;
 	std::vector<unsigned int> tempI;
 	for(int i=0; i<baseMeshes.size(); i++){
 		tempV = baseMeshes[i]->getVertices();
 		tempT = baseMeshes[i]->getTexCoords();
 		tempN = baseMeshes[i]->getNormals();
 		tempI = baseMeshes[i]->getIndices();
+		tempC = baseMeshes[i]->getColors();
 		vertices.insert(vertices.end(), tempV.begin(), tempV.end());
 		texCoords.insert(texCoords.end(), tempT.begin(), tempT.end());
 		vertexNormals.insert(vertexNormals.end(), tempN.begin(), tempN.end());
 		indices.insert(indices.end(), tempI.begin(), tempI.end());
+		colors.insert(colors.end(), tempC.begin(), tempC.end());
 	}
 	meshBorder = baseMeshes.size();
 }
@@ -329,11 +345,13 @@ void RenderController::addBaseMesh(BaseMesh* m){
 	std::vector<glm::vec4> tempV;
 	std::vector<glm::vec2> tempT;
 	std::vector<glm::vec4> tempN;
+	std::vector<glm::vec3> tempC;
 	std::vector<unsigned int> tempI;
 	tempV = m->getVertices();
 	tempT = m->getTexCoords();
 	tempN = m->getNormals();
 	tempI = m->getIndices();
+	tempC = m->getColors();
 	//For loop checking all the vertices against the rest of the vertices to optimmize the indices. blegh... maybe fine a way to optimize in the future.
 	bool found = false;
 	unsigned int index = 0;
@@ -347,7 +365,7 @@ void RenderController::addBaseMesh(BaseMesh* m){
 			//std::cerr << "vertex"<< j <<":\n\tX: " <<vertices[j].x << "\n\tY: " <<vertices[j].y << "\n\tZ: " <<vertices[j].z << std::endl;
 			//std::cerr << "tempNormal"<< index <<":\n\tX: " <<tempN[index].x << "\n\tY: " <<tempN[index].y << "\n\tZ: " <<tempN[index].z << std::endl;
 			//std::cerr << "vertexNormal"<< j <<":\n\tX: " <<vertexNormals[j].x << "\n\tY: " <<vertexNormals[j].y << "\n\tZ: " <<vertexNormals[j].z << std::endl;
-			if(tempV[index] == vertices[j] && tempT[index] == texCoords[j] && tempN[index] == vertexNormals[j]){
+			if(tempV[index] == vertices[j] && tempT[index] == texCoords[j] && tempN[index] == vertexNormals[j] && tempC[index] == colors[j]){
 				indices.emplace_back(j);
 				found = true;
 				break;
@@ -360,21 +378,19 @@ void RenderController::addBaseMesh(BaseMesh* m){
 		vertices.emplace_back(tempV[index]);
 		texCoords.emplace_back(tempT[index]);
 		vertexNormals.emplace_back(tempN[index]);
+		colors.emplace_back(tempC[index]);
 	}
 
 }
 
 void RenderController::reloadBuffers(){
-	colors.clear();
 	modelMatrix.clear();
 	//for loop used to recompile all the basemesh colors and model matrices.
 	std::vector<glm::vec3> tempC;
 	std::vector<glm::mat4> tempM;
 	for(int i=0; i<baseMeshes.size(); i++){
-		tempC = baseMeshes[i]->getColors();
 		tempM = baseMeshes[i]->getModels();
 
-		colors.insert(colors.end(), tempC.begin(), tempC.end());
 		modelMatrix.insert(modelMatrix.end(), tempM.begin(), tempM.end());
 
 	}
@@ -404,6 +420,26 @@ void RenderController::reloadBuffers(){
 	glBufferData(GL_ARRAY_BUFFER, modelMatrix.size()*sizeof(glm::mat4), modelMatrix.data(), GL_DYNAMIC_DRAW);
 
 	glBindVertexArray(0);
+}
+
+void RenderController::reloadShaderBuffers(){
+	glBindVertexArray(VertexArrayObject[ShaderBase]);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightDataSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(Light), lightController.getLightData(), GL_DYNAMIC_COPY);
+	//GLvoid* pl = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	//memcpy(pl, lightController.getLightData(), lightController.getNumLights()*sizeof(Light));
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
+	//GLvoid* pm = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	//memcpy(pm, lightController.getLightMatData(), lightController.getNumLights()*sizeof(glm::mat4));
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 // Create a GLSL program object from vertex and fragment shader files
@@ -523,56 +559,60 @@ void RenderController::setChanged(bool c){
 }
 
 void RenderController::drawScene(){
-
-	//if(sceneChanged == true){
+	lightController.setLight(0, glm::vec4(Camera.getCamPos(),1.0f), glm::vec3(255.0f,255.0,255.0), 0.0f);
+	//Going to need more then one change variable, will need an enum of bools that define the flags for change.
+	if(sceneChanged == true){
 		//Here we reload buffers if the scene changes
+		reloadShaderBuffers();
 		reloadBuffers();
 		//render the Shadow maps!
-		/*for each light, draw elements instanced.*/
-
+		// /*for each light, draw elements instanced.*/
 		//Here we setup the depth buffer things that only changes when the scene changes.
 		//sceneChanged = false;
-	//}
+	}
 	glUseProgram(programVariables[ShaderShadow]);
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
 
-	//glm::mat4 tempProjShadowMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 3.0f,-1.0f);
-	glm::mat4 tempProjShadowMatrix = glm::ortho<float>(-40,40,-40,40,-40,40);
-	glm::mat4 tempViewShadowMatrix = glm::lookAt(glm::vec3(20.0f,30.0f,20.0f),glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,1.0f,0.0f));
-	glm::mat4 VPShadowMatrix = tempProjShadowMatrix * tempViewShadowMatrix;
-	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "VP"), 1, GL_FALSE, &(VPShadowMatrix[0][0]));
-	
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glCullFace(GL_FRONT);
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+
+	for(int i = 0; i<lightController.getNumLights(); i++){
+		//Light * l = lightController.getLight(i);
+		//std::cerr << "Light "<< i <<" Color: \n\tX: " << l->getColor().r << "\n\tY: " << l->getColor().g << "\n\tZ: " << l->getColor().b << std::endl;
+	
+		glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, i);
+
+		glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "PV"), 1, GL_FALSE, &((lightController.getMatrix(i))[0][0]));
+
+		glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+	}
 
 	glUseProgram(programVariables[ShaderBase]); 
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
 
-	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "DepthVP"), 1, GL_FALSE, &(VPShadowMatrix[0][0]));
-
-	glDepthRange(0.0f,1.0f);
-	glm::mat4 tempProjMatrix = Camera.getProjMatrix();
-	glm::mat4 tempViewMatrix = Camera.getViewMatrix();
-	glm::mat4 VPMatrix = tempProjMatrix * tempViewMatrix;
-	glm::vec3 lightPos = glm::vec3(20.0f,30.0f,20.0f);
-	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "V"), 1, GL_FALSE, &(tempViewMatrix[0][0]));
-	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "P"), 1, GL_FALSE, &(tempProjMatrix[0][0]));
-	glUniform3fv(glGetUniformLocation(programVariables[ShaderBase], "lightPos"), 1,&(lightPos[0]));
+	glm::mat4 BaseProjMatrix = Camera.getProjMatrix();
+	glm::mat4 BaseViewMatrix = Camera.getViewMatrix();
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "P"), 1, GL_FALSE, &(BaseProjMatrix[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
+	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "numLights"), lightController.getNumLights());
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glCullFace(GL_BACK);
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+/*
 	if(SHADOWMAPDEBUG){
 		glViewport(SCREENWIDTH-500, SCREENHEIGHT-500,500,500); 
 		glUseProgram(programVariables[ShaderPassThrough]);
 		glBindVertexArray(VertexArrayObject[ShaderPassThrough]);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glViewport(0, 0,SCREENWIDTH,SCREENHEIGHT);
-	}
+	}*/
 
 	glBindVertexArray(0);
 }

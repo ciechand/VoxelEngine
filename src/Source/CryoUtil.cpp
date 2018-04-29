@@ -43,6 +43,8 @@ void print4x4Matrix(glm::mat4 matrix){
         }
         std::cerr << std::endl;
     } 
+}
 
-
+float lerp(float a, float b, float f){
+    return a + f * (b - a);
 }

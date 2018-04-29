@@ -1,6 +1,6 @@
 TARGETC = $(wildcard ./src/Source/*.cpp)
-TARGETO = $(TARGETC:./src/Source/%.cpp=./src/Objects/%.o)
-TARGETD = $(TARGETO:./src/Objects/%.o=./src/Dependencies/%.d)
+TARGETC += $(wildcard ./Includes/*.cpp)
+TARGETO = $(addprefix ./src/Objects/,$(notdir $(TARGETC:%.cpp=%.o)))
 HPPS = $(wildcard ./src/Headers/*.hpp)
 TARGETEXE = ./Cryonyx.exe
 CPPFLAGS = -std=c++17 -g -static-libstdc++ -static-libgcc -DSFML_STATIC
@@ -15,6 +15,9 @@ compile: $(TARGETO)
 	@echo "Compilation Complete"
 
 ./src/Objects/%.o:./src/Source/%.cpp
+	$(CXX) $(CPPFLAGS) -o $@ -c $<
+
+./src/Objects/%.o:./Includes/%.cpp
 	$(CXX) $(CPPFLAGS) -o $@ -c $<
 
 clean:

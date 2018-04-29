@@ -13,7 +13,7 @@
 
 #define LOOKSPEED 1.5f
 #define CAMERADIST 20.0f
-#define WALKSPEED 0.5f
+#define WALKSPEED 1.0f
 
 void processKeyPress(sf::Event event);
 void processMouseMove(sf::Event event);

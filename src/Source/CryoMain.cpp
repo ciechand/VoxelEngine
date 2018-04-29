@@ -59,30 +59,52 @@ int main(int argc, char ** argv){
 	//THIS IS THE END OF LOADING SHADERS
 
 	//ShaderController.loadBaseMeshes();
+	
+	//Load all the noise Settings
+	noiseSampler.SetNoiseType(FastNoise::Perlin);
+	//noiseSampler.SetSeed(time(NULL));
+
 
 	sf::Time t1 = MainClock.getElapsedTime();
-	unsigned int iterations = 6;
+	unsigned int chunkRadius = 10;
 
-	ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)));
-	for(int i=0; i<iterations; i++){
-		if(DEBUGMODE == true){
-			glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
-			std::cerr << "Setting up Chunk #" << i+1  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
+	float minHeight = std::numeric_limits<float>::max();
+	float maxHeight = -std::numeric_limits<float>::max();
+
+	for(int i=0; i<chunkRadius*chunkRadius; i++){
+		float xAxis = i%chunkRadius;
+		float zAxis = i/chunkRadius;
+		minHeight = std::numeric_limits<float>::max();
+		maxHeight = -std::numeric_limits<float>::max();
+		for(int x=0; x<CHUNKSIDE; x++){
+			for(int z=0; z<CHUNKSIDE; z++){
+				float height = noiseSampler.GetNoise(x+(xAxis*CHUNKSIDE),z+(zAxis*CHUNKSIDE));
+				if(floor(height) < minHeight)
+						minHeight = floor(height);
+				if(ceil(height) > maxHeight)
+						maxHeight = ceil(height);
+			}
 		}
-		ChunkContainer.emplace_back(new Chunk(glm::vec3(0,0,0)+DirectionVectors[i]));
+		for(int y=minHeight; y<=maxHeight; y++){
+			if(DEBUGMODE == true){
+				std::cerr << "Min Height: " << minHeight << "\nMax Height: " << maxHeight << std::endl;
+				glm::vec3 tempV = glm::vec3(xAxis,y,zAxis);
+				std::cerr << "Setting up Chunk #" << i+1  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
+			}
+			ChunkContainer.emplace_back(new Chunk(glm::vec3(xAxis,y,zAxis)));
+		}
 	}
 	sf::Time t2 = MainClock.getElapsedTime();
 	sf::Time dt = t2-t1;
 	std::cerr << "Time to generate and Mesh Chunks: " << dt.asSeconds() << std::endl;
 	t1 = MainClock.getElapsedTime();
 
-	ChunkContainer[0]->GenerateMesh();
-	for(int i=0; i<iterations; i++){
+	for(int i=0; i<ChunkContainer.size(); i++){
 		if(DEBUGMODE == true){
-			glm::vec3 tempV = glm::vec3(0,0,0)+DirectionVectors[i];
+			glm::vec3 tempV = ChunkContainer[i]->getPos();
 			std::cerr << "Meshing Chunk #" << i+1  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
 		}
-		ChunkContainer[i+1]->GenerateMesh();
+		ChunkContainer[i]->GenerateMesh();
 	}
 	
 	ShaderController.initialize();

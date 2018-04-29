@@ -5,4 +5,4 @@ out float fragmentdepth;
 void main(){
 	//opengl does this already.
 	fragmentdepth = gl_FragCoord.z;
-}
+} 

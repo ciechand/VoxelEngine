@@ -3,6 +3,7 @@
 #include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoUtil.hpp"
 
+FastNoise noiseSampler;
 
 //Start of definitions for BaseMesh Class!
 BaseMesh::BaseMesh(){
@@ -184,9 +185,8 @@ std::vector<unsigned int> BaseMesh::getIndices(){
 
 void BaseMesh::addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color){
 	for(int i=0; i<vertices.size(); i++){
-		if(glm::vec4(vert,1.0f) == vertices[i] && glm::vec4(norm,0.0f) == normals[i]){
+		if(glm::vec4(vert,1.0f) == vertices[i] && glm::vec4(norm,0.0f) == normals[i] && color == colors[i]){
 			indices.push_back(i);
-			colors.push_back(color);
 			return;
 		}
 	}
@@ -481,9 +481,15 @@ Chunk::Chunk(glm::vec3 pos){
 	adjacentChunks.fill(-1);
 	for(int i=0; i<CHUNKSIZE; i++){
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
+		glm::vec3 worldBlockPos = ((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE)/2.0f);
 		//if((blockPos.x >= CHUNKSIDE/2 && blockPos.x <= CHUNKSIDE-5.0f) || (blockPos.y >= 4 && blockPos.y <= CHUNKSIDE-5.0f) || (blockPos.z >= 4 && blockPos.z <= CHUNKSIDE-5.0f))
-		if((blockPos.x == CHUNKSIDE/2 && blockPos.z == (CHUNKSIDE*2)/3 && blockPos.y >= CHUNKSIDE/2) || blockPos.y < CHUNKSIDE/2 )
+		//if((blockPos.x == CHUNKSIDE/2 && blockPos.z == CHUNKSIDE/2 && blockPos.y >= CHUNKSIDE/2) || blockPos.y < CHUNKSIDE/2 )
+		//	Grid[i] = new Block();
+		float height = noiseSampler.GetNoise(worldBlockPos.x,worldBlockPos.z);
+		height *= CHUNKSIDE;
+		if(worldBlockPos.y <= height)
 			Grid[i] = new Block();
+
 	}
 	if(DEBUGMODE == true) std::cerr << "Finnished Loading Blocks for Chunk:  " << chunkPos.x << ", " <<chunkPos.y  << ", " << chunkPos.z << ";" << std::endl;
 
@@ -514,9 +520,9 @@ void Chunk::initializeMesh(){
 		if(Grid[i] == nullptr)
 			continue;
 		glm::vec3 blockPos = translate1DPos(i,CHUNKSIDE);
-		Grid[i]->setPosition(((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE,CHUNKSIDE,CHUNKSIDE)/2.0f));
-		Grid[i]->setColor(Green);
-		//Grid[i]->setColor((VoxelColor)(i%CHUNKSIDE));
+		Grid[i]->setPosition(((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE)/2.0f));
+		Grid[i]->setColor(None);
+		//Grid[i]->setColor((VoxelColor)((i/CHUNKSIDE)%CHUNKSIDE));
 		/*if(DEBUGMODE == true){
 			glm::vec3 tempBPos = Grid[i]->getPosition();
 			std::cerr << "Current Block Pos: \n\tX: " << tempBPos.x << "\n\tY: " << tempBPos.y << "\n\tZ: " << tempBPos.z << std::endl;
