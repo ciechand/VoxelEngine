@@ -236,6 +236,10 @@ void RenderController::initialize(){
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
+
+	glDrawBuffer(GL_NONE);
+
 	//Declaring and Defining the SSAOKernel texture
 	glGenTextures(1, &SSAOKernel);
 	GLint SSAOKernelLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOKernelMap");
@@ -248,28 +252,19 @@ void RenderController::initialize(){
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
-
-	glDrawBuffer(GL_NONE);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	//Initialize default depth Texture, Hopefully eliminating the need to bind the first camera to the depth buffer.
-/*	glGenTextures(1, &defaultDepthBuffer);
-	GLint shadowMapDefault = glGetUniformLocation(programVariables[ShaderBase], "previousDepthBuffer");
-	glUniform1i(shadowMapDefault, 2);
+	//Declaring and Defining the SSAONoise texture
+	glGenTextures(1, &SSAONoise);
+	GLint SSAONoiseLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAONoiseMap");
+	glUniform1i(SSAONoiseLoc, 2);
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, defaultDepthBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glBindTexture(GL_TEXTURE_2D, SSAONoise);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAONoiseData())[0]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, defaultDepthBuffer, 0);*/
-
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//Assigning to shadow shader
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferShadow[LVertexBuffer]);
 
@@ -627,32 +622,33 @@ void RenderController::drawScene(){
 	}
 
 
-	glm::mat4 BaseProjMatrix = Camera.getProjMatrix();
-	glm::mat4 BaseViewMatrix = Camera.getViewMatrix();
+
 
 	glUseProgram(programVariables[ShaderBase]); 
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
-	glCullFace(GL_BACK);
+
+	glm::mat4 BaseProjMatrix = Camera.getProjMatrix();
+	glm::mat4 BaseViewMatrix = Camera.getViewMatrix();
 
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "P"), 1, GL_FALSE, &(BaseProjMatrix[0][0]));
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
 	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "numLights"), lightController.getNumLights());
-	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "kernelSize"), KERNELSIZE);
 	glUniform2f(glGetUniformLocation(programVariables[ShaderBase], "windowSize"), windowSize.x, windowSize.y);
-
+	//Move this out of here and into a place where it makes sense.
+	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "kernelSize"), KERNELSIZE);
+/*
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
+	glCullFace(GL_BACK);
 	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
-
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);*/
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	glCullFace(GL_BACK);
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 /*
 	if(SHADOWMAPDEBUG){

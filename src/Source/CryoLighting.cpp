@@ -64,7 +64,6 @@ LightController::LightController(){
 		SSAOKernel[i] *= scale;
 
 		SSAONoise[i] = glm::vec3(uniform_distxy(randE),uniform_distxy(randE),0.0f);
-		SSAONoise[i] = SSAONoise[i];
 	}
 
 }
