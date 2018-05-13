@@ -35,7 +35,7 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0), glm::vec3(0.0,0.0,0.0)
 
 CameraController::CameraController(){
 	cameraAt = glm::vec3(23,28,21);
-	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.01f, 100.0f);
+	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.1f, 100.0f);
 	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
 }
 
@@ -147,14 +147,14 @@ void RenderController::initialize(){
 
 	//Initializing the texture values for this mesh.
 	shaderPositions.emplace_back();
-	// glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LTextureBuffer]);
-	// glBufferData(GL_ARRAY_BUFFER, textureCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-	// glBufferSubData(GL_ARRAY_BUFFER, 0, textureCoords.size()*sizeof(glm::vec2), textureCoords.data());
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LTextureBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, texCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, texCoords.size()*sizeof(glm::vec2), texCoords.data());
 
-	// shaderPositions.emplace_back();
-	// shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "TextureCoords");
-	// glEnableVertexAttribArray(shaderPositions[2]);
-	// glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+	shaderPositions.emplace_back();
+	shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "TextureCoords");
+	glEnableVertexAttribArray(shaderPositions[2]);
+	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
  
 	//Initializing the Color values for each vertex of this mesh
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LColorArray]);
@@ -216,12 +216,17 @@ void RenderController::initialize(){
 
 	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferShadow[0]);
 
+	glUseProgram(programVariables[ShaderBase]);
+
 	//Initialize shadow buffers
 	glGenFramebuffers(1, &shadowBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
 
 	//Initialize depth texture
 	glGenTextures(1, &shadowDepthTexture);
+	GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderBase], "shadowMap");
+	glUniform1i(shadowMapLoc, 0);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 10, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -231,11 +236,39 @@ void RenderController::initialize(){
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+	//Declaring and Defining the SSAOKernel texture
+	glGenTextures(1, &SSAOKernel);
+	GLint SSAOKernelLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOKernelMap");
+	glUniform1i(SSAOKernelLoc, 1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, SSAOKernel);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB16F, KERNELSIZE, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAOKernelData())[0]);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
 
 	glDrawBuffer(GL_NONE);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//Initialize default depth Texture, Hopefully eliminating the need to bind the first camera to the depth buffer.
+/*	glGenTextures(1, &defaultDepthBuffer);
+	GLint shadowMapDefault = glGetUniformLocation(programVariables[ShaderBase], "previousDepthBuffer");
+	glUniform1i(shadowMapDefault, 2);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, defaultDepthBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, defaultDepthBuffer, 0);*/
 
 	//Assigning to shadow shader
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferShadow[LVertexBuffer]);
@@ -403,6 +436,9 @@ void RenderController::reloadBuffers(){
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LNormalsBuffer]);
 	glBufferData(GL_ARRAY_BUFFER, vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data(), GL_DYNAMIC_DRAW);
 
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LTextureBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, texCoords.size()*sizeof(glm::vec2), texCoords.data(), GL_DYNAMIC_DRAW);
+
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LColorArray]);
 	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), colors.data(), GL_DYNAMIC_DRAW);
 
@@ -559,7 +595,6 @@ void RenderController::setChanged(bool c){
 }
 
 void RenderController::drawScene(){
-	lightController.setLight(0, glm::vec4(Camera.getCamPos(),1.0f), glm::vec3(255.0f,255.0,255.0), 0.0f);
 	//Going to need more then one change variable, will need an enum of bools that define the flags for change.
 	if(sceneChanged == true){
 		//Here we reload buffers if the scene changes
@@ -578,31 +613,45 @@ void RenderController::drawScene(){
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 
-	for(int i = 0; i<lightController.getNumLights(); i++){
+	for(int i = 1; i<lightController.getNumLights(); i++){
 		//Light * l = lightController.getLight(i);
 		//std::cerr << "Light "<< i <<" Color: \n\tX: " << l->getColor().r << "\n\tY: " << l->getColor().g << "\n\tZ: " << l->getColor().b << std::endl;
 	
 		glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, i);
 
-		glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "PV"), 1, GL_FALSE, &((lightController.getMatrix(i))[0][0]));
+		glm::mat4 tempLightMatrix = lightController.getMatrix(i);
+
+		glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "PV"), 1, GL_FALSE, &(tempLightMatrix[0][0]));
 
 		glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 	}
 
-	glUseProgram(programVariables[ShaderBase]); 
-	glBindVertexArray(VertexArrayObject[ShaderBase]);
 
 	glm::mat4 BaseProjMatrix = Camera.getProjMatrix();
 	glm::mat4 BaseViewMatrix = Camera.getViewMatrix();
+
+	glUseProgram(programVariables[ShaderBase]); 
+	glBindVertexArray(VertexArrayObject[ShaderBase]);
+	glCullFace(GL_BACK);
+
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "P"), 1, GL_FALSE, &(BaseProjMatrix[0][0]));
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
 	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "numLights"), lightController.getNumLights());
+	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "kernelSize"), KERNELSIZE);
+	glUniform2f(glGetUniformLocation(programVariables[ShaderBase], "windowSize"), windowSize.x, windowSize.y);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
+	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
+
+	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glCullFace(GL_BACK);
 
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 /*

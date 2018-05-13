@@ -3,12 +3,16 @@
 in vec4 vNormal;
 in vec3 vColor;
 in vec4 shaderCoord;
+in vec2 texCoords;
 out vec4 fColor;
 
 uniform sampler2DArrayShadow shadowMap;
-layout(location=11) uniform mat4 P;
-layout(location=7) uniform mat4 V;
+uniform sampler1D SSAOKernelMap;
+layout(location=12) uniform mat4 P;
+layout(location=8) uniform mat4 V;
 uniform uint numLights;
+uniform uint kernelSize;
+uniform vec2 windowSize;
 
 //Information necessary to process all the lights.
 struct Light{
@@ -34,10 +38,35 @@ mat4 biasMatrix = mat4(0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.5,0.5,0
 //Start of the main function.
 void main()
 {	
+	//process SSAO
+	vec2 NoiseScale = vec2(windowSize.x/4.0, windowSize.y/4.0);
+	vec3 newNorm = (vNormal).xyz;
+	vec3 randVec = texture(SSAOKernelMap, texCoords * NoiseScale).xyz;
+
+	vec3 tangent = normalize(randVec - newNorm * dot(randVec, newNorm));
+	vec3 bitTangent = cross(newNorm, tangent);
+	mat3 TBN = mat3(tangent, bitTangent, newNorm);
+	
+	//Begin Processing of SSAO with inputed Kernel Samples
+	float Occlusion = 0.0;
+	for(int i=0; i<kernelSize; i++){
+		vec4 kernelSample = texture(SSAOKernelMap, i);
+		vec3 TSample = TBN*kernelSample.rgb;
+
+		vec4 newCoord = vec4(TSample, 1.0);
+		newCoord = P * newCoord;
+		newCoord.xyz /= newCoord.w;
+		newCoord.xyz = newCoord.xyz * 0.5 + 0.5;
+
+		float sampleDepth = texture(shadowMap,vec4(newCoord.xy, 0, newCoord.z));
+		Occlusion += (sampleDepth);
+	}
+	Occlusion = 1.0 - (Occlusion/kernelSize);
+	//Process basic lighting
 	float bias = 0.005;
 	vec3 additiveColor = vec3(0.0,0.0,0.0);
 	vec4 lightDirection;
-	for(int i=1; i<numLights; i++){
+	for(int i=0; i<numLights; i++){
 		vec4 posInLightSpace = (DepthVP[i] * shaderCoord);
 		vec4 finalShadowCoord = (biasMatrix * posInLightSpace);
 		finalShadowCoord = finalShadowCoord/finalShadowCoord.w;
@@ -45,7 +74,7 @@ void main()
 		if(posVecLength > lights[i].Color.a) continue;
 
 		lightDirection = normalize(lights[i].Position-shaderCoord);
-		bias = clamp(0.05*tan(acos(clamp(dot(vNormal, lightDirection),0.0,1.0))),0.0,0.0003);
+		bias = clamp(0.05*tan(acos(clamp(dot(vNormal, lightDirection),0.0,1.0))),0.00,0.002);
  
 			if(clamp(dot(vNormal, lightDirection),0.0,1.0) > 0.0){
 				percentPass = texture(shadowMap, vec4(finalShadowCoord.xy, i, finalShadowCoord.z-bias)); 
@@ -56,10 +85,10 @@ void main()
 	}
 
 	vec4 finalColor = vec4((0.05*(vColor/255.0f)) + //Ambient
-				(additiveColor/actualNumLights),1.0); // Added Diffuse
-	finalColor = pow(finalColor, vec4(vec3(1.0/2.2),1.0));
-	float darkenFactor = 0.2;
-	fColor = clamp(finalColor, darkenFactor,1.0)-vec4(darkenFactor,darkenFactor,darkenFactor,0.0);
-
-	//fColor = vec4(vec3(finalShadowCoord.z), 1.0);
+				(additiveColor/actualNumLights),1.0)*0.0000001 + vec4(vec3(Occlusion),1.0); // Added Diffuse
+	//finalColor = pow(finalColor, vec4(vec3(1.0/2.2),1.0));
+	//float darkenFactor = 0.2;
+	//fColor = clamp(finalColor, darkenFactor,1.0)-vec4(darkenFactor,darkenFactor,darkenFactor,0.0);
+	fColor = finalColor;
+	//fColor = vec4(vec3(gl_FragCoord.z), 1.0);
 }

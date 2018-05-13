@@ -40,6 +40,7 @@
 
 #define PI 3.14f
 
+ #define KERNELSIZE 16
 
 #define GLM_FORCE_RADIANS
 

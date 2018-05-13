@@ -71,7 +71,7 @@ class BaseMesh{
 		std::vector<glm::vec4> getNormals();
 		std::vector<unsigned int> getIndices();
 
-		void addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color);
+		void addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color, glm::vec2 texCoord);
 
 		void addToColors(std::vector<glm::vec3>::iterator begining, std::vector<glm::vec3>::iterator ending);
 		void addToColors(glm::vec3 color);

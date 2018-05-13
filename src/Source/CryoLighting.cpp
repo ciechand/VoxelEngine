@@ -43,30 +43,30 @@ void Light::setInt(float d){
 
 //Start of functions for light controller.
 LightController::LightController(){
-	addLight(glm::vec4(Camera.getCamPos(),1.0f), glm::vec3(255.0f,255.0,255.0), 0.0f);
-	addLight(glm::vec4(CHUNKSIDE*0.5f,20.0f,CHUNKSIDE*0.5f,1.0f), glm::vec3(20.0,20.0,255.0), 10.0f);
-	addLight(glm::vec4(CHUNKSIDE*2.0f,13.0f,CHUNKSIDE*2.0f,1.0f), glm::vec3(255.0,20.0,20.0), 0.3f);
-	//addLight(glm::vec4(CHUNKSIDE*5.0f,17.0f,CHUNKSIDE*8.0f,1.0f), glm::vec3(20.0,255.0,20.0), 1.5f);
+	addLight();
+	addLight(glm::vec4(CHUNKSIDE*0.5f,20.0f,CHUNKSIDE*0.5f,1.0f), glm::vec3(0.0,0.0,255.0), 0.9f);
+	addLight(glm::vec4(CHUNKSIDE*2.0f,13.0f,CHUNKSIDE*2.0f,1.0f), glm::vec3(255.0,0.0,0.0), 0.3f);
+	//addLight(glm::vec4(CHUNKSIDE*5.0f,17.0f,CHUNKSIDE*8.0f,1.0f), glm::vec3(0.0,255.0,0.0), 1.5f);
 
 	//Setup the SSAO Kernel Samples
 	std::random_device r;
 	std::default_random_engine randE(r());
-	std::uniform_real_distribution<> uniform_dist(-1.0, 1.0);
-	std::uniform_real_distribution<> uniform_dist2(0.0, 1.0);
-	unsigned int kernelSize = 16;
-	SSAOKernel.assign(kernelSize, glm::vec3());
-	SSAONoise.assign(kernelSize, glm::vec3());
-	for (int i = 0; i < kernelSize; ++i) {
-		SSAOKernel[i] = glm::vec3(uniform_dist(randE), uniform_dist(randE), uniform_dist2(randE));
+	std::uniform_real_distribution<> uniform_distxy(-1.0, 1.0);
+	std::uniform_real_distribution<> uniform_distz(0.0, 1.0);
+	SSAOKernel.assign(KERNELSIZE, glm::vec3());
+	SSAONoise.assign(KERNELSIZE, glm::vec3());
+	for (int i = 0; i < KERNELSIZE; ++i) {
+		SSAOKernel[i] = glm::vec3(uniform_distxy(randE), uniform_distxy(randE), uniform_distz(randE));
 		SSAOKernel[i] = glm::normalize(SSAOKernel[i]);
-		SSAOKernel[i] *= uniform_dist2(randE);
-		float scale = float(i) / float(kernelSize);
+		SSAOKernel[i] *= uniform_distz(randE);
+		float scale = float(i) / float(KERNELSIZE);
 		scale = lerp(0.1f, 1.0f, scale * scale);
 		SSAOKernel[i] *= scale;
 
-		SSAONoise[i] = glm::vec3(uniform_dist(randE),uniform_dist(randE),0.0f);
-		SSAONoise[i] = glm::normalize(SSAONoise[i]);
+		SSAONoise[i] = glm::vec3(uniform_distxy(randE),uniform_distxy(randE),0.0f);
+		SSAONoise[i] = SSAONoise[i];
 	}
+
 }
 
 LightController::~LightController(){
@@ -84,8 +84,16 @@ glm::mat4* LightController::getLightMatData(){
 	return matrixList.data();
 }
 
+glm::vec3 * LightController::getSSAOKernelData(){
+	return SSAOKernel.data();	
+}
+
+glm::vec3 * LightController::getSSAONoiseData(){
+	return SSAONoise.data();	
+}
+
 void LightController::addLight(){
-	addLight(glm::vec4(0.0,0.0,0.0,1.0), BlockColors[None], 1);
+	addLight(glm::vec4(0.0,0.0,0.0,1.0), glm::vec3(255.0f,255.0,255.0), 0.0f);
 }
 
 void LightController::addLight(Light l){
@@ -143,4 +151,8 @@ std::vector<glm::mat4> LightController::getMatrix(){
 
 glm::mat4 LightController::getMatrix(unsigned int index){
 	return matrixList[index];
+}
+
+std::pair<glm::mat4,glm::mat4> LightController::getMatrixPair(unsigned int index){
+	return lightMatrices[index];
 }

@@ -183,7 +183,7 @@ std::vector<unsigned int> BaseMesh::getIndices(){
 	return indices;
 }
 
-void BaseMesh::addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color){
+void BaseMesh::addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color, glm::vec2 inputCoords){
 	for(int i=0; i<vertices.size(); i++){
 		if(glm::vec4(vert,1.0f) == vertices[i] && glm::vec4(norm,0.0f) == normals[i] && color == colors[i]){
 			indices.push_back(i);
@@ -193,7 +193,7 @@ void BaseMesh::addVertex(glm::vec3 vert, glm::vec3 norm, glm::vec3 color){
 	indices.push_back(vertices.size());
 	vertices.push_back(glm::vec4(vert,1.0f));
 	normals.push_back(glm::vec4(glm::normalize(norm),0.0f));
-	texCoords.push_back(glm::vec2(0.0f,1.0f));
+	texCoords.push_back(inputCoords);
 	colors.push_back(color);
 }
 
@@ -728,10 +728,17 @@ void Chunk::GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir, glm::
 	//std::cerr << "xmod: " << xmod << std::endl;
 	//std::cerr << "ymod: " << ymod << std::endl;
 
+	//glm::vec3 alter = glm::vec3(0.1f);
+
 	glm::vec3 Point1 = glm::vec3(0.0f);
 	glm::vec3 Point2 = glm::vec3(0.0f);
 	glm::vec3 Point3 = glm::vec3(0.0f); 
 	glm::vec3 Point4 = glm::vec3(0.0f);
+
+	glm::vec2 texPoint1 = glm::vec2(0.0f,0.0f);
+	glm::vec2 texPoint2 = glm::vec2(0.0f,1.0f);
+	glm::vec2 texPoint3 = glm::vec2(1.0f,0.0f);
+	glm::vec2 texPoint4 = glm::vec2(1.0f,1.0f);
 
 	Point1 = start;
 
@@ -745,48 +752,40 @@ void Chunk::GenerateFace(glm::vec3 start, glm::vec3 end, unsigned int dir, glm::
 
 	Point4 = end;
 
+/*	Point1 += (alter*glm::vec3(((px%2)*2)-1,((py%2)*2)-1,((dir%2)*2)-1));
+	Point2 += (alter*glm::vec3(((px%2)*2)-1,((py%2)*2)-1,((dir%2)*2)-1));
+	Point3 += (alter*glm::vec3(((px%2)*2)-1,((py%2)*2)-1,((dir%2)*2)-1));
+	Point4 += (alter*glm::vec3(((px%2)*2)-1,((py%2)*2)-1,((dir%2)*2)-1));*/
+
 	if(dir%2 == 0){
 		Point1 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
 		Point2 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
 		Point3 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
 		Point4 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2)) + chunkPos*(float)CHUNKSIDE;
 
-		chunkMesh.addVertex(Point1,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point1,DirectionVectors[dir],color,texPoint1);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color,texPoint3);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color,texPoint2);
 
-		chunkMesh.addVertex(Point4,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point4,DirectionVectors[dir],color,texPoint4);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color,texPoint2);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color,texPoint3);
 
-		// chunkMesh.addVertex(Point1,Point1,color);
-		// chunkMesh.addVertex(Point3,Point3,color);
-		// chunkMesh.addVertex(Point2,Point2,color);
 
-		// chunkMesh.addVertex(Point4,Point4,color);
-		// chunkMesh.addVertex(Point2,Point2,color);
-		// chunkMesh.addVertex(Point3,Point3,color);
 	}else{
 		Point1 += ((DirectionVectors[px]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
 		Point2 += ((DirectionVectors[px]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
 		Point3 += ((DirectionVectors[nx]+DirectionVectors[py]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
 		Point4 += ((DirectionVectors[nx]+DirectionVectors[ny]+DirectionVectors[dir])*(CUBESIZE/2))  + chunkPos*(float)CHUNKSIDE;
 
-		chunkMesh.addVertex(Point1,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point1,DirectionVectors[dir],color,texPoint1);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color,texPoint2);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color,texPoint3);
 
-		chunkMesh.addVertex(Point4,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point3,DirectionVectors[dir],color);
-		chunkMesh.addVertex(Point2,DirectionVectors[dir],color);
+		chunkMesh.addVertex(Point4,DirectionVectors[dir],color,texPoint4);
+		chunkMesh.addVertex(Point3,DirectionVectors[dir],color,texPoint3);
+		chunkMesh.addVertex(Point2,DirectionVectors[dir],color,texPoint2);
 
-		// chunkMesh.addVertex(Point1,Point1,color);
-		// chunkMesh.addVertex(Point2,Point2,color);
-		// chunkMesh.addVertex(Point3,Point3,color);
-
-		// chunkMesh.addVertex(Point4,Point4,color);
-		// chunkMesh.addVertex(Point3,Point3,color);
-		// chunkMesh.addVertex(Point2,Point2,color);
 	}
 }
 

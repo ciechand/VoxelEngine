@@ -151,7 +151,8 @@ class RenderController{
 		bool lighDataChanged = true;
 
 		//Variables needed for SSAO
-		GLuint SSAONoise = 0;
+		GLuint SSAOKernel = 0;/*
+		GLuint defaultDepthBuffer = 0;*/
 
 		//Variable to dicatate if the scene has changed.
 		bool sceneChanged = true;

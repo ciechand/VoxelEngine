@@ -33,24 +33,23 @@ class LightController{
 		unsigned int getNumLights();
 		Light* getLightData();
 		glm::mat4* getLightMatData();
+		glm::vec3 * getSSAOKernelData();
+		glm::vec3 * getSSAONoiseData();
 
 		void addLight();
 		void addLight(Light l);
 		void addLight(glm::vec4 pos, glm::vec3 color, float inten);
-		void setLight(unsigned int index, glm::vec4 pos, glm::vec3 color, float inten);
+		void setLight(unsigned int index, glm::vec4 pos, glm::vec3 color, float inten);		
 		void setLight(unsigned int index, glm::vec4 pos, glm::vec3 color, float inten, glm::mat4 proj, glm::mat4 view);
 		Light * getLight(unsigned int index);
 
 		std::vector<glm::mat4> getMatrix();
 		glm::mat4 getMatrix(unsigned int index);
+		std::pair<glm::mat4,glm::mat4> getMatrixPair(unsigned int index);
 
 	private:
 		std::vector<glm::vec3> SSAOKernel;
 		std::vector<glm::vec3> SSAONoise;
-
-		GLuint noiseTexture;
-		GLuint KernelTexture;
-		
 		std::vector<Light> lightList;
 		std::vector<glm::mat4> matrixList;
 		std::vector<std::pair<glm::mat4,glm::mat4> > lightMatrices;
