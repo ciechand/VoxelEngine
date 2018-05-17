@@ -221,14 +221,15 @@ void RenderController::initialize(){
 	//Initialize shadow buffers
 	glGenFramebuffers(1, &shadowBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
-
+	glDrawBuffer(GL_NONE);
+	
 	//Initialize depth texture
 	glGenTextures(1, &shadowDepthTexture);
 	GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderBase], "shadowMap");
-	glUniform1i(shadowMapLoc, 0);
-	glActiveTexture(GL_TEXTURE0);
+	glUniform1i(shadowMapLoc, 3);
+	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 10, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 10, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
@@ -236,35 +237,62 @@ void RenderController::initialize(){
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
+	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
 
-	glDrawBuffer(GL_NONE);
-
+	//glUseProgram(programVariables[ShaderSSAO]);
 	//Declaring and Defining the SSAOKernel texture
 	glGenTextures(1, &SSAOKernel);
 	GLint SSAOKernelLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOKernelMap");
-	glUniform1i(SSAOKernelLoc, 1);
-	glActiveTexture(GL_TEXTURE1);
+	glUniform1i(SSAOKernelLoc, 0);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_1D, SSAOKernel);
 	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB16F, KERNELSIZE, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAOKernelData())[0]);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	//Declaring and Defining the SSAONoise texture
 	glGenTextures(1, &SSAONoise);
 	GLint SSAONoiseLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAONoiseMap");
-	glUniform1i(SSAONoiseLoc, 2);
-	glActiveTexture(GL_TEXTURE2);
+	glUniform1i(SSAONoiseLoc, 1);
+	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, SSAONoise);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAONoiseData())[0]);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	int noiseDimensions = sqrt(NOISESIZE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, noiseDimensions, noiseDimensions, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAONoiseData())[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+/*	glUseProgram(programVariables[ShaderBlur]);
+	glGenFramebuffers(1,&SSAOBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBuffer);
+	glDrawBuffer(GL_NONE);
+	glGenTextures(1,&SSAOOutput);
+	GLint SSAOOutputLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOInput");
+	glUniform1i(SSAOOutputLoc, 2);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, SSAOOutput);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, SSAOOutput, 0);*/
+
+
+/*
+	glUseProgram(programVariables[ShaderBase]);
+	glGenFramebuffers(1,&SSAOBlurredBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBlurredBuffer);
+	glGenTextures(1,&SSAOBlurred);
+	GLint SSAOBlurredLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOBlurredMap");
+	glUniform1i(SSAOBlurredLoc, 2);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, SSAOBlurred);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOBlurred, 0);
+*/
 	//Assigning to shadow shader
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferShadow[LVertexBuffer]);
 
@@ -301,30 +329,6 @@ void RenderController::initialize(){
     //Initializing the instances to  drawing the Mesh.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VertexBufferShadow[LIndexBuffer]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
-
-	glBindVertexArray(0);
-
-	glBindVertexArray(VertexArrayObject[ShaderPassThrough]);
-	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferPassThrough[0]);
-
-	std::vector<glm::vec2> quadVertices = {
-		glm::vec2(-1.0f, -1.0f),
-		glm::vec2( 1.0f, -1.0f),
-		glm::vec2(-1.0f,  1.0f),
-		glm::vec2(-1.0f,  1.0f),
-		glm::vec2( 1.0f, -1.0f),
-		glm::vec2( 1.0f,  1.0f)
-	};
-
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferPassThrough[LVertexBuffer]);
-	glBufferData(GL_ARRAY_BUFFER, quadVertices.size()*sizeof(glm::vec2), quadVertices.data(), GL_DYNAMIC_DRAW);
-	
-
-	GLuint shaderPos = glGetAttribLocation(programVariables[ShaderPassThrough], "vertexPosition");
-	glEnableVertexAttribArray(shaderPos);
-	glVertexAttribPointer(shaderPos, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-	GLuint texShaderPos = glGetUniformLocation(programVariables[ShaderPassThrough], "textureSample");
 
 	glBindVertexArray(0);
 }
@@ -475,48 +479,22 @@ void RenderController::reloadShaderBuffers(){
 
 // Create a GLSL program object from vertex and fragment shader files
 void RenderController::createNewShaderProgram(){
-    GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	createNewShaderProgram(vertexShaderPath,fragmentShaderPath);
+}
+void RenderController::createNewShaderProgram(std::string vertexPath, std::string fragmentPath){
+	GLuint vertShader = compileShader(vertexPath, GL_VERTEX_SHADER);
+	GLuint fragShader = compileShader(fragmentPath, GL_FRAGMENT_SHADER);
 
-    // Read shaders
-    std::string vertShaderStr = readFileToString(vertexShaderPath.c_str());
-    std::string fragShaderStr = readFileToString(fragmentShaderPath.c_str());
-
-    const char *vertShaderSrc = vertShaderStr.c_str();
-    const char *fragShaderSrc = fragShaderStr.c_str();
-
-    GLint result = GL_FALSE;
-    int logLength;
-
-    // Compile vertex shader
-   	if(DEBUGMODE)std::cerr << "Compiling vertex shader." << std::endl;
-    glShaderSource(vertShader, 1, &vertShaderSrc, nullptr);
-    glCompileShader(vertShader);
-
-    // Check vertex shader
-    glGetShaderiv(vertShader, GL_COMPILE_STATUS, &result);
-    glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
-    std::vector<char> vertShaderError((logLength > 1) ? logLength : 1);
-    glGetShaderInfoLog(vertShader, logLength, nullptr, &vertShaderError[0]);
-    if(logLength > 1) std::cerr << "vert Errors: " << &vertShaderError[0] << std::endl;
-
-    // Compile fragment shader
-    if(DEBUGMODE)std::cerr << "Compiling fragment shader." << std::endl;
-    glShaderSource(fragShader, 1, &fragShaderSrc, nullptr);
-    glCompileShader(fragShader);
-
-    // Check fragment shader
-    glGetShaderiv(fragShader, GL_COMPILE_STATUS, &result);
-    glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
-    std::vector<char> fragShaderError((logLength > 1) ? logLength : 1);
-    glGetShaderInfoLog(fragShader, logLength, nullptr, &fragShaderError[0]);
-    if(logLength > 1) std::cerr << "Frag Errors: " << &fragShaderError[0] << std::endl;
+	if(vertShader == 0 && fragShader == 0) std::cerr << "BOTH SHADERS ARE INVALID" << std::endl;
 
     std::cerr << "Linking program" << std::endl;
     GLuint program = glCreateProgram();
-    glAttachShader(program, vertShader);
-    glAttachShader(program, fragShader);
+    if(vertShader != 0) glAttachShader(program, vertShader);
+    if(fragShader != 0) glAttachShader(program, fragShader);
     glLinkProgram(program);
+
+ 	GLint result = GL_FALSE;
+	int logLength;
 
     glGetProgramiv(program, GL_LINK_STATUS, &result);
     glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
@@ -525,13 +503,38 @@ void RenderController::createNewShaderProgram(){
     if(logLength > 1) std::cerr << "Prog Errors: " <<&programError[0] << std::endl;
 
 
-    glDeleteShader(vertShader);
-    glDeleteShader(fragShader);
+    if(vertShader != 0)glDeleteShader(vertShader);
+    if(fragShader != 0) glDeleteShader(fragShader);
     int programVectorSize = programVariables.size();
     programVariables.emplace_back(program);
     glUseProgram(programVariables[programVectorSize]);
-    glDetachShader(programVariables[programVectorSize],vertShader);
-    glDetachShader(programVariables[programVectorSize],fragShader);
+    if(vertShader != 0) glDetachShader(programVariables[programVectorSize],vertShader);
+    if(fragShader != 0) glDetachShader(programVariables[programVectorSize],fragShader);
+}
+
+GLuint RenderController::compileShader(std::string path, GLenum shaderType){
+ 	if (path.empty()) return 0;
+ 	GLuint shader = glCreateShader(shaderType);
+
+   std::string shaderStr = readFileToString(path.c_str());
+   const char *shaderSrc = shaderStr.c_str();
+
+   GLint result = GL_FALSE;
+	int logLength;
+
+	std::string type = (shaderType==GL_VERTEX_SHADER || shaderType==GL_FRAGMENT_SHADER)?(shaderType==GL_VERTEX_SHADER)?"Vertex":"Fragment":"???";
+	if(DEBUGMODE)std::cerr << "Compiling " << type<<" shader." << std::endl;
+    glShaderSource(shader, 1, &shaderSrc, nullptr);
+    glCompileShader(shader);
+
+    // Check vertex shader
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+    std::vector<char> shaderError((logLength > 1) ? logLength : 1);
+    glGetShaderInfoLog(shader, logLength, nullptr, &shaderError[0]);
+    if(logLength > 1) std::cerr << "vert Errors: " << &shaderError[0] << std::endl;
+
+    return shader;
 }
 
 void RenderController::setShader(int index){
@@ -605,7 +608,6 @@ void RenderController::drawScene(){
 
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
 	glCullFace(GL_FRONT);
-	glClear(GL_DEPTH_BUFFER_BIT);
 
 
 	for(int i = 1; i<lightController.getNumLights(); i++){
@@ -614,6 +616,8 @@ void RenderController::drawScene(){
 	
 		glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, i);
 
+		glClear(GL_DEPTH_BUFFER_BIT);
+
 		glm::mat4 tempLightMatrix = lightController.getMatrix(i);
 
 		glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "PV"), 1, GL_FALSE, &(tempLightMatrix[0][0]));
@@ -621,11 +625,9 @@ void RenderController::drawScene(){
 		glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 	}
 
-
-
-
 	glUseProgram(programVariables[ShaderBase]); 
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
+	glCullFace(GL_BACK);
 
 	glm::mat4 BaseProjMatrix = Camera.getProjMatrix();
 	glm::mat4 BaseViewMatrix = Camera.getViewMatrix();
@@ -636,20 +638,32 @@ void RenderController::drawScene(){
 	glUniform2f(glGetUniformLocation(programVariables[ShaderBase], "windowSize"), windowSize.x, windowSize.y);
 	//Move this out of here and into a place where it makes sense.
 	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "kernelSize"), KERNELSIZE);
-/*
+
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
-	glCullFace(GL_BACK);
 	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+/*
+	glUseProgram(programVariables[ShaderSSAO]);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBuffer);
+	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+
+	glUseProgram(programVariables[ShaderBlur]);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBlurredBuffer);
+	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);*/
-
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+*/
+	glUseProgram(programVariables[ShaderBase]);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glCullFace(GL_BACK);
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+
 /*
 	if(SHADOWMAPDEBUG){
 		glViewport(SCREENWIDTH-500, SCREENHEIGHT-500,500,500); 

@@ -28,33 +28,19 @@ int main(int argc, char ** argv){
 	InitOpenGL();
 
 	//THIS SECTION IS LOADING ALL THE DIFFERENT SHADERS USED
-	if(DEBUGMODE)std::cerr << "Loading Base Vertex Shader Path" << std::endl;
-	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/BaseVertexShader.glsl"));
-	
-	if(DEBUGMODE)std::cerr << "Loading Base Fragment Shader Path" << std::endl;
-	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/BaseFragmentShader.glsl"));
-	
 	if(DEBUGMODE)std::cerr << "Loading Base Shader Program" << std::endl;
-	ShaderController.createNewShaderProgram();
+	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/BaseVertexShader.glsl"),std::string("./Assets/Shaders/BaseFragmentShader.glsl"));
 
-	if(DEBUGMODE)std::cerr << "Loading Shadow Vertex Shader Path" << std::endl;
-	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/ShadowVertexShader.glsl"));
-	
-	if(DEBUGMODE)std::cerr << "Loading Shadow Fragment Shader Path" << std::endl;
-	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/ShadowFragmentShader.glsl"));
-	
 	if(DEBUGMODE)std::cerr << "Loading Shadow Shader Program" << std::endl;
-	ShaderController.createNewShaderProgram();
+	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/ShadowVertexShader.glsl"),std::string("./Assets/Shaders/ShadowFragmentShader.glsl"));
 
-	if(DEBUGMODE)std::cerr << "Loading Shadow Vertex Shader Path" << std::endl;
-	ShaderController.setVertexShaderPath(std::string("./Assets/Shaders/PassThroughVertexShader.glsl"));
+	if(DEBUGMODE)std::cerr << "Loading SSAO Shader Program" << std::endl;
+	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/SSAOVertexShader.glsl"),std::string("./Assets/Shaders/SSAOFragmentShader.glsl"));
 	
-	if(DEBUGMODE)std::cerr << "Loading Passthrough Fragment Shader Path" << std::endl;
-	ShaderController.setFragmentShaderPath(std::string("./Assets/Shaders/PassThroughFragmentShader.glsl"));
+	if(DEBUGMODE)std::cerr << "Loading Blur Shader Program" << std::endl;
+	ShaderController.createNewShaderProgram(std::string(""),std::string("./Assets/Shaders/SSAOBlurShader.glsl"));
 	
-	if(DEBUGMODE)std::cerr << "Loading Passthrough Shader Program" << std::endl;
-	ShaderController.createNewShaderProgram();
-	
+
 	if(DEBUGMODE)std::cerr << "Done Loading Shader Programs" << std::endl;
 	//THIS IS THE END OF LOADING SHADERS
 
@@ -154,6 +140,7 @@ void InitOpenGL(){
 	glEnable(GL_TEXTURE_2D);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(77.0f/256.0f,166.0f/255.0f,255.0f/255.0f,1.0f);
+	glViewport(0,0,SCREENWIDTH, SCREENHEIGHT);
 	if(DEBUGMODE)std::cerr << "OpenGL Init Complete" << std::endl;
 }
 

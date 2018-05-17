@@ -41,7 +41,7 @@ enum VertexBufferLabels{LVertexBuffer=0, LNormalsBuffer,LTextureBuffer, LColorAr
 enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, CombinedMatrix};
 
 //Enum outlining the different shaderPrograms
-enum shaderTypes{ShaderBase=0, ShaderShadow, ShaderPassThrough};
+enum shaderTypes{ShaderBase=0, ShaderShadow, ShaderSSAO, ShaderBlur};
 
 //forward class declarations go here
 class BaseMesh;
@@ -96,6 +96,8 @@ class RenderController{
 		void reloadBuffers();
 		void reloadShaderBuffers();
 		void createNewShaderProgram();
+		void createNewShaderProgram(std::string vertexPath, std::string fragmentPath);
+		GLuint compileShader(std::string path, GLenum shaderType);
 
 		void setShader(int index);
 		void clearShader();
@@ -151,9 +153,12 @@ class RenderController{
 		bool lighDataChanged = true;
 
 		//Variables needed for SSAO
+		GLuint SSAOBuffer = 0;
+		GLuint SSAOOutput = 0;
+		GLuint SSAOBlurredBuffer = 0;
+		GLuint SSAOBlurred = 0;
 		GLuint SSAOKernel = 0;
-		GLuint SSAONoise = 0;/*
-		GLuint defaultDepthBuffer = 0;*/
+		GLuint SSAONoise = 0;
 
 		//Variable to dicatate if the scene has changed.
 		bool sceneChanged = true;

@@ -54,7 +54,6 @@ LightController::LightController(){
 	std::uniform_real_distribution<> uniform_distxy(-1.0, 1.0);
 	std::uniform_real_distribution<> uniform_distz(0.0, 1.0);
 	SSAOKernel.assign(KERNELSIZE, glm::vec3());
-	SSAONoise.assign(KERNELSIZE, glm::vec3());
 	for (int i = 0; i < KERNELSIZE; ++i) {
 		SSAOKernel[i] = glm::vec3(uniform_distxy(randE), uniform_distxy(randE), uniform_distz(randE));
 		SSAOKernel[i] = glm::normalize(SSAOKernel[i]);
@@ -62,7 +61,10 @@ LightController::LightController(){
 		float scale = float(i) / float(KERNELSIZE);
 		scale = lerp(0.1f, 1.0f, scale * scale);
 		SSAOKernel[i] *= scale;
+	}
 
+	SSAONoise.assign(NOISESIZE, glm::vec3());
+	for(int i=0; i<NOISESIZE; i++){
 		SSAONoise[i] = glm::vec3(uniform_distxy(randE),uniform_distxy(randE),0.0f);
 	}
 
