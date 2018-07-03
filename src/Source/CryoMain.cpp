@@ -35,11 +35,13 @@ int main(int argc, char ** argv){
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/ShadowVertexShader.glsl"),std::string("./Assets/Shaders/ShadowFragmentShader.glsl"));
 
 	if(DEBUGMODE)std::cerr << "Loading SSAO Shader Program" << std::endl;
-	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/SSAOVertexShader.glsl"),std::string("./Assets/Shaders/SSAOFragmentShader.glsl"));
+	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/QuadVertexShader.glsl"),std::string("./Assets/Shaders/SSAOFragmentShader.glsl"));
 	
 	if(DEBUGMODE)std::cerr << "Loading Blur Shader Program" << std::endl;
-	ShaderController.createNewShaderProgram(std::string(""),std::string("./Assets/Shaders/SSAOBlurShader.glsl"));
+	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/QuadVertexShader.glsl"),std::string("./Assets/Shaders/SSAOBlurShader.glsl"));
 	
+	if(DEBUGMODE)std::cerr << "Loading Lighting Shader Program" << std::endl;
+	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/QuadVertexShader.glsl"),std::string("./Assets/Shaders/LightingFragmentShader.glsl"));
 
 	if(DEBUGMODE)std::cerr << "Done Loading Shader Programs" << std::endl;
 	//THIS IS THE END OF LOADING SHADERS
@@ -115,8 +117,6 @@ int main(int argc, char ** argv){
 					break;
 			}
 		}
-		//Do the light Mapping rendering.
-
 		//Render the actual chunks. 
 		PrepForRender();
 		Render();
@@ -133,6 +133,7 @@ int main(int argc, char ** argv){
 
 void InitOpenGL(){
 	if(DEBUGMODE)std::cerr << "Initializing OpenGL" << std::endl;
+	glViewport(0,0,SCREENWIDTH, SCREENHEIGHT);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glEnable(GL_DEPTH_TEST);
@@ -140,7 +141,6 @@ void InitOpenGL(){
 	glEnable(GL_TEXTURE_2D);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(77.0f/256.0f,166.0f/255.0f,255.0f/255.0f,1.0f);
-	glViewport(0,0,SCREENWIDTH, SCREENHEIGHT);
 	if(DEBUGMODE)std::cerr << "OpenGL Init Complete" << std::endl;
 }
 

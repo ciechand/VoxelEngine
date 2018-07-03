@@ -44,8 +44,8 @@ void Light::setInt(float d){
 //Start of functions for light controller.
 LightController::LightController(){
 	addLight();
-	addLight(glm::vec4(CHUNKSIDE*0.5f,20.0f,CHUNKSIDE*0.5f,1.0f), glm::vec3(0.0,0.0,255.0), 0.9f);
-	addLight(glm::vec4(CHUNKSIDE*2.0f,13.0f,CHUNKSIDE*2.0f,1.0f), glm::vec3(255.0,0.0,0.0), 0.3f);
+	//addLight(glm::vec4(CHUNKSIDE*0.5f,20.0f,CHUNKSIDE*0.5f,1.0f), glm::vec3(0.0,0.0,255.0), 0.9f);
+	addLight(glm::vec4(CHUNKSIDE*1.0f,13.0f,CHUNKSIDE*1.0f,1.0f), glm::vec3(255.0,0.0,0.0), 0.3f);
 	//addLight(glm::vec4(CHUNKSIDE*5.0f,17.0f,CHUNKSIDE*8.0f,1.0f), glm::vec3(0.0,255.0,0.0), 1.5f);
 
 	//Setup the SSAO Kernel Samples
@@ -55,12 +55,14 @@ LightController::LightController(){
 	std::uniform_real_distribution<> uniform_distz(0.0, 1.0);
 	SSAOKernel.assign(KERNELSIZE, glm::vec3());
 	for (int i = 0; i < KERNELSIZE; ++i) {
-		SSAOKernel[i] = glm::vec3(uniform_distxy(randE), uniform_distxy(randE), uniform_distz(randE));
-		SSAOKernel[i] = glm::normalize(SSAOKernel[i]);
-		SSAOKernel[i] *= uniform_distz(randE);
+		glm::vec3 tempKernel;
+		tempKernel = glm::vec3(uniform_distxy(randE), uniform_distxy(randE), uniform_distz(randE));
+		tempKernel = glm::normalize(tempKernel);
+		tempKernel *= uniform_distz(randE);
 		float scale = float(i) / float(KERNELSIZE);
 		scale = lerp(0.1f, 1.0f, scale * scale);
-		SSAOKernel[i] *= scale;
+		tempKernel *= scale;
+		SSAOKernel[i] = tempKernel;
 	}
 
 	SSAONoise.assign(NOISESIZE, glm::vec3());

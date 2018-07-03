@@ -41,7 +41,7 @@ enum VertexBufferLabels{LVertexBuffer=0, LNormalsBuffer,LTextureBuffer, LColorAr
 enum transformMatrixLabels{TranslateMatrix=0, ScaleMatrix, RotationMatrix, CombinedMatrix};
 
 //Enum outlining the different shaderPrograms
-enum shaderTypes{ShaderBase=0, ShaderShadow, ShaderSSAO, ShaderBlur};
+enum shaderTypes{ShaderBase=0, ShaderShadow, ShaderSSAO, ShaderBlur, ShaderLighting, NUM_SHADERS};
 
 //forward class declarations go here
 class BaseMesh;
@@ -91,6 +91,12 @@ class RenderController{
 		~RenderController();
 
 		void initialize();
+		void shadowPreInit();
+		void firstRenderInit();
+		void SSAOFragInit();
+		void SSAOBlurInit();
+		void lightingInit();
+
 		int loadBaseMeshes();
 		void addBaseMesh(BaseMesh* m);
 		void reloadBuffers();
@@ -125,7 +131,7 @@ class RenderController{
 		std::vector<GLuint> VertexArrayObject;
 		GLuint VertexBufferBase[NUMBER_OF_LABELS];
 		GLuint VertexBufferShadow[NUMBER_OF_LABELS];
-		GLuint VertexBufferPassThrough[NUMBER_OF_LABELS];
+		GLuint VertexBufferSSAO[2];
 		std::vector<GLuint> shaderPositions;
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> vertexNormals;
@@ -150,15 +156,22 @@ class RenderController{
 		GLuint shadowDepthTexture;
 		GLuint lightDataSSBO;
 		GLuint lightMatrixSSBO;
-		bool lighDataChanged = true;
+		bool lightDataChanged = true;
 
 		//Variables needed for SSAO
 		GLuint SSAOBuffer = 0;
 		GLuint SSAOOutput = 0;
-		GLuint SSAOBlurredBuffer = 0;
-		GLuint SSAOBlurred = 0;
+		GLuint SSAOBlurBuffer = 0;
+		GLuint SSAOBlurOutput = 0;
 		GLuint SSAOKernel = 0;
 		GLuint SSAONoise = 0;
+
+		//Variables needed for basic rendering
+		GLuint preRenderFrameBuffer = 0;
+		GLuint NormalBuffer = 0;
+		GLuint ColorBuffer = 0;
+		GLuint PositionBuffer = 0;
+		GLuint TextureCoordBuffer = 0;
 
 		//Variable to dicatate if the scene has changed.
 		bool sceneChanged = true;

@@ -40,7 +40,7 @@
 
 #define PI 3.14f
 
- #define KERNELSIZE 64
+#define KERNELSIZE 64
 #define NOISESIZE 16
 
 #define GLM_FORCE_RADIANS

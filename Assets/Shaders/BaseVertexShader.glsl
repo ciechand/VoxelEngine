@@ -17,10 +17,13 @@ layout(location=12) uniform mat4 P;
 
 void main()
 {
-	gl_Position =  P * V * modelMatrix * VertexPosition;
-	shaderCoord = (modelMatrix * VertexPosition);
-	vColor = VertexColor;
-	//lightDirection = normalize(V*vec4(lightPos,0));
-	vNormal = (modelMatrix*VertexNormal);
+
+	shaderCoord = (V*modelMatrix*VertexPosition);
+
+	 mat4 normalMatrix = transpose(inverse(V*modelMatrix));
+	vNormal = (normalMatrix*VertexNormal);
+
 	texCoords = TextureCoords;
+	vColor = VertexColor;
+	gl_Position =  P*shaderCoord;
 }

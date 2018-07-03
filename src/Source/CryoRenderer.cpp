@@ -35,7 +35,7 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0), glm::vec3(0.0,0.0,0.0)
 
 CameraController::CameraController(){
 	cameraAt = glm::vec3(23,28,21);
-	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.1f, 100.0f);
+	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.0f, 100.0f);
 	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
 }
 
@@ -102,12 +102,14 @@ void CameraController::setViewMatrix(glm::mat4 vm){
 
 
 RenderController::RenderController(){
-	VertexArrayObject.assign(3,0);
+	VertexArrayObject.assign(NUM_SHADERS,0);
+	shaderPositions.assign(5,0);
 }
 
 RenderController::~RenderController(){
-	glDeleteVertexArrays(3, &(VertexArrayObject[0]));
-	glDeleteBuffers(5, &VertexBufferBase[0]);
+	glDeleteVertexArrays(NUM_SHADERS, &(VertexArrayObject[0]));
+	glDeleteBuffers(NUMBER_OF_LABELS, &VertexBufferBase[0]);
+	glDeleteBuffers(NUMBER_OF_LABELS, &VertexBufferShadow[0]);
 	for(int i=0; i<meshBorder; i++){
 		delete baseMeshes[i];
 	}
@@ -117,182 +119,33 @@ RenderController::~RenderController(){
 }
 
 void RenderController::initialize(){
-	glGenVertexArrays(3, &(VertexArrayObject[0]));
-	glBindVertexArray(VertexArrayObject[ShaderBase]);
+	glGenVertexArrays(NUM_SHADERS, &(VertexArrayObject[0]));
 
-	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferBase[0]);
+	//Calling function to initialize the shadowShaders
+	shadowPreInit();
 
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LVertexBuffer]);
+	//Calling function to initizlize the base shaders.
+	firstRenderInit();
 
-	//Initializing the vertex and normals for this particular mesh.
-	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
+	//Calling function to initialize SSAO
+	SSAOFragInit();
+
+	//Calling functions to initilize SSAOBlur
+	SSAOBlurInit();
 	
- 	shaderPositions.emplace_back();
-	shaderPositions[0] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexPosition");
+	//Calling functions to initilize LightingPass
+	lightingInit();
 
-	glEnableVertexAttribArray(shaderPositions[0]);
-	glVertexAttribPointer(shaderPositions[0], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LNormalsBuffer]);
-
-	//Initializing the vertex and normals for this particular mesh.
-	glBufferData(GL_ARRAY_BUFFER, vertexNormals.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
-
-	shaderPositions.emplace_back();
-	shaderPositions[1] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexNormal");
-	glEnableVertexAttribArray(shaderPositions[1]);
-	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-	//Initializing the texture values for this mesh.
-	shaderPositions.emplace_back();
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LTextureBuffer]);
-	glBufferData(GL_ARRAY_BUFFER, texCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, texCoords.size()*sizeof(glm::vec2), texCoords.data());
-
-	shaderPositions.emplace_back();
-	shaderPositions[2] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "TextureCoords");
-	glEnableVertexAttribArray(shaderPositions[2]);
-	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
- 
-	//Initializing the Color values for each vertex of this mesh
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LColorArray]);
-	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size()*sizeof(glm::vec3), colors.data());
-
-	shaderPositions.emplace_back();
-	shaderPositions[3] = glGetAttribLocation(ShaderController.getProgramVariable(ShaderBase), "VertexColor");
-	glEnableVertexAttribArray(shaderPositions[3]);
-	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
-	//Initialize which texture will be utilized for this particular Side.
-	
-	//Initialize the Model matrices
-	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LModelMatrices]);
-	glBufferData(GL_ARRAY_BUFFER, modelMatrix.size()*sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0,  modelMatrix.size()*sizeof(glm::mat4), modelMatrix.data());
+	glBindVertexArray(0);
+}
 
 
-	shaderPositions.emplace_back();
-	shaderPositions[4] = glGetAttribLocation(programVariables[ShaderBase], "modelMatrix");
-    glEnableVertexAttribArray(shaderPositions[4]); 
-    glVertexAttribPointer(shaderPositions[4], 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET(0));
-    glVertexAttribDivisor(shaderPositions[4], 1);
-
-    glEnableVertexAttribArray(shaderPositions[4]+1); 
-    glVertexAttribPointer(shaderPositions[4]+1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET(sizeof(glm::vec4)));
-	glVertexAttribDivisor(shaderPositions[4]+1, 1);
-
-    glEnableVertexAttribArray(shaderPositions[4]+2); 
-    glVertexAttribPointer(shaderPositions[4]+2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET((sizeof(glm::vec4)*2)));
-    glVertexAttribDivisor(shaderPositions[4]+2, 1);
-
-    glEnableVertexAttribArray(shaderPositions[4]+3); 
-    glVertexAttribPointer(shaderPositions[4]+3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET((sizeof(glm::vec4)*3)));
-	glVertexAttribDivisor(shaderPositions[4]+3, 1);
-    
-
-    //Initializing the instances to  drawing the Mesh.
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VertexBufferBase[LIndexBuffer]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
-
-
-	//Setting up the shader storage Buffers.
-	glGenBuffers(1, &lightDataSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightDataSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(Light), lightController.getLightData(), GL_DYNAMIC_COPY);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightDataSSBO); 
-
-	glGenBuffers(1, &lightMatrixSSBO); 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lightMatrixSSBO); 
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
+void RenderController::shadowPreInit(){
 	//Set the vertexArray
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
 
 	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferShadow[0]);
 
-	glUseProgram(programVariables[ShaderBase]);
-
-	//Initialize shadow buffers
-	glGenFramebuffers(1, &shadowBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
-	glDrawBuffer(GL_NONE);
-	
-	//Initialize depth texture
-	glGenTextures(1, &shadowDepthTexture);
-	GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderBase], "shadowMap");
-	glUniform1i(shadowMapLoc, 3);
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 10, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
-
-	//glUseProgram(programVariables[ShaderSSAO]);
-	//Declaring and Defining the SSAOKernel texture
-	glGenTextures(1, &SSAOKernel);
-	GLint SSAOKernelLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOKernelMap");
-	glUniform1i(SSAOKernelLoc, 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_1D, SSAOKernel);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB16F, KERNELSIZE, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAOKernelData())[0]);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-	//Declaring and Defining the SSAONoise texture
-	glGenTextures(1, &SSAONoise);
-	GLint SSAONoiseLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAONoiseMap");
-	glUniform1i(SSAONoiseLoc, 1);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, SSAONoise);
-	int noiseDimensions = sqrt(NOISESIZE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, noiseDimensions, noiseDimensions, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAONoiseData())[0]);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-
-/*	glUseProgram(programVariables[ShaderBlur]);
-	glGenFramebuffers(1,&SSAOBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBuffer);
-	glDrawBuffer(GL_NONE);
-	glGenTextures(1,&SSAOOutput);
-	GLint SSAOOutputLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOInput");
-	glUniform1i(SSAOOutputLoc, 2);
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, SSAOOutput);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, SSAOOutput, 0);*/
-
-
-/*
-	glUseProgram(programVariables[ShaderBase]);
-	glGenFramebuffers(1,&SSAOBlurredBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBlurredBuffer);
-	glGenTextures(1,&SSAOBlurred);
-	GLint SSAOBlurredLoc = glGetUniformLocation(programVariables[ShaderBase], "SSAOBlurredMap");
-	glUniform1i(SSAOBlurredLoc, 2);
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, SSAOBlurred);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOBlurred, 0);
-*/
 	//Assigning to shadow shader
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferShadow[LVertexBuffer]);
 
@@ -326,11 +179,344 @@ void RenderController::initialize(){
     glVertexAttribPointer(shaderPositions[4]+3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET((sizeof(glm::vec4)*3)));
 	glVertexAttribDivisor(shaderPositions[4]+3, 1);
 
-    //Initializing the instances to  drawing the Mesh.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VertexBufferShadow[LIndexBuffer]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
 
-	glBindVertexArray(0);
+	//Initialize shadow buffers
+	glGenFramebuffers(1, &shadowBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
+	glDrawBuffer(GL_NONE);
+
+	//Initialize depth texture
+	glGenTextures(1, &shadowDepthTexture);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 10, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
+}
+
+void RenderController::firstRenderInit(){
+	glBindVertexArray(VertexArrayObject[ShaderBase]);
+
+	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferBase[0]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LVertexBuffer]);
+
+	//Initializing the vertex and normals for this particular mesh.
+	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
+	
+ 	shaderPositions[0] = glGetAttribLocation(programVariables[ShaderBase], "VertexPosition");
+
+	glEnableVertexAttribArray(shaderPositions[0]);
+	glVertexAttribPointer(shaderPositions[0], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LNormalsBuffer]);
+
+	//Initializing the vertex and normals for this particular mesh.
+	glBufferData(GL_ARRAY_BUFFER, vertexNormals.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, vertexNormals.size()*sizeof(glm::vec4), vertexNormals.data());
+
+	shaderPositions[1] = glGetAttribLocation(programVariables[ShaderBase], "VertexNormal");
+	glEnableVertexAttribArray(shaderPositions[1]);
+	glVertexAttribPointer(shaderPositions[1], 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	//Initializing the texture values for this mesh.
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LTextureBuffer]);
+	glBufferData(GL_ARRAY_BUFFER, texCoords.size()*sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, texCoords.size()*sizeof(glm::vec2), texCoords.data());
+
+	shaderPositions[2] = glGetAttribLocation(programVariables[ShaderBase], "TextureCoords");
+	glEnableVertexAttribArray(shaderPositions[2]);
+	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+ 
+	//Initializing the Color values for each vertex of this mesh
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LColorArray]);
+	glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size()*sizeof(glm::vec3), colors.data());
+
+	shaderPositions[3] = glGetAttribLocation(programVariables[ShaderBase], "VertexColor");
+	glEnableVertexAttribArray(shaderPositions[3]);
+	glVertexAttribPointer(shaderPositions[3], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	//Initialize which texture will be utilized for this particular Side.
+	
+	//Initialize the Model matrices
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferBase[LModelMatrices]);
+	glBufferData(GL_ARRAY_BUFFER, modelMatrix.size()*sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0,  modelMatrix.size()*sizeof(glm::mat4), modelMatrix.data());
+
+
+	shaderPositions[4] = glGetAttribLocation(programVariables[ShaderBase], "modelMatrix");
+    glEnableVertexAttribArray(shaderPositions[4]); 
+    glVertexAttribPointer(shaderPositions[4], 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET(0));
+    glVertexAttribDivisor(shaderPositions[4], 1);
+
+    glEnableVertexAttribArray(shaderPositions[4]+1); 
+    glVertexAttribPointer(shaderPositions[4]+1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET(sizeof(glm::vec4)));
+	glVertexAttribDivisor(shaderPositions[4]+1, 1);
+
+    glEnableVertexAttribArray(shaderPositions[4]+2); 
+    glVertexAttribPointer(shaderPositions[4]+2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET((sizeof(glm::vec4)*2)));
+    glVertexAttribDivisor(shaderPositions[4]+2, 1);
+
+    glEnableVertexAttribArray(shaderPositions[4]+3); 
+    glVertexAttribPointer(shaderPositions[4]+3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), BUFFER_OFFSET((sizeof(glm::vec4)*3)));
+	glVertexAttribDivisor(shaderPositions[4]+3, 1);
+
+    //Initializing the instances to  drawing the Mesh.
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VertexBufferBase[LIndexBuffer]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
+
+
+	//Initialize the buffers that will be outputted to by the base shader.
+	//Initialize the framebuffer
+	glGenFramebuffers(1, &preRenderFrameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, preRenderFrameBuffer);
+	
+	//Attach Shadowmap to framebuffer
+	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
+
+	//Declaring and Defining the NormalBuffer texture
+	glGenTextures(1, &NormalBuffer);
+	glBindTexture(GL_TEXTURE_2D, NormalBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, NormalBuffer, 0);
+
+	//Declaring and Defining the ColorBuffer texture
+	glGenTextures(1, &ColorBuffer);
+	glBindTexture(GL_TEXTURE_2D, ColorBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ColorBuffer, 0);
+	
+	//Declaring and Defining the PositionBuffer texture
+	glGenTextures(1, &PositionBuffer);
+	glBindTexture(GL_TEXTURE_2D, PositionBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, PositionBuffer, 0);
+	
+	//Declaring and Defining the TextureCoordBuffer texture
+	glGenTextures(1, &TextureCoordBuffer);
+	glBindTexture(GL_TEXTURE_2D, TextureCoordBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, TextureCoordBuffer, 0);
+
+	unsigned int bufferAttachments[5] = {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
+	glDrawBuffers(5,bufferAttachments);
+}
+
+void RenderController::SSAOFragInit(){
+	glUseProgram(programVariables[ShaderSSAO]);
+	glBindVertexArray(VertexArrayObject[ShaderSSAO]);
+
+	glGenBuffers(2, &VertexBufferSSAO[0]);
+
+	//Create the quadTexture vertices
+	std::vector<glm::vec3> quadVertices = {glm::vec3(-1.0f,1.0f,0.0f),glm::vec3(-1.0f,-1.0f,0.0f),glm::vec3(1.0f,1.0f,0.0f),glm::vec3(1.0f,-1.0f,0.0f),glm::vec3(1.0f,1.0f,0.0f),glm::vec3(-1.0f,-1.0f,0.0f)};
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferSSAO[0]); // Bind the vertex buffer
+	//Initializing the vertex and normals for this particular mesh.
+	glBufferData(GL_ARRAY_BUFFER, quadVertices.size()*sizeof(glm::vec3), quadVertices.data(), GL_DYNAMIC_DRAW);
+	
+ 	shaderPositions[0] = glGetAttribLocation(programVariables[ShaderSSAO], "VertexPosition");
+	glEnableVertexAttribArray(shaderPositions[0]);
+	glVertexAttribPointer(shaderPositions[0], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	//Create the Quad Texture Values
+	std::vector<glm::vec2> tempTexCoords = {glm::vec2(0.0f,1.0f),glm::vec2(0.0f,0.0f),glm::vec2(1.0f,1.0f),glm::vec2(1.0f,0.0f),glm::vec2(1.0f,1.0f),glm::vec2(0.0f,0.0f)};
+
+	//Initializing the texture values for this mesh.
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferSSAO[1]);//bind the texture buffer.
+	glBufferData(GL_ARRAY_BUFFER, tempTexCoords.size()*sizeof(glm::vec2), tempTexCoords.data(), GL_DYNAMIC_DRAW);
+
+	shaderPositions[2] = glGetAttribLocation(programVariables[ShaderSSAO], "TextureCoords");
+	glEnableVertexAttribArray(shaderPositions[2]);
+	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	GLint NormalBufferLoc = glGetUniformLocation(programVariables[ShaderSSAO], "NormalBuffer");
+	glUniform1i(NormalBufferLoc, 4);
+	glActiveTexture(GL_TEXTURE0 + 4);
+	glBindTexture(GL_TEXTURE_2D, NormalBuffer);
+	GLint positionBufferLoc = glGetUniformLocation(programVariables[ShaderSSAO], "positionBuffer");
+	glUniform1i(positionBufferLoc, 1);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, PositionBuffer);
+
+	//Declaring and Defining the SSAOKernel texture
+	glGenTextures(1, &SSAOKernel);
+	GLint SSAOKernelLoc = glGetUniformLocation(programVariables[ShaderSSAO], "SSAOKernelMap");
+	glUniform1i(SSAOKernelLoc, 3);
+	glActiveTexture(GL_TEXTURE0 + 3);
+	glBindTexture(GL_TEXTURE_1D, SSAOKernel);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB16F, KERNELSIZE, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAOKernelData())[0]);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	//Declaring and Defining the SSAONoise texture
+	glGenTextures(1, &SSAONoise);
+	GLint SSAONoiseLoc = glGetUniformLocation(programVariables[ShaderSSAO], "SSAONoiseMap");
+	glUniform1i(SSAONoiseLoc, 2);
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glBindTexture(GL_TEXTURE_2D, SSAONoise);
+	int noiseDimensions = sqrt(NOISESIZE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, noiseDimensions, noiseDimensions, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAONoiseData())[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
+	//GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderSSAO], "shadowMap");
+	//glUniform1i(shadowMapLoc, 5);
+	//glActiveTexture(GL_TEXTURE0 + 5);
+	//glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
+
+	glGenFramebuffers(1, &SSAOBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBuffer);
+
+	//Declaring and Defining the SSAOOutput texture
+	glGenTextures(1, &SSAOOutput);
+	glBindTexture(GL_TEXTURE_2D, SSAOOutput);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOOutput, 0);
+
+	unsigned int bufferAttachments[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1,bufferAttachments);
+}
+
+void RenderController::SSAOBlurInit(){
+	glUseProgram(programVariables[ShaderBlur]);
+	glBindVertexArray(VertexArrayObject[ShaderBlur]);
+
+	glGenBuffers(2, &VertexBufferSSAO[0]);
+
+	//Create the quadTexture vertices
+	std::vector<glm::vec3> quadVertices = {glm::vec3(-1.0f,1.0f,0.0f),glm::vec3(-1.0f,-1.0f,0.0f),glm::vec3(1.0f,1.0f,0.0f),glm::vec3(1.0f,-1.0f,0.0f),glm::vec3(1.0f,1.0f,0.0f),glm::vec3(-1.0f,-1.0f,0.0f)};
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferSSAO[0]); // Bind the vertex buffer
+	//Initializing the vertex and normals for this particular mesh.
+	glBufferData(GL_ARRAY_BUFFER, quadVertices.size()*sizeof(glm::vec3), quadVertices.data(), GL_DYNAMIC_DRAW);
+	
+ 	shaderPositions[0] = glGetAttribLocation(programVariables[ShaderBlur], "VertexPosition");
+	glEnableVertexAttribArray(shaderPositions[0]);
+	glVertexAttribPointer(shaderPositions[0], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	//Create the Quad Texture Values
+	std::vector<glm::vec2> tempTexCoords = {glm::vec2(0.0f,1.0f),glm::vec2(0.0f,0.0f),glm::vec2(1.0f,1.0f),glm::vec2(1.0f,0.0f),glm::vec2(1.0f,1.0f),glm::vec2(0.0f,0.0f)};
+
+	//Initializing the texture values for this mesh.
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferSSAO[1]);//bind the texture buffer.
+	glBufferData(GL_ARRAY_BUFFER, tempTexCoords.size()*sizeof(glm::vec2), tempTexCoords.data(), GL_DYNAMIC_DRAW);
+
+	shaderPositions[2] = glGetAttribLocation(programVariables[ShaderBlur], "TextureCoords");
+	glEnableVertexAttribArray(shaderPositions[2]);
+	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	GLint SSAOOutLoc = glGetUniformLocation(programVariables[ShaderBlur], "SSAOInput");
+	glUniform1i(SSAOOutLoc, 5);
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_2D, SSAOOutput);
+
+	glGenFramebuffers(1, &SSAOBlurBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBlurBuffer);
+
+	//Declaring and Defining the BlurOutput texture
+	glGenTextures(1, &SSAOBlurOutput);
+	glBindTexture(GL_TEXTURE_2D, SSAOBlurOutput);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOBlurOutput, 0);
+
+	unsigned int bufferAttachments[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1,bufferAttachments);
+}
+
+void RenderController::lightingInit(){
+	glUseProgram(programVariables[ShaderLighting]);
+	glBindVertexArray(VertexArrayObject[ShaderLighting]);
+
+	glGenBuffers(2, &VertexBufferSSAO[0]);
+
+	//Create the quadTexture vertices
+	std::vector<glm::vec3> quadVertices = {glm::vec3(-1.0f,1.0f,0.0f),glm::vec3(-1.0f,-1.0f,0.0f),glm::vec3(1.0f,1.0f,0.0f),glm::vec3(1.0f,-1.0f,0.0f),glm::vec3(1.0f,1.0f,0.0f),glm::vec3(-1.0f,-1.0f,0.0f)};
+
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferSSAO[0]); // Bind the vertex buffer
+	//Initializing the vertex and normals for this particular mesh.
+	glBufferData(GL_ARRAY_BUFFER, quadVertices.size()*sizeof(glm::vec3), quadVertices.data(), GL_DYNAMIC_DRAW);
+	
+ 	shaderPositions[0] = glGetAttribLocation(programVariables[ShaderLighting], "VertexPosition");
+	glEnableVertexAttribArray(shaderPositions[0]);
+	glVertexAttribPointer(shaderPositions[0], 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	//Create the Quad Texture Values
+	std::vector<glm::vec2> tempTexCoords = {glm::vec2(0.0f,1.0f),glm::vec2(0.0f,0.0f),glm::vec2(1.0f,1.0f),glm::vec2(1.0f,0.0f),glm::vec2(1.0f,1.0f),glm::vec2(0.0f,0.0f)};
+
+	//Initializing the texture values for this mesh.
+	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferSSAO[1]);//bind the texture buffer.
+	glBufferData(GL_ARRAY_BUFFER, tempTexCoords.size()*sizeof(glm::vec2), tempTexCoords.data(), GL_DYNAMIC_DRAW);
+
+	shaderPositions[2] = glGetAttribLocation(programVariables[ShaderLighting], "TextureCoords");
+	glEnableVertexAttribArray(shaderPositions[2]);
+	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+
+	GLint ColorBufferLoc = glGetUniformLocation(programVariables[ShaderLighting], "ColorBuffer");
+	glUniform1i(ColorBufferLoc, 6);
+	glActiveTexture(GL_TEXTURE0 + 6);
+	glBindTexture(GL_TEXTURE_2D, ColorBuffer);
+
+	GLint SSAOBlurLoc = glGetUniformLocation(programVariables[ShaderLighting], "SSAOBlurOutput");
+	glUniform1i(SSAOBlurLoc, 7);
+	glActiveTexture(GL_TEXTURE0 + 7);
+	glBindTexture(GL_TEXTURE_2D, SSAOBlurOutput);
+
+	GLint NormalBufferLoc = glGetUniformLocation(programVariables[ShaderLighting], "NormalBuffer");
+	glUniform1i(NormalBufferLoc, 8);
+	glActiveTexture(GL_TEXTURE0 + 8);
+	glBindTexture(GL_TEXTURE_2D, NormalBuffer);
+
+	GLint positionBufferLoc = glGetUniformLocation(programVariables[ShaderLighting], "PositionBuffer");
+	glUniform1i(positionBufferLoc, 9);
+	glActiveTexture(GL_TEXTURE0 + 9);
+	glBindTexture(GL_TEXTURE_2D, PositionBuffer);
+
+	GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderLighting], "shadowMap");
+	glUniform1i(shadowMapLoc, 10);
+	glActiveTexture(GL_TEXTURE0 + 10);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
+
+	//Setting up the shader storage Buffers.
+	glGenBuffers(1, &lightDataSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightDataSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(Light), lightController.getLightData(), GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightDataSSBO); 
+
+	glGenBuffers(1, &lightMatrixSSBO); 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lightMatrixSSBO); 
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 int RenderController::loadBaseMeshes(){
@@ -458,7 +644,7 @@ void RenderController::reloadBuffers(){
 }
 
 void RenderController::reloadShaderBuffers(){
-	glBindVertexArray(VertexArrayObject[ShaderBase]);
+	glBindVertexArray(VertexArrayObject[ShaderLighting]);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightDataSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(Light), lightController.getLightData(), GL_DYNAMIC_COPY);
@@ -599,10 +785,10 @@ void RenderController::drawScene(){
 		reloadShaderBuffers();
 		reloadBuffers();
 		//render the Shadow maps!
-		// /*for each light, draw elements instanced.*/
 		//Here we setup the depth buffer things that only changes when the scene changes.
 		//sceneChanged = false;
 	}
+
 	glUseProgram(programVariables[ShaderShadow]);
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
 
@@ -634,44 +820,44 @@ void RenderController::drawScene(){
 
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "P"), 1, GL_FALSE, &(BaseProjMatrix[0][0]));
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
-	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "numLights"), lightController.getNumLights());
-	glUniform2f(glGetUniformLocation(programVariables[ShaderBase], "windowSize"), windowSize.x, windowSize.y);
-	//Move this out of here and into a place where it makes sense.
-	glUniform1ui(glGetUniformLocation(programVariables[ShaderBase], "kernelSize"), KERNELSIZE);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, preRenderFrameBuffer);
 	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
-	glClear(GL_DEPTH_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
-/*
+
 	glUseProgram(programVariables[ShaderSSAO]);
+	glBindVertexArray(VertexArrayObject[ShaderSSAO]);
 	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBuffer);
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
-	glClear(GL_DEPTH_BUFFER_BIT);
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderSSAO], "P"), 1, GL_FALSE, &(BaseProjMatrix[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderSSAO], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
+	glUniform2f(glGetUniformLocation(programVariables[ShaderSSAO], "windowSize"), windowSize.x, windowSize.y);
+	glUniform1ui(glGetUniformLocation(programVariables[ShaderSSAO], "kernelSize"), KERNELSIZE);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 	glUseProgram(programVariables[ShaderBlur]);
-	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBlurredBuffer);
-	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
+	glBindVertexArray(VertexArrayObject[ShaderBlur]);
+	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBlurBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
-*/
-	glUseProgram(programVariables[ShaderBase]);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 
-/*
-	if(SHADOWMAPDEBUG){
-		glViewport(SCREENWIDTH-500, SCREENHEIGHT-500,500,500); 
-		glUseProgram(programVariables[ShaderPassThrough]);
-		glBindVertexArray(VertexArrayObject[ShaderPassThrough]);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glViewport(0, 0,SCREENWIDTH,SCREENHEIGHT);
-	}*/
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glUseProgram(programVariables[ShaderLighting]);
+	glBindVertexArray(VertexArrayObject[ShaderLighting]);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderSSAO], "P"), 1, GL_FALSE, &(BaseProjMatrix[0][0]));
+	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderLighting], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
+	glUniform1ui(glGetUniformLocation(programVariables[ShaderLighting], "numLights"), lightController.getNumLights());
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 	glBindVertexArray(0);
 }

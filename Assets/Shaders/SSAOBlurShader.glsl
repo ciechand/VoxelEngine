@@ -1,8 +1,8 @@
 #version 430 core
 
-out float FragColor;
-  
-in vec2 TextureCoords;
+in vec2 texCoords;
+
+out vec4 FragColor;
   
 uniform sampler2D SSAOInput;
 
@@ -14,8 +14,9 @@ void main() {
         for (int y = -2; y < 2; ++y) 
         {
             vec2 offset = vec2(float(x), float(y)) * texelSize;
-            result += texture(SSAOInput, TextureCoords + offset).r;
+            result += texture(SSAOInput, texCoords + offset).r;
         }
     }
-    FragColor = result / (4.0 * 4.0);
+    FragColor = vec4(vec3(result / (4.0 * 4.0)),1.0);
+   // FragColor = texture(SSAOInput, texCoords);
 }  
