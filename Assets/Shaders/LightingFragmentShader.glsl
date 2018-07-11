@@ -51,6 +51,7 @@ void main(){
 	for(int i=1; i<numLights; i++){
 		vec4 posInLightSpace = (DepthVP[i] * shaderCoord);
 		vec4 finalShadowCoord = (posInLightSpace);
+
 		finalShadowCoord = finalShadowCoord/finalShadowCoord.w;
 		finalShadowCoord = biasMatrix * finalShadowCoord;
 		float posVecLength = length(posInLightSpace-(DepthVP[i]*lights[i].Position));
@@ -58,17 +59,12 @@ void main(){
 		actualNumLights++;
 		lightDirection = normalize(lights[i].Position-shaderCoord);
 		float clampedLightDir = clamp(dot(vNormal, lightDirection),0.0,1.0);
-		bias = clamp(0.0025 *tan(acos(clampedLightDir)),0.00,0.0025);
+		bias = clamp(0.002 *tan(acos(clampedLightDir)),0.00,0.002);
  		visibility = 0.0;
 			if(clampedLightDir > 0.0){
-				for(float x = -0.5; x <2.0; x+=1.0){
-					for(float y = -0.5; y <2.0; y+=1.0){
-						percentPass = texture(shadowMap, vec4(finalShadowCoord.xy+vec2(x,y), i, finalShadowCoord.z-bias)); 
-						//percentPass = 0.5;
-						visibility += (percentPass);
-					}
-				}
-				visibility /= 4.0;
+				percentPass = texture(shadowMap, vec4(finalShadowCoord.xy, i, finalShadowCoord.z-bias)); 
+				//percentPass = 0.5;
+				visibility += (percentPass);
 			}
 		//additiveColor += ((lights[i].Color.rgb/255.0));
 		additiveColor +=  0.8*(((vColor.rgb)*visibility)* //Color and visibility Checks

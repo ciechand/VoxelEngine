@@ -35,7 +35,7 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0), glm::vec3(0.0,0.0,0.0)
 
 CameraController::CameraController(){
 	cameraAt = glm::vec3(23,28,21);
-	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.0f, 100.0f);
+	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.05f, 100.0f);
 	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
 }
 
@@ -286,7 +286,7 @@ void RenderController::firstRenderInit(){
 	//Declaring and Defining the NormalBuffer texture
 	glGenTextures(1, &NormalBuffer);
 	glBindTexture(GL_TEXTURE_2D, NormalBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, NormalBuffer, 0);
@@ -294,7 +294,7 @@ void RenderController::firstRenderInit(){
 	//Declaring and Defining the ColorBuffer texture
 	glGenTextures(1, &ColorBuffer);
 	glBindTexture(GL_TEXTURE_2D, ColorBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ColorBuffer, 0);
@@ -302,23 +302,21 @@ void RenderController::firstRenderInit(){
 	//Declaring and Defining the PositionBuffer texture
 	glGenTextures(1, &PositionBuffer);
 	glBindTexture(GL_TEXTURE_2D, PositionBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, PositionBuffer, 0);
 	
 	//Declaring and Defining the TextureCoordBuffer texture
 	glGenTextures(1, &TextureCoordBuffer);
 	glBindTexture(GL_TEXTURE_2D, TextureCoordBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, TextureCoordBuffer, 0);
 
-	unsigned int bufferAttachments[5] = {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
-	glDrawBuffers(5,bufferAttachments);
+	unsigned int bufferAttachments[4] = {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
+	glDrawBuffers(4,bufferAttachments);
 }
 
 void RenderController::SSAOFragInit(){
@@ -353,6 +351,7 @@ void RenderController::SSAOFragInit(){
 	glUniform1i(NormalBufferLoc, 4);
 	glActiveTexture(GL_TEXTURE0 + 4);
 	glBindTexture(GL_TEXTURE_2D, NormalBuffer);
+
 	GLint positionBufferLoc = glGetUniformLocation(programVariables[ShaderSSAO], "positionBuffer");
 	glUniform1i(positionBufferLoc, 1);
 	glActiveTexture(GL_TEXTURE0 + 1);
@@ -367,8 +366,8 @@ void RenderController::SSAOFragInit(){
 	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB16F, KERNELSIZE, 0, GL_RGB, GL_FLOAT, &(lightController.getSSAOKernelData())[0]);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	//Declaring and Defining the SSAONoise texture
 	glGenTextures(1, &SSAONoise);
@@ -395,7 +394,7 @@ void RenderController::SSAOFragInit(){
 	//Declaring and Defining the SSAOOutput texture
 	glGenTextures(1, &SSAOOutput);
 	glBindTexture(GL_TEXTURE_2D, SSAOOutput);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOOutput, 0);
@@ -433,8 +432,8 @@ void RenderController::SSAOBlurInit(){
 	glVertexAttribPointer(shaderPositions[2], 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	GLint SSAOOutLoc = glGetUniformLocation(programVariables[ShaderBlur], "SSAOInput");
-	glUniform1i(SSAOOutLoc, 5);
-	glActiveTexture(GL_TEXTURE0 + 5);
+	glUniform1i(SSAOOutLoc, 8);
+	glActiveTexture(GL_TEXTURE0 + 8);
 	glBindTexture(GL_TEXTURE_2D, SSAOOutput);
 
 	glGenFramebuffers(1, &SSAOBlurBuffer);
@@ -443,7 +442,7 @@ void RenderController::SSAOBlurInit(){
 	//Declaring and Defining the BlurOutput texture
 	glGenTextures(1, &SSAOBlurOutput);
 	glBindTexture(GL_TEXTURE_2D, SSAOBlurOutput);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOBlurOutput, 0);
@@ -491,18 +490,18 @@ void RenderController::lightingInit(){
 	glBindTexture(GL_TEXTURE_2D, SSAOBlurOutput);
 
 	GLint NormalBufferLoc = glGetUniformLocation(programVariables[ShaderLighting], "NormalBuffer");
-	glUniform1i(NormalBufferLoc, 8);
-	glActiveTexture(GL_TEXTURE0 + 8);
+	glUniform1i(NormalBufferLoc, 4);
+	glActiveTexture(GL_TEXTURE0 + 4);
 	glBindTexture(GL_TEXTURE_2D, NormalBuffer);
 
 	GLint positionBufferLoc = glGetUniformLocation(programVariables[ShaderLighting], "PositionBuffer");
-	glUniform1i(positionBufferLoc, 9);
-	glActiveTexture(GL_TEXTURE0 + 9);
+	glUniform1i(positionBufferLoc, 1);
+	glActiveTexture(GL_TEXTURE0 + 1);
 	glBindTexture(GL_TEXTURE_2D, PositionBuffer);
 
 	GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderLighting], "shadowMap");
-	glUniform1i(shadowMapLoc, 10);
-	glActiveTexture(GL_TEXTURE0 + 10);
+	glUniform1i(shadowMapLoc, 5);
+	glActiveTexture(GL_TEXTURE0 + 5);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
 
 	//Setting up the shader storage Buffers.

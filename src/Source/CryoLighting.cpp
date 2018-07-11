@@ -44,9 +44,9 @@ void Light::setInt(float d){
 //Start of functions for light controller.
 LightController::LightController(){
 	addLight();
-	//addLight(glm::vec4(CHUNKSIDE*0.5f,20.0f,CHUNKSIDE*0.5f,1.0f), glm::vec3(0.0,0.0,255.0), 0.9f);
+	addLight(glm::vec4(CHUNKSIDE*0.5f,20.0f,CHUNKSIDE*0.5f,1.0f), glm::vec3(0.0,0.0,255.0), 0.9f);
 	addLight(glm::vec4(CHUNKSIDE*1.0f,13.0f,CHUNKSIDE*1.0f,1.0f), glm::vec3(255.0,0.0,0.0), 0.3f);
-	//addLight(glm::vec4(CHUNKSIDE*5.0f,17.0f,CHUNKSIDE*8.0f,1.0f), glm::vec3(0.0,255.0,0.0), 1.5f);
+	addLight(glm::vec4(CHUNKSIDE*5.0f,17.0f,CHUNKSIDE*8.0f,1.0f), glm::vec3(0.0,255.0,0.0), 1.5f);
 
 	//Setup the SSAO Kernel Samples
 	std::random_device r;

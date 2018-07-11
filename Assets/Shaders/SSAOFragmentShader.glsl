@@ -18,9 +18,9 @@ uniform uint kernelSize;
 uniform vec2 windowSize;
 
 //Define Variables for SSAO Processing.
-float radius = 0.9;
+float radius = 0.5;
 float SSAOBias = 0.025;
-float power = 2.0;
+float power = 3.0;
 //mat4 biasMatrix = mat4(0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.5,0.5,0.5,1.0);
 
 void main()
