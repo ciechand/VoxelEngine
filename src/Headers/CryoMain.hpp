@@ -28,6 +28,7 @@
 //Next comes our Defines, these are constants that are necessary for hte game to function
 #define SCREENWIDTH 1920
 #define SCREENHEIGHT 1080
+#define CUBEMAPSIDELENGTH 512
 
 #define DEBUGMODE true
 #define SHADOWMAPDEBUG false
@@ -42,6 +43,11 @@
 
 #define KERNELSIZE 64
 #define NOISESIZE 16
+
+#define NEARPLANE 0.05f
+#define FARPLANE 200.0f
+
+#define MAXLIGHTS 10
 
 #define GLM_FORCE_RADIANS
 

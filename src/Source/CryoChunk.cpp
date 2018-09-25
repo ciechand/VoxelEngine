@@ -484,7 +484,7 @@ Chunk::Chunk(glm::vec3 pos){
 		glm::vec3 worldBlockPos = ((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE)/2.0f);
 		//if((blockPos.x >= CHUNKSIDE/2 && blockPos.x <= CHUNKSIDE-5.0f) || (blockPos.y >= 4 && blockPos.y <= CHUNKSIDE-5.0f) || (blockPos.z >= 4 && blockPos.z <= CHUNKSIDE-5.0f))
 		//if((blockPos.x == CHUNKSIDE/2 && blockPos.z == CHUNKSIDE/2 && blockPos.y >= CHUNKSIDE/2) || blockPos.y < CHUNKSIDE/2 )
-		//	Grid[i] = new Block();
+		//Grid[i] = new Block();
 		float height = noiseSampler.GetNoise(worldBlockPos.x,worldBlockPos.z);
 		height *= CHUNKSIDE;
 		if(worldBlockPos.y <= height)

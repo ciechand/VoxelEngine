@@ -30,29 +30,28 @@ class LightController{
 		LightController();
 		~LightController();
 
+		void initialize();
+
 		unsigned int getNumLights();
 		Light* getLightData();
-		glm::mat4* getLightMatData();
+		glm::mat4* getLightMatData(unsigned int index);
 		glm::vec3 * getSSAOKernelData();
 		glm::vec3 * getSSAONoiseData();
 
 		void addLight();
 		void addLight(Light l);
 		void addLight(glm::vec4 pos, glm::vec3 color, float inten);
-		void setLight(unsigned int index, glm::vec4 pos, glm::vec3 color, float inten);		
-		void setLight(unsigned int index, glm::vec4 pos, glm::vec3 color, float inten, glm::mat4 proj, glm::mat4 view);
+		void setLight(unsigned int index, glm::vec4 pos, glm::vec3 color, float inten);
 		Light * getLight(unsigned int index);
 
-		std::vector<glm::mat4> getMatrix();
-		glm::mat4 getMatrix(unsigned int index);
-		std::pair<glm::mat4,glm::mat4> getMatrixPair(unsigned int index);
+		std::vector<glm::mat4> getMatrix(unsigned int index);
+		glm::mat4 getMatrix(unsigned int index,unsigned int dir);
 
 	private:
 		std::vector<glm::vec3> SSAOKernel;
 		std::vector<glm::vec3> SSAONoise;
 		std::vector<Light> lightList;
-		std::vector<glm::mat4> matrixList;
-		std::vector<std::pair<glm::mat4,glm::mat4> > lightMatrices;
+		std::vector<std::vector<glm::mat4> > viewMatricesList;
 };
 
 extern LightController lightController;

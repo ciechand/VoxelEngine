@@ -20,8 +20,8 @@ const glm::vec3 BlockColors[16] = {glm::vec3(255.0f,255.0f,255.0f),glm::vec3(255
 //Const Global Array for the different vertexes of a cube. These Can be accessed with the enum CubeVertices.
 const glm::vec3 CubeVerts[8] = {
 glm::vec3(-HALFSIZE,HALFSIZE,-HALFSIZE),glm::vec3(HALFSIZE,HALFSIZE,-HALFSIZE),
-glm::vec3(-HALFSIZE,HALFSIZE, HALFSIZE),glm::vec3(HALFSIZE,HALFSIZE,HALFSIZE),
 glm::vec3(-HALFSIZE,-HALFSIZE,-HALFSIZE),glm::vec3(HALFSIZE,-HALFSIZE,-HALFSIZE),
+glm::vec3(-HALFSIZE,HALFSIZE, HALFSIZE),glm::vec3(HALFSIZE,HALFSIZE,HALFSIZE),
 glm::vec3(-HALFSIZE,-HALFSIZE,HALFSIZE),glm::vec3(HALFSIZE,-HALFSIZE,HALFSIZE)
 };
 
@@ -34,8 +34,10 @@ glm::vec3(0.0,0.0,1.0), glm::vec3(0.0,0.0,-1.0), glm::vec3(0.0,0.0,0.0)
 
 
 CameraController::CameraController(){
-	cameraAt = glm::vec3(23,28,21);
-	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, 0.05f, 100.0f);
+	cameraAt = glm::vec3(10.0,0.0,0.0);
+	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, NEARPLANE, FARPLANE);
+	//projectionMatrix = glm::perspective(PI/2.0f, 1.0f, NEARPLANE, FARPLANE);
+	print4x4Matrix(projectionMatrix);
 	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
 }
 
@@ -102,8 +104,10 @@ void CameraController::setViewMatrix(glm::mat4 vm){
 
 
 RenderController::RenderController(){
+	std::cerr << "Render Controller" << std::endl;
 	VertexArrayObject.assign(NUM_SHADERS,0);
 	shaderPositions.assign(5,0);
+	shadowProjMatrix = glm::perspective(PI/2.0f, (float)CUBEMAPSIDELENGTH/(float)CUBEMAPSIDELENGTH, NEARPLANE, FARPLANE);
 }
 
 RenderController::~RenderController(){
@@ -122,18 +126,23 @@ void RenderController::initialize(){
 	glGenVertexArrays(NUM_SHADERS, &(VertexArrayObject[0]));
 
 	//Calling function to initialize the shadowShaders
+	std::cerr << "Initializing Shadows" << std::endl;
 	shadowPreInit();
 
 	//Calling function to initizlize the base shaders.
+	std::cerr << "Initializing Initial Render" << std::endl;
 	firstRenderInit();
 
 	//Calling function to initialize SSAO
+	std::cerr << "Initializing SSAO" << std::endl;
 	SSAOFragInit();
 
 	//Calling functions to initilize SSAOBlur
+	std::cerr << "Initializing BlurShaders" << std::endl;
 	SSAOBlurInit();
 	
 	//Calling functions to initilize LightingPass
+	std::cerr << "Initializing Lighting" << std::endl;
 	lightingInit();
 
 	glBindVertexArray(0);
@@ -141,6 +150,7 @@ void RenderController::initialize(){
 
 
 void RenderController::shadowPreInit(){
+	glUseProgram(programVariables[ShaderBase]);
 	//Set the vertexArray
 	glBindVertexArray(VertexArrayObject[ShaderShadow]);
 
@@ -189,19 +199,22 @@ void RenderController::shadowPreInit(){
 
 	//Initialize depth texture
 	glGenTextures(1, &shadowDepthTexture);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 10, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, shadowDepthTexture);
+	glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_DEPTH_COMPONENT16, CUBEMAPSIDELENGTH, CUBEMAPSIDELENGTH, MAXLIGHTS*6, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
+	glFramebufferTexture( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
 }
 
 void RenderController::firstRenderInit(){
+	glUseProgram(programVariables[ShaderBase]);
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
 
 	glGenBuffers(NUMBER_OF_LABELS, &VertexBufferBase[0]);
@@ -211,7 +224,7 @@ void RenderController::firstRenderInit(){
 	//Initializing the vertex and normals for this particular mesh.
 	glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(glm::vec4),nullptr, GL_DYNAMIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size()*sizeof(glm::vec4), vertices.data());
-	
+	 
  	shaderPositions[0] = glGetAttribLocation(programVariables[ShaderBase], "VertexPosition");
 
 	glEnableVertexAttribArray(shaderPositions[0]);
@@ -281,10 +294,21 @@ void RenderController::firstRenderInit(){
 	glBindFramebuffer(GL_FRAMEBUFFER, preRenderFrameBuffer);
 	
 	//Attach Shadowmap to framebuffer
-	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
+	glGenTextures(1, &baseRenderDepthTexture);
+	glActiveTexture(GL_TEXTURE0 + 10);
+	glBindTexture(GL_TEXTURE_2D, baseRenderDepthTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SCREENWIDTH, SCREENHEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, baseRenderDepthTexture, 0);
 
 	//Declaring and Defining the NormalBuffer texture
 	glGenTextures(1, &NormalBuffer);
+	glActiveTexture(GL_TEXTURE0 + 4);
 	glBindTexture(GL_TEXTURE_2D, NormalBuffer);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -293,6 +317,7 @@ void RenderController::firstRenderInit(){
 
 	//Declaring and Defining the ColorBuffer texture
 	glGenTextures(1, &ColorBuffer);
+	glActiveTexture(GL_TEXTURE0 + 6);
 	glBindTexture(GL_TEXTURE_2D, ColorBuffer);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -301,6 +326,7 @@ void RenderController::firstRenderInit(){
 	
 	//Declaring and Defining the PositionBuffer texture
 	glGenTextures(1, &PositionBuffer);
+	glActiveTexture(GL_TEXTURE0 + 1);
 	glBindTexture(GL_TEXTURE_2D, PositionBuffer);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -309,6 +335,7 @@ void RenderController::firstRenderInit(){
 	
 	//Declaring and Defining the TextureCoordBuffer texture
 	glGenTextures(1, &TextureCoordBuffer);
+	glActiveTexture(GL_TEXTURE0 + 9);
 	glBindTexture(GL_TEXTURE_2D, TextureCoordBuffer);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -359,7 +386,7 @@ void RenderController::SSAOFragInit(){
 
 	//Declaring and Defining the SSAOKernel texture
 	glGenTextures(1, &SSAOKernel);
-	GLint SSAOKernelLoc = glGetUniformLocation(programVariables[ShaderSSAO], "SSAOKernelMap");
+	GLint SSAOKernelLoc = glGetUniformLocation(programVariables[ShaderSSAO], "SSAOKernelMap");	
 	glUniform1i(SSAOKernelLoc, 3);
 	glActiveTexture(GL_TEXTURE0 + 3);
 	glBindTexture(GL_TEXTURE_1D, SSAOKernel);
@@ -371,7 +398,7 @@ void RenderController::SSAOFragInit(){
 
 	//Declaring and Defining the SSAONoise texture
 	glGenTextures(1, &SSAONoise);
-	GLint SSAONoiseLoc = glGetUniformLocation(programVariables[ShaderSSAO], "SSAONoiseMap");
+	GLint SSAONoiseLoc = glGetUniformLocation(programVariables[ShaderSSAO], "SSAONoiseMap");	
 	glUniform1i(SSAONoiseLoc, 2);
 	glActiveTexture(GL_TEXTURE0 + 2);
 	glBindTexture(GL_TEXTURE_2D, SSAONoise);
@@ -382,19 +409,14 @@ void RenderController::SSAOFragInit(){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-
-	//GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderSSAO], "shadowMap");
-	//glUniform1i(shadowMapLoc, 5);
-	//glActiveTexture(GL_TEXTURE0 + 5);
-	//glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
-
 	glGenFramebuffers(1, &SSAOBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, SSAOBuffer);
 
 	//Declaring and Defining the SSAOOutput texture
 	glGenTextures(1, &SSAOOutput);
+	glActiveTexture(GL_TEXTURE0+8);
 	glBindTexture(GL_TEXTURE_2D, SSAOOutput);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOOutput, 0);
@@ -441,8 +463,9 @@ void RenderController::SSAOBlurInit(){
 
 	//Declaring and Defining the BlurOutput texture
 	glGenTextures(1, &SSAOBlurOutput);
+	glActiveTexture(GL_TEXTURE0+7);
 	glBindTexture(GL_TEXTURE_2D, SSAOBlurOutput);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCREENWIDTH, SCREENHEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSAOBlurOutput, 0);
@@ -502,7 +525,7 @@ void RenderController::lightingInit(){
 	GLint shadowMapLoc = glGetUniformLocation(programVariables[ShaderLighting], "shadowMap");
 	glUniform1i(shadowMapLoc, 5);
 	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, shadowDepthTexture);
+	glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, shadowDepthTexture);
 
 	//Setting up the shader storage Buffers.
 	glGenBuffers(1, &lightDataSSBO);
@@ -510,10 +533,10 @@ void RenderController::lightingInit(){
 	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(Light), lightController.getLightData(), GL_DYNAMIC_COPY);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightDataSSBO); 
 
-	glGenBuffers(1, &lightMatrixSSBO); 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lightMatrixSSBO); 
+	// glGenBuffers(1, &lightMatrixSSBO); 
+	// glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
+	// glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
+	// glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lightMatrixSSBO); 
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -652,8 +675,8 @@ void RenderController::reloadShaderBuffers(){
 	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
+	// glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightMatrixSSBO);
+	// glBufferData(GL_SHADER_STORAGE_BUFFER , lightController.getNumLights()*sizeof(glm::mat4), lightController.getLightMatData(), GL_DYNAMIC_COPY);
 	//GLvoid* pm = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 	//memcpy(pm, lightController.getLightMatData(), lightController.getNumLights()*sizeof(glm::mat4));
 	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -666,9 +689,10 @@ void RenderController::reloadShaderBuffers(){
 void RenderController::createNewShaderProgram(){
 	createNewShaderProgram(vertexShaderPath,fragmentShaderPath);
 }
-void RenderController::createNewShaderProgram(std::string vertexPath, std::string fragmentPath){
+void RenderController::createNewShaderProgram(std::string vertexPath, std::string fragmentPath,std::string geometryPath){
 	GLuint vertShader = compileShader(vertexPath, GL_VERTEX_SHADER);
 	GLuint fragShader = compileShader(fragmentPath, GL_FRAGMENT_SHADER);
+	GLuint geoShader = compileShader(geometryPath, GL_GEOMETRY_SHADER);
 
 	if(vertShader == 0 && fragShader == 0) std::cerr << "BOTH SHADERS ARE INVALID" << std::endl;
 
@@ -676,6 +700,7 @@ void RenderController::createNewShaderProgram(std::string vertexPath, std::strin
     GLuint program = glCreateProgram();
     if(vertShader != 0) glAttachShader(program, vertShader);
     if(fragShader != 0) glAttachShader(program, fragShader);
+    if(geoShader != 0) glAttachShader(program, geoShader);
     glLinkProgram(program);
 
  	GLint result = GL_FALSE;
@@ -690,11 +715,13 @@ void RenderController::createNewShaderProgram(std::string vertexPath, std::strin
 
     if(vertShader != 0)glDeleteShader(vertShader);
     if(fragShader != 0) glDeleteShader(fragShader);
+   if(geoShader != 0) glDeleteShader(geoShader);
     int programVectorSize = programVariables.size();
     programVariables.emplace_back(program);
     glUseProgram(programVariables[programVectorSize]);
     if(vertShader != 0) glDetachShader(programVariables[programVectorSize],vertShader);
     if(fragShader != 0) glDetachShader(programVariables[programVectorSize],fragShader);
+    if(geoShader != 0) glDetachShader(programVariables[programVectorSize],geoShader);
 }
 
 GLuint RenderController::compileShader(std::string path, GLenum shaderType){
@@ -707,7 +734,21 @@ GLuint RenderController::compileShader(std::string path, GLenum shaderType){
    GLint result = GL_FALSE;
 	int logLength;
 
-	std::string type = (shaderType==GL_VERTEX_SHADER || shaderType==GL_FRAGMENT_SHADER)?(shaderType==GL_VERTEX_SHADER)?"Vertex":"Fragment":"???";
+	std::string type;
+	switch(shaderType){
+		case GL_GEOMETRY_SHADER:
+			type = "Geometry";
+			break;
+		case GL_VERTEX_SHADER:
+			type = "Vertex";
+			break;
+		case GL_FRAGMENT_SHADER:
+			type = "Fragment";
+			break;
+		default:
+			type = "????";
+			break;
+	}
 	if(DEBUGMODE)std::cerr << "Compiling " << type<<" shader." << std::endl;
     glShaderSource(shader, 1, &shaderSrc, nullptr);
     glCompileShader(shader);
@@ -794,18 +835,26 @@ void RenderController::drawScene(){
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
 	glCullFace(GL_FRONT);
 
+	glFramebufferTexture( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0);
+	glClear(GL_DEPTH_BUFFER_BIT);
 
-	for(int i = 1; i<lightController.getNumLights(); i++){
+	glViewport(0,0,CUBEMAPSIDELENGTH, CUBEMAPSIDELENGTH);
+
+	for(int i = 0; i<lightController.getNumLights(); i++){
 		//Light * l = lightController.getLight(i);
 		//std::cerr << "Light "<< i <<" Color: \n\tX: " << l->getColor().r << "\n\tY: " << l->getColor().g << "\n\tZ: " << l->getColor().b << std::endl;
-	
-		glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, i);
 
-		glClear(GL_DEPTH_BUFFER_BIT);
+		//glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, i*6);
 
-		glm::mat4 tempLightMatrix = lightController.getMatrix(i);
-
-		glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], "PV"), 1, GL_FALSE, &(tempLightMatrix[0][0]));
+		glm::mat4 tempMatrix;
+		for(int j=0; j<6; j++){
+			tempMatrix = shadowProjMatrix * lightController.getMatrix(i,j);
+			glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderShadow], ("shadowMatrices["+std::to_string(j)+"]").c_str()), 1, GL_FALSE, &(tempMatrix[0][0]));
+		}
+		glUniform1f(glGetUniformLocation(programVariables[ShaderShadow], "farPlane"), FARPLANE);
+		glUniform1i(glGetUniformLocation(programVariables[ShaderShadow], "index"), i*6);
+		glm::vec4 tempLightPos = lightController.getLight(i)->getPos();
+		glUniform3f(glGetUniformLocation(programVariables[ShaderShadow], "lightPos"), tempLightPos[0],tempLightPos[1],tempLightPos[2]);
 
 		glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0), 1);
 	}
@@ -814,6 +863,8 @@ void RenderController::drawScene(){
 	glBindVertexArray(VertexArrayObject[ShaderBase]);
 	glCullFace(GL_BACK);
 
+	glViewport(0,0,SCREENWIDTH, SCREENHEIGHT);
+
 	glm::mat4 BaseProjMatrix = Camera.getProjMatrix();
 	glm::mat4 BaseViewMatrix = Camera.getViewMatrix();
 
@@ -821,7 +872,7 @@ void RenderController::drawScene(){
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderBase], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, preRenderFrameBuffer);
-	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
+	// glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowDepthTexture, 0, 0);
 	//glViewport(0,0,SCREENWIDTH,SCREENHEIGHT);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
@@ -851,8 +902,8 @@ void RenderController::drawScene(){
 	glBindVertexArray(VertexArrayObject[ShaderLighting]);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	//glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderSSAO], "P"), 1, GL_FALSE, &(BaseProjMatrix[0][0]));
+	glUniform1f(glGetUniformLocation(programVariables[ShaderLighting], "farPlane"), FARPLANE);
 	glUniformMatrix4fv(glGetUniformLocation(programVariables[ShaderLighting], "V"), 1, GL_FALSE, &(BaseViewMatrix[0][0]));
 	glUniform1ui(glGetUniformLocation(programVariables[ShaderLighting], "numLights"), lightController.getNumLights());
 

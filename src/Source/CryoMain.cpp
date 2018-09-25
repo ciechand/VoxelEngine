@@ -3,6 +3,7 @@
 #include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoBase.hpp"
 #include "../Headers/CryoInput.hpp"
+#include "../Headers/CryoLighting.hpp"
 
 sf::Window MainWindow;
 sf::Clock MainClock;
@@ -13,14 +14,12 @@ int main(int argc, char ** argv){
 	std::cerr << "Beginning of Program" << std::endl;
 
 	if(DEBUGMODE)std::cerr << "Starting Program" << std::endl;
-
 	//Firstly, We need to initiate SFML and create our main window.
 	sf::ContextSettings setting;
 	setting.depthBits = 24;
 	MainWindow.create(sf::VideoMode(SCREENWIDTH,SCREENHEIGHT), "Cryonyx", sf::Style::Default, setting);
 
 	if(DEBUGMODE)std::cerr << "Window Created" << std::endl;
-
 
 	glewExperimental = GL_TRUE;
 	glewInit();
@@ -32,7 +31,7 @@ int main(int argc, char ** argv){
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/BaseVertexShader.glsl"),std::string("./Assets/Shaders/BaseFragmentShader.glsl"));
 
 	if(DEBUGMODE)std::cerr << "Loading Shadow Shader Program" << std::endl;
-	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/ShadowVertexShader.glsl"),std::string("./Assets/Shaders/ShadowFragmentShader.glsl"));
+	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/ShadowVertexShader.glsl"),std::string("./Assets/Shaders/ShadowFragmentShader.glsl"),std::string("./Assets/Shaders/ShadowGeometryShader.glsl"));
 
 	if(DEBUGMODE)std::cerr << "Loading SSAO Shader Program" << std::endl;
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/QuadVertexShader.glsl"),std::string("./Assets/Shaders/SSAOFragmentShader.glsl"));
@@ -95,6 +94,7 @@ int main(int argc, char ** argv){
 		ChunkContainer[i]->GenerateMesh();
 	}
 	
+	lightController.initialize();
 	ShaderController.initialize();
 
 	while(MainController.getCurrentGameState() != GameExiting){

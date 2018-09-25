@@ -16,21 +16,6 @@ class Chunk;
 
 #include "./CryoRenderer.hpp"
 
-//A struct for defining the 
-// struct voxelSideInfo{
-// 	bool active = true;
-// 	glm::vec3 color = glm::vec3(0.0f,0.0f,0.0f);
-// 	int texture = 0;	
-// 	voxelSideInfo(bool a, glm::vec3 c, int t){
-// 		active = a;
-// 		color = c;
-// 		texture = t;
-// 	}
-// 	bool operator==(const voxelSideInfo that) const{
-// 		return ((this.active == that.active) && (this.color == that.color) && (this.texture == that.texture));
-// 	}
-// };
-
 
 //VertexInfo Class, used when reading in the vertices
 struct vertexInfo{

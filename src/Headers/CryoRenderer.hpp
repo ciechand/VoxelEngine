@@ -102,7 +102,7 @@ class RenderController{
 		void reloadBuffers();
 		void reloadShaderBuffers();
 		void createNewShaderProgram();
-		void createNewShaderProgram(std::string vertexPath, std::string fragmentPath);
+		void createNewShaderProgram(std::string vertexPath, std::string fragmentPath,std::string geometryPath="");
 		GLuint compileShader(std::string path, GLenum shaderType);
 
 		void setShader(int index);
@@ -154,8 +154,10 @@ class RenderController{
 		//variables necessary for shadow mapping
 		GLuint shadowBuffer = 0;
 		GLuint shadowDepthTexture;
+		GLuint baseRenderDepthTexture;
 		GLuint lightDataSSBO;
 		GLuint lightMatrixSSBO;
+		glm::mat4 shadowProjMatrix;
 		bool lightDataChanged = true;
 
 		//Variables needed for SSAO
