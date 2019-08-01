@@ -5,7 +5,7 @@
 #include <random>
 
 #include <glm/glm.hpp>
-
+#include <glm/gtx/rotate_vector.hpp>
 
 //Light class, this class contains everythng necessary to create a light. Directional and Point Lights will inherit from this class.
 class Light{
@@ -38,16 +38,21 @@ class LightController{
 		glm::vec3 * getSSAOKernelData();
 		glm::vec3 * getSSAONoiseData();
 
+		void incRotation();
+
 		void addLight();
 		void addLight(Light l);
 		void addLight(glm::vec4 pos, glm::vec3 color, float inten);
 		void setLight(unsigned int index, glm::vec4 pos, glm::vec3 color, float inten);
+		void setLightPos(unsigned int index, glm::vec4 pos);
 		Light * getLight(unsigned int index);
 
 		std::vector<glm::mat4> getMatrix(unsigned int index);
 		glm::mat4 getMatrix(unsigned int index,unsigned int dir);
 
 	private:
+		glm::vec3 centerOfRotation = glm::vec3(CHUNKSIDE,20.0f,CHUNKSIDE);
+		float globalLightRotation = 0;
 		std::vector<glm::vec3> SSAOKernel;
 		std::vector<glm::vec3> SSAONoise;
 		std::vector<Light> lightList;

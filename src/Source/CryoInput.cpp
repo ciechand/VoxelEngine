@@ -2,6 +2,7 @@
 #include "../Headers/CryoBase.hpp"
 #include "../Headers/CryoRenderer.hpp"
 #include "../Headers/CryoInput.hpp"
+#include "../Headers/CryoLighting.hpp"
 
 bool mouseBound = true;
 
@@ -31,6 +32,9 @@ void processKeyPress(sf::Event event){
 			break;
 		case sf::Keyboard::K:
 			mouseBound = !mouseBound;
+			break;
+		case sf::Keyboard::F:
+			lightController.incRotation();
 			break;
 		default:
 			break;

@@ -749,7 +749,7 @@ GLuint RenderController::compileShader(std::string path, GLenum shaderType){
 			type = "????";
 			break;
 	}
-	if(DEBUGMODE)std::cerr << "Compiling " << type<<" shader." << std::endl;
+	if((DEBUGMODE == true))std::cerr << "Compiling " << type<<" shader." << std::endl;
     glShaderSource(shader, 1, &shaderSrc, nullptr);
     glCompileShader(shader);
 

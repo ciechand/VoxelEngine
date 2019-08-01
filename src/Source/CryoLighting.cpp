@@ -124,9 +124,13 @@ void LightController::setLight(unsigned int index, glm::vec4 pos, glm::vec3 colo
 			up = glm::vec3(0.0f,0.0f,1.0f);
 		else if (i == 3)
 			up = glm::vec3(0.0f, 0.0f,-1.0f);
-		std::cerr << pos.x << "," << pos.y << "," << pos.z << std::endl;
+		if((DEBUGMODE == true) == true)  std::cerr << pos.x << "," << pos.y << "," << pos.z << std::endl;
 		viewMatricesList[index][i] = glm::lookAt(glm::vec3(pos), glm::vec3(pos) + DirectionVectors[i], up);
 	}
+}
+
+void LightController::setLightPos(unsigned int index, glm::vec4 pos){
+	setLight(index, pos, glm::vec3(lightList[index].getColor()), (lightList[index]).getColor().w);
 }
 
 Light * LightController::getLight(unsigned int index){
@@ -139,4 +143,15 @@ std::vector<glm::mat4> LightController::getMatrix(unsigned int index){
 
 glm::mat4 LightController::getMatrix(unsigned int index, unsigned int dir){
 	return viewMatricesList[index][dir];
+}
+
+void LightController::incRotation(){
+	for(int i=0; i<lightList.size(); i++){
+		glm::vec4 lightPos = lightList[i].getPos();
+	/*	glm::vec4 tempVec = lightPos - glm::vec4(centerOfRotation,1.0);
+		glm::vec4 newlightPos = glm::rotate(tempVec, glm::radians(3.0f), centerOfRotation);*/
+		glm::mat4 translateMat = glm::translate(glm::mat4(), glm::vec3(0.0f,0.0f,-1.0f));
+		glm::vec4 newlightPos = translateMat*lightPos;
+		setLightPos(i,newlightPos);
+	}
 }

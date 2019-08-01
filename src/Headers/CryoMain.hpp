@@ -30,14 +30,14 @@
 #define SCREENHEIGHT 1080
 #define CUBEMAPSIDELENGTH 512
 
-#define DEBUGMODE true
+#define DEBUGMODE false
 #define SHADOWMAPDEBUG false
 
 #define CUBESIZE 1.0f
 #define HALFSIZE (CUBESIZE/2.0f)+0.003f
 
-#define CHUNKSIDE 16
 #define CHUNKSIZE CHUNKSIDE*CHUNKSIDE*CHUNKSIDE
+#define CHUNKSIDE 16
 
 #define PI 3.14f
 
