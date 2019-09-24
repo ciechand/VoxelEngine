@@ -78,6 +78,10 @@ unsigned int LightController::getNumLights(){
 }
 
 Light* LightController::getLightData(){
+	glm::mat4 rotateMat = glm::rotate(0.001f, glm::vec3(0.0f,1.0f,0.0f));
+	for(int i=0; i<lightList.size(); i++){
+		setLightPos(i,rotateMat*lightList[i].getPos());
+	}
 	return lightList.data();
 }
 

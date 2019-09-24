@@ -53,14 +53,14 @@ int main(int argc, char ** argv){
 
 
 	sf::Time t1 = MainClock.getElapsedTime();
-	unsigned int chunkRadius = 10;
+	unsigned int chunkSize = 10;
 
 	float minHeight = std::numeric_limits<float>::max();
 	float maxHeight = -std::numeric_limits<float>::max();
 
-	for(int i=0; i<chunkRadius*chunkRadius; i++){
-		float xAxis = i%chunkRadius;
-		float zAxis = i/chunkRadius;
+	for(int i=0; i<chunkSize*chunkSize; i++){
+		float xAxis = i%chunkSize;
+		float zAxis = i/chunkSize;
 		minHeight = std::numeric_limits<float>::max();
 		maxHeight = -std::numeric_limits<float>::max();
 		for(int x=0; x<CHUNKSIDE; x++){
