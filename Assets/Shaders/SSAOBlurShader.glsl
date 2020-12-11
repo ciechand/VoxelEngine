@@ -17,6 +17,6 @@ void main() {
             result += texture(SSAOInput, texCoords + offset).r;
         }
     }
-    FragColor = vec4(vec3(result / (4.0 * 4.0)),1.0);
+    FragColor = vec4(vec3(result / (5.0 * 5.0)),1.0);
    // FragColor = texture(SSAOInput, texCoords);
 }  

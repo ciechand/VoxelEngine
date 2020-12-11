@@ -2,6 +2,7 @@
 #define util
 
 #include <iostream>
+#include <fstream>
 
 #include <string>
 
@@ -16,4 +17,5 @@ unsigned int translate3DPos(glm::vec3 position, unsigned int size);
 unsigned int translate3DPos(int x,int y,int z, unsigned int size);
 void print4x4Matrix(glm::mat4 matrix);
 float lerp(float a, float b, float f);
+template<typename T> int sgn(T val);
 #endif //util

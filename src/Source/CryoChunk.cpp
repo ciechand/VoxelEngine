@@ -491,7 +491,7 @@ Chunk::Chunk(glm::vec3 pos){
 			Grid[i] = new Block();
 
 	}
-	if((DEBUGMODE == true) == true) std::cerr << "Finnished Loading Blocks for Chunk:  " << chunkPos.x << ", " <<chunkPos.y  << ", " << chunkPos.z << ";" << std::endl;
+	if((DEBUGMODE) == true) std::cerr << "Finnished Loading Blocks for Chunk:  " << chunkPos.x << ", " <<chunkPos.y  << ", " << chunkPos.z << ";" << std::endl;
 
 }
 
@@ -523,7 +523,7 @@ void Chunk::initializeMesh(){
 		Grid[i]->setPosition(((blockPos)+((float)CHUNKSIDE*chunkPos))-(glm::vec3(CHUNKSIDE)/2.0f));
 		Grid[i]->setColor(None);
 		//Grid[i]->setColor((VoxelColor)((i/CHUNKSIDE)%CHUNKSIDE));
-		/*if((DEBUGMODE == true) == true){
+		/*if((DEBUGMODE) == true){
 			glm::vec3 tempBPos = Grid[i]->getPosition();
 			std::cerr << "Current Block Pos: \n\tX: " << tempBPos.x << "\n\tY: " << tempBPos.y << "\n\tZ: " << tempBPos.z << std::endl;
 		}*/
@@ -609,9 +609,9 @@ void Chunk::updateMesh(){
 //Functions for chunk class 
 void Chunk::GenerateMesh(){
 	initializeMesh();
-	if((DEBUGMODE == true) == true) std::cerr << "initialized Mesh" << std::endl;
+	if((DEBUGMODE) == true) std::cerr << "initialized Mesh" << std::endl;
 	updateMesh();
-	if((DEBUGMODE == true) == true) std::cerr << "updated Mesh" << std::endl;
+	if((DEBUGMODE) == true) std::cerr << "updated Mesh" << std::endl;
 
 	//std::array<unsigned int, CHUNKSIDE*CHUNKSIDE> ChunkMask = {0};
 	chunkMesh.clearMesh();
@@ -700,7 +700,7 @@ void Chunk::GenerateMesh(){
 			}
 		}
 	}
-	if((DEBUGMODE == true) == true) std::cerr << "Generated Mesh" << std::endl;
+	if(DEBUGMODE) std::cerr << "Generated Mesh" << std::endl;
 	ShaderController.addBaseMesh(&chunkMesh);
 }
 

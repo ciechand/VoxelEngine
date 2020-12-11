@@ -16,6 +16,8 @@ layout(location=8) uniform mat4 V;
 uniform uint numLights;
 uniform float farPlane;
 
+vec3 texelSize = 1.0 / textureSize(shadowMap,0);
+
 //Information necessary to process all the lights.
 struct Light{
 	vec4 Position;
@@ -52,21 +54,21 @@ void main(){
 		actualNumLights++;
 		lightDirection = normalize(-posVec);
 
-		float clampedLightDir = clamp(dot(vNormal, lightDirection),0.0,1.0);
+		float clampedLightDir = clamp(degrees(dot(vNormal, lightDirection))/90.0,0.0,1.0);
 
-		bias = clamp(0.0005*tan(acos(clampedLightDir)),0.00,1.0);
+		bias = clamp(0.005*tan(acos(clampedLightDir)),0.0,1.0);
 
  		visibility = 0.0;
-			if(clampedLightDir > 0.0){
-				percentPass = texture(shadowMap, vec4(posVec.xyz, i), (posVecLength-bias)/farPlane); 
-				//percentPass = 0.5;
-				visibility += (percentPass);
-			}
+		if(clampedLightDir > 0.005){
+			percentPass = texture(shadowMap, vec4(posVec.xyz, i), (posVecLength-bias)/farPlane); 
+			//percentPass = 0.5;
+			visibility += (percentPass);
+		}
 		//visibility = 1.0;
 		//additiveColor += ((lights[i].Color.rgb/255.0));
-		additiveColor +=  0.8*(((vColor.rgb)*visibility)* //Color and visibility Checks
+		additiveColor +=  0.8*((vColor.rgb*visibility)* //Color and visibility Checks
 							(clampedLightDir)* // check the angle between normal or surface and light
-							((lights[i].Color.rgb/255.0))* // Add in the light color
+							(lights[i].Color.rgb/255.0)* // Add in the light color
 							(1-clamp(posVecLength/lights[i].Color.a,0.0,1.0))); //fade the edge of the lights
 	}
 
@@ -77,7 +79,7 @@ void main(){
 	vec4 finalColor = vec4(0.0);
 	if(actualNumLights != 0){
 		finalColor = vec4(((0.2*(vColor.rgb)) + //Ambient
-				((additiveColor/float(actualNumLights))))*ssao ,1.0); // Added Diffuse
+				((min(additiveColor,1.0))))*ssao ,1.0); // Added Diffuse //removed /float(actualNumLights)
 	}else{
 		finalColor = vec4((0.2*(vColor.rgb))*ssao,1.0); // Ambient only
 	}

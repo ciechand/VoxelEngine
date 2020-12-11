@@ -70,7 +70,7 @@ LightController::~LightController(){
 
 void LightController::initialize(){
 	addLight(glm::vec4(CHUNKSIDE*1.0f,20.0f,CHUNKSIDE*1.0f,1.0f), glm::vec3(255.0,0.0,0.0), 50.0f);
-	addLight(glm::vec4(CHUNKSIDE*5.0f,20.0f,CHUNKSIDE*8.0f,1.0f), glm::vec3(0.0,255.0,0.0), 100.0f);
+	addLight(glm::vec4(CHUNKSIDE*5.0f,20.0f,CHUNKSIDE*8.0f,1.0f), glm::vec3(0.0,255.0,0.0), 50.0f);
 }
 
 unsigned int LightController::getNumLights(){
@@ -78,10 +78,10 @@ unsigned int LightController::getNumLights(){
 }
 
 Light* LightController::getLightData(){
-	glm::mat4 rotateMat = glm::rotate(0.001f, glm::vec3(0.0f,1.0f,0.0f));
-	for(int i=0; i<lightList.size(); i++){
-		setLightPos(i,rotateMat*lightList[i].getPos());
-	}
+	//glm::mat4 rotateMat = glm::rotate(0.001f, glm::vec3(0.0f,1.0f,0.0f));
+	//for(int i=0; i<lightList.size(); i++){
+	//	setLightPos(i,rotateMat*lightList[i].getPos());
+	//}
 	return lightList.data();
 }
 
@@ -128,7 +128,7 @@ void LightController::setLight(unsigned int index, glm::vec4 pos, glm::vec3 colo
 			up = glm::vec3(0.0f,0.0f,1.0f);
 		else if (i == 3)
 			up = glm::vec3(0.0f, 0.0f,-1.0f);
-		if((DEBUGMODE == true) == true)  std::cerr << pos.x << "," << pos.y << "," << pos.z << std::endl;
+		if((DEBUGMODE) == true)  std::cerr << pos.x << "," << pos.y << "," << pos.z << std::endl;
 		viewMatricesList[index][i] = glm::lookAt(glm::vec3(pos), glm::vec3(pos) + DirectionVectors[i], up);
 	}
 }

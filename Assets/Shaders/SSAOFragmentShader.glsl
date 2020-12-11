@@ -19,7 +19,7 @@ uniform vec2 windowSize;
 //Define Variables for SSAO Processing.
 float radius = 0.5;
 float SSAOBias = 0.025;
-float power = 2.0;
+float power = 1.0;
 //mat4 biasMatrix = mat4(0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.5,0.5,0.5,1.0);
 
 void main()
@@ -52,7 +52,7 @@ void main()
 		Occlusion += (sampleDepth >= TSample.z+SSAOBias?1.0:0.0)*rangeCheck;
 	}
 
-	Occlusion =  1.0 - (Occlusion/float(kernelSize));
+	Occlusion =  1.0 - clamp(Occlusion/float(kernelSize),0.005, 1.0);
 	//fColor = vec4(vec3(Occlusion),1.0);
 	fColor = vec4(vec3(pow(Occlusion, power)),1.0);
 }

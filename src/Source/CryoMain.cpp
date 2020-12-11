@@ -13,13 +13,13 @@ std::vector<Chunk *> ChunkContainer;
 int main(int argc, char ** argv){
 	std::cerr << "Beginning of Program" << std::endl;
 
-	if((DEBUGMODE == true))std::cerr << "Starting Program" << std::endl;
+	if((DEBUGMODE))std::cerr << "Starting Program" << std::endl;
 	//Firstly, We need to initiate SFML and create our main window.
 	sf::ContextSettings setting;
 	setting.depthBits = 24;
 	MainWindow.create(sf::VideoMode(SCREENWIDTH,SCREENHEIGHT), "Cryonyx", sf::Style::Default, setting);
 
-	if((DEBUGMODE == true))std::cerr << "Window Created" << std::endl;
+	if((DEBUGMODE))std::cerr << "Window Created" << std::endl;
 
 	glewExperimental = GL_TRUE;
 	glewInit();
@@ -27,22 +27,22 @@ int main(int argc, char ** argv){
 	InitOpenGL();
 
 	//THIS SECTION IS LOADING ALL THE DIFFERENT SHADERS USED
-	if((DEBUGMODE == true))std::cerr << "Loading Base Shader Program" << std::endl;
+	if((DEBUGMODE))std::cerr << "Loading Base Shader Program" << std::endl;
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/BaseVertexShader.glsl"),std::string("./Assets/Shaders/BaseFragmentShader.glsl"));
 
-	if((DEBUGMODE == true))std::cerr << "Loading Shadow Shader Program" << std::endl;
+	if((DEBUGMODE))std::cerr << "Loading Shadow Shader Program" << std::endl;
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/ShadowVertexShader.glsl"),std::string("./Assets/Shaders/ShadowFragmentShader.glsl"),std::string("./Assets/Shaders/ShadowGeometryShader.glsl"));
 
-	if((DEBUGMODE == true))std::cerr << "Loading SSAO Shader Program" << std::endl;
+	if((DEBUGMODE))std::cerr << "Loading SSAO Shader Program" << std::endl;
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/QuadVertexShader.glsl"),std::string("./Assets/Shaders/SSAOFragmentShader.glsl"));
 	
-	if((DEBUGMODE == true))std::cerr << "Loading Blur Shader Program" << std::endl;
+	if((DEBUGMODE))std::cerr << "Loading Blur Shader Program" << std::endl;
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/QuadVertexShader.glsl"),std::string("./Assets/Shaders/SSAOBlurShader.glsl"));
 	
-	if((DEBUGMODE == true))std::cerr << "Loading Lighting Shader Program" << std::endl;
+	if((DEBUGMODE))std::cerr << "Loading Lighting Shader Program" << std::endl;
 	ShaderController.createNewShaderProgram(std::string("./Assets/Shaders/QuadVertexShader.glsl"),std::string("./Assets/Shaders/LightingFragmentShader.glsl"));
 
-	if((DEBUGMODE == true))std::cerr << "Done Loading Shader Programs" << std::endl;
+	if((DEBUGMODE))std::cerr << "Done Loading Shader Programs" << std::endl;
 	//THIS IS THE END OF LOADING SHADERS
 
 	//ShaderController.loadBaseMeshes();
@@ -73,7 +73,7 @@ int main(int argc, char ** argv){
 			}
 		}
 		for(int y=minHeight; y<=maxHeight; y++){
-			if((DEBUGMODE == true) == true){
+			if((DEBUGMODE) == true){
 				std::cerr << "Min Height: " << minHeight << "\nMax Height: " << maxHeight << std::endl;
 				glm::vec3 tempV = glm::vec3(xAxis,y,zAxis);
 				std::cerr << "Setting up Chunk #" << i+1  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
@@ -83,11 +83,11 @@ int main(int argc, char ** argv){
 	}
 	sf::Time t2 = MainClock.getElapsedTime();
 	sf::Time dt = t2-t1;
-	std::cerr << "Time to generate and Mesh Chunks: " << dt.asSeconds() << std::endl;
+	if(DEBUGMODE) std::cerr << "Time to generate and Mesh Chunks: " << dt.asSeconds() << std::endl;
 	t1 = MainClock.getElapsedTime();
 
 	for(int i=0; i<ChunkContainer.size(); i++){
-		if((DEBUGMODE == true) == true){
+		if(DEBUGMODE){
 			glm::vec3 tempV = ChunkContainer[i]->getPos();
 			std::cerr << "Meshing Chunk #" << i+1  << " at:  " << tempV.x << ", " <<tempV.y  << ", " << tempV.z << ";" << std::endl;
 		}
@@ -113,6 +113,8 @@ int main(int argc, char ** argv){
 				case sf::Event::MouseMoved:
 					processMouseMove(event);
 					break;
+				case sf::Event::MouseButtonPressed:
+					processMouseClicks(event);
 				default:
 					break;
 			}
@@ -127,12 +129,12 @@ int main(int argc, char ** argv){
 	}
 	ChunkContainer.clear();
 	MainWindow.close();
-	if((DEBUGMODE == true))std::cerr << "Program Complete" << std::endl;
+	if((DEBUGMODE))std::cerr << "Program Complete" << std::endl;
 	return 0;
 }
 
 void InitOpenGL(){
-	if((DEBUGMODE == true))std::cerr << "Initializing OpenGL" << std::endl;
+	if((DEBUGMODE))std::cerr << "Initializing OpenGL" << std::endl;
 	glViewport(0,0,SCREENWIDTH, SCREENHEIGHT);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -141,7 +143,7 @@ void InitOpenGL(){
 	glEnable(GL_TEXTURE_2D);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(77.0f/256.0f,166.0f/255.0f,255.0f/255.0f,1.0f);
-	if((DEBUGMODE == true))std::cerr << "OpenGL Init Complete" << std::endl;
+	if((DEBUGMODE))std::cerr << "OpenGL Init Complete" << std::endl;
 }
 
 void PrepForRender(){

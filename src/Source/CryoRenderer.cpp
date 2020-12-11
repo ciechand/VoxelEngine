@@ -37,7 +37,7 @@ CameraController::CameraController(){
 	cameraAt = glm::vec3(10.0,0.0,0.0);
 	projectionMatrix = glm::perspective(PI/2.25f, ((float)SCREENWIDTH)/SCREENHEIGHT, NEARPLANE, FARPLANE);
 	//projectionMatrix = glm::perspective(PI/2.0f, 1.0f, NEARPLANE, FARPLANE);
-	print4x4Matrix(projectionMatrix);
+	//print4x4Matrix(projectionMatrix);
 	viewMatrix = glm::lookAt(cameraPos, cameraAt, cameraUp);
 }
 
@@ -104,7 +104,6 @@ void CameraController::setViewMatrix(glm::mat4 vm){
 
 
 RenderController::RenderController(){
-	std::cerr << "Render Controller" << std::endl;
 	VertexArrayObject.assign(NUM_SHADERS,0);
 	shaderPositions.assign(5,0);
 	shadowProjMatrix = glm::perspective(PI/2.0f, (float)CUBEMAPSIDELENGTH/(float)CUBEMAPSIDELENGTH, NEARPLANE, FARPLANE);
@@ -126,23 +125,23 @@ void RenderController::initialize(){
 	glGenVertexArrays(NUM_SHADERS, &(VertexArrayObject[0]));
 
 	//Calling function to initialize the shadowShaders
-	std::cerr << "Initializing Shadows" << std::endl;
+	if(DEBUGMODE) std::cerr << "Initializing Shadows" << std::endl;
 	shadowPreInit();
 
 	//Calling function to initizlize the base shaders.
-	std::cerr << "Initializing Initial Render" << std::endl;
+	if(DEBUGMODE) std::cerr << "Initializing Initial Render" << std::endl;
 	firstRenderInit();
 
 	//Calling function to initialize SSAO
-	std::cerr << "Initializing SSAO" << std::endl;
+	if(DEBUGMODE) std::cerr << "Initializing SSAO" << std::endl;
 	SSAOFragInit();
 
 	//Calling functions to initilize SSAOBlur
-	std::cerr << "Initializing BlurShaders" << std::endl;
+	if(DEBUGMODE) std::cerr << "Initializing BlurShaders" << std::endl;
 	SSAOBlurInit();
 	
 	//Calling functions to initilize LightingPass
-	std::cerr << "Initializing Lighting" << std::endl;
+	if(DEBUGMODE) std::cerr << "Initializing Lighting" << std::endl;
 	lightingInit();
 
 	glBindVertexArray(0);
@@ -541,7 +540,7 @@ void RenderController::lightingInit(){
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-int RenderController::loadBaseMeshes(){
+void RenderController::loadBaseMeshes(){
 	vertices.clear();
 	texCoords.clear();
 	vertexNormals.clear();
@@ -572,6 +571,7 @@ int RenderController::loadBaseMeshes(){
 		colors.insert(colors.end(), tempC.begin(), tempC.end());
 	}
 	meshBorder = baseMeshes.size();
+
 }
 
 void RenderController::addBaseMesh(BaseMesh* m){
@@ -696,7 +696,7 @@ void RenderController::createNewShaderProgram(std::string vertexPath, std::strin
 
 	if(vertShader == 0 && fragShader == 0) std::cerr << "BOTH SHADERS ARE INVALID" << std::endl;
 
-    std::cerr << "Linking program" << std::endl;
+    if(DEBUGMODE) std::cerr << "Linking program" << std::endl;
     GLuint program = glCreateProgram();
     if(vertShader != 0) glAttachShader(program, vertShader);
     if(fragShader != 0) glAttachShader(program, fragShader);
@@ -749,7 +749,7 @@ GLuint RenderController::compileShader(std::string path, GLenum shaderType){
 			type = "????";
 			break;
 	}
-	if((DEBUGMODE == true))std::cerr << "Compiling " << type<<" shader." << std::endl;
+	if((DEBUGMODE))std::cerr << "Compiling " << type<<" shader." << std::endl;
     glShaderSource(shader, 1, &shaderSrc, nullptr);
     glCompileShader(shader);
 

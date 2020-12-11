@@ -97,7 +97,7 @@ class RenderController{
 		void SSAOBlurInit();
 		void lightingInit();
 
-		int loadBaseMeshes();
+		void loadBaseMeshes();
 		void addBaseMesh(BaseMesh* m);
 		void reloadBuffers();
 		void reloadShaderBuffers();

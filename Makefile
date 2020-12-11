@@ -2,9 +2,9 @@ TARGETC = $(wildcard ./src/Source/*.cpp)
 TARGETC += $(wildcard ./Includes/*.cpp)
 TARGETO = $(addprefix ./src/Objects/,$(notdir $(TARGETC:%.cpp=%.o)))
 HPPS = $(wildcard ./src/Headers/*.hpp)
-TARGETEXE = ./Cryonyx.exe
+TARGETEXE = ./bin/Cryonyx.exe
 CPPFLAGS = -std=c++17 -g -static-libstdc++ -static-libgcc -DSFML_STATIC
-INC = -lsfml-graphics -lsfml-window -lsfml-system -lwinmm -lboost_filesystem-mt -lboost_system-mt -lglu32 -lopengl32 -lgdi32 -lglew32 -lpng -lz -ljpeg -lfreetype -lpthread
+INC = -lsfml-graphics -lsfml-window -lsfml-system -lwinmm -lglu32 -lopengl32 -lgdi32 -lglew32 -lz -lfreetype -lpthread
 
 PHONY := clean
 

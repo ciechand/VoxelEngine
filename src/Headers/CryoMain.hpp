@@ -22,13 +22,10 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/integer.hpp>
 
-#include <boost/filesystem.hpp>
-#include <boost/optional.hpp>
-
 //Next comes our Defines, these are constants that are necessary for hte game to function
 #define SCREENWIDTH 1920
 #define SCREENHEIGHT 1080
-#define CUBEMAPSIDELENGTH 512
+#define CUBEMAPSIDELENGTH 2048
 
 #define DEBUGMODE false
 #define SHADOWMAPDEBUG false

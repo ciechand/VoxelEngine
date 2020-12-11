@@ -18,6 +18,7 @@
 void processKeyPress(sf::Event event);
 void processMouseMove(sf::Event event);
 void processResize(sf::Event event);
+void processMouseClicks(sf::Event event);
 
 extern bool mouseBound;
 

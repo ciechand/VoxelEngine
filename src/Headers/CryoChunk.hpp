@@ -178,10 +178,13 @@ class Chunk{
 		Block* getBlock(unsigned int index);
 		Block* getBlock(glm::vec3 pos);
 
+		//add a collision detection function for the AABB and if it does collide, what the colliding face would be.
+
 	protected:
 		BaseMesh chunkMesh;
 		glm::vec3 chunkPos;	
 		std::array<Block*, CHUNKSIZE> Grid;	
+		//Add a large AABB for the Chunk
 
 	private: 
 		std::array<int,6> adjacentChunks;

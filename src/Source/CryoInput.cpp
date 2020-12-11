@@ -8,27 +8,12 @@ bool mouseBound = true;
 
 void processKeyPress(sf::Event event){
 	glm::vec3 ca = Camera.getCamAt();
+	glm::vec3 cp = Camera.getCamPos();
+	glm::vec3 cu = Camera.getCamUp();
+	glm::vec3 cv = ca-cp;
 	switch(event.key.code){
 		case sf::Keyboard::Escape:
 			MainController.setCurrentGameState(GameExiting);
-			break;
-		case sf::Keyboard::S:
-			ca.z += WALKSPEED;
-			break;
-		case sf::Keyboard::W:
-			ca.z -= WALKSPEED;
-			break;
-		case sf::Keyboard::A:
-			ca.x -= WALKSPEED;
-			break;
-		case sf::Keyboard::D:
-			ca.x += WALKSPEED;
-			break;
-		case sf::Keyboard::Q:
-			ca.y -= WALKSPEED;
-			break;
-		case sf::Keyboard::E:
-			ca.y += WALKSPEED;
 			break;
 		case sf::Keyboard::K:
 			mouseBound = !mouseBound;
@@ -36,9 +21,30 @@ void processKeyPress(sf::Event event){
 		case sf::Keyboard::F:
 			lightController.incRotation();
 			break;
+		case sf::Keyboard::L:
+			lightController.addLight(glm::vec4(ca,1.0),BlockColors[rand()%16],50);
+			ShaderController.lightingInit();
 		default:
 			break;
 	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
+		glm::vec3 temp = glm::normalize(glm::vec3(cv.x,0.0,cv.z));
+		ca += temp;
+		printf("Forward Vector:\nX: %f\nY: %f\nZ: %f\n", temp.x, temp.y, temp.z);
+	}else if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
+		ca -= glm::normalize(glm::vec3(cv.x,0.0,cv.z));
+	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
+		ca -= glm::normalize(glm::cross(glm::vec3(cv.x,0.0,cv.z),cu));
+	}else if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
+		ca += glm::normalize(glm::cross(glm::vec3(cv.x,0.0,cv.z),cu));
+	}
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q)){	
+		ca += cu;
+	}else if(sf::Keyboard::isKeyPressed(sf::Keyboard::E)){
+		ca -= cu;
+	}
+
 	Camera.setCamAt(ca);
 	Camera.setCamPos(ca+Camera.getCamFRot());
 	//std::cerr << "Camera Pos: \n\tx: " << ShaderController.cameraPos.x << "\n\ty: " << ShaderController.cameraPos.y << "\n\tz: " << ShaderController.cameraPos.z << std::endl;
@@ -69,6 +75,11 @@ void processMouseMove(sf::Event event){
  		Camera.setCamFRot(rotations);
 		Camera.setCamRot(camRot);
 }
+
+void processMouseClicks(sf::Event Event){
+	//process mouse click by ray tracing and figure out what block face it intersects
+}
+
 
 void processResize(sf::Event event){
 	glViewport(0,0,event.size.width, event.size.height);

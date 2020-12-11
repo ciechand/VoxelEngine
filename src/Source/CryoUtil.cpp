@@ -48,3 +48,7 @@ void print4x4Matrix(glm::mat4 matrix){
 float lerp(float a, float b, float f){
     return a + f * (b - a);
 }
+
+template<typename T> int sgn(T val){
+    return (T(0) < val) - (val < T(0));
+}
